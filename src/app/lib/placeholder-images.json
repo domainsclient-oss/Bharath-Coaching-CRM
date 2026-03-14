@@ -1,0 +1,23 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "edu-hero",
+      "description": "Educational campus background",
+      "imageUrl": "https://picsum.photos/seed/edu1/1200/800",
+      "imageHint": "university campus"
+    },
+    {
+      "id": "student-study",
+      "description": "Student studying in library",
+      "imageUrl": "https://picsum.photos/seed/edu2/800/600",
+      "imageHint": "student library"
+    },
+    {
+      "id": "classroom",
+      "description": "Modern classroom setting",
+      "imageUrl": "https://picsum.photos/seed/edu3/800/600",
+      "imageHint": "modern classroom"
+    }
+  ]
+}
