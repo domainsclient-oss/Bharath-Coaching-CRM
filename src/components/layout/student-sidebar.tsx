@@ -13,15 +13,13 @@ import {
   Bell,
   CreditCard,
   Calendar,
-  GraduationCap,
-  LogOut
+  GraduationCap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -43,7 +41,7 @@ const studentMenuItems = [
 
 export function StudentSidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
 
@@ -97,16 +95,6 @@ export function StudentSidebar() {
           })}
         </SidebarMenu>
       </SidebarContent>
-
-      <SidebarFooter className="p-4 border-t border-white/10">
-        <button 
-          onClick={logout}
-          className="flex items-center gap-3 text-sm text-white/70 hover:text-white transition-colors w-full px-2"
-        >
-          <LogOut size={18} />
-          {!isCollapsed && <span>Logout</span>}
-        </button>
-      </SidebarFooter>
     </Sidebar>
   );
 }

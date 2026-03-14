@@ -24,7 +24,6 @@ import {
   MessageSquare,
   Globe,
   BarChart3,
-  LogOut,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -33,7 +32,6 @@ import { useAuth } from '@/lib/auth-context';
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -98,13 +96,8 @@ const navGroups = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
-
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
-  };
 
   return (
     <Sidebar collapsible="icon" className="bg-primary text-primary-foreground border-r-0">
@@ -158,29 +151,6 @@ export function AdminSidebar() {
           </SidebarGroup>
         ))}
       </SidebarContent>
-
-      <SidebarFooter className="border-t border-primary-foreground/10 p-4">
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold shrink-0">
-              {user ? getInitials(user.name) : '??'}
-            </div>
-            {!isCollapsed && (
-              <div className="flex flex-col overflow-hidden">
-                <span className="text-sm font-semibold truncate">{user?.name}</span>
-                <span className="text-[10px] text-white/50 uppercase">{user?.role}</span>
-              </div>
-            )}
-          </div>
-          <button 
-            onClick={logout}
-            className="flex items-center gap-3 text-sm text-white/70 hover:text-white transition-colors px-2"
-          >
-            <LogOut size={18} />
-            {!isCollapsed && <span>Logout</span>}
-          </button>
-        </div>
-      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );
