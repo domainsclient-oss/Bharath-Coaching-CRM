@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('sunrise_crm_session');
+    const storedUser = localStorage.getItem('bharath_academy_session');
     const storedBranch = localStorage.getItem('bharath_academy_branch');
     
     if (storedUser) {
@@ -80,7 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (foundUser) {
       const { password, ...userSession } = foundUser;
       setUser(userSession as User);
-      localStorage.setItem('sunrise_crm_session', JSON.stringify(userSession));
+      localStorage.setItem('bharath_academy_session', JSON.stringify(userSession));
       
       if (userSession.role === 'admin' || userSession.role === 'teacher') {
         router.push('/admin');
@@ -94,7 +94,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('sunrise_crm_session');
+    localStorage.removeItem('bharath_academy_session');
     router.push('/login');
   };
 
