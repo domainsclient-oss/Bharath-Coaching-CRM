@@ -1,7 +1,7 @@
 
 "use client";
 
-import { Bell, Search, Menu, LogOut } from 'lucide-react';
+import { Bell, Search, LogOut, MapPin } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -14,13 +14,20 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface HeaderProps {
   title: string;
 }
 
 export function SharedHeader({ title }: HeaderProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, currentBranch, setBranch, availableBranches } = useAuth();
   
   const getInitials = (name: string) => {
     return name
@@ -34,7 +41,25 @@ export function SharedHeader({ title }: HeaderProps) {
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-background/95 px-4 backdrop-blur transition-all-150 md:px-6">
       <div className="flex items-center gap-4">
         <SidebarTrigger className="md:hidden" />
-        <h1 className="text-xl font-semibold text-primary md:text-2xl">{title}</h1>
+        <div className="flex flex-col md:flex-row md:items-center md:gap-4">
+          <h1 className="text-xl font-semibold text-primary md:text-2xl">{title}</h1>
+          <div className="hidden h-6 w-[1px] bg-border md:block" />
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-secondary" />
+            <Select value={currentBranch} onValueChange={setBranch}>
+              <SelectTrigger className="h-8 border-none bg-transparent p-0 text-sm font-medium focus:ring-0">
+                <SelectValue placeholder="Select Branch" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableBranches.map((branch) => (
+                  <SelectItem key={branch} value={branch}>
+                    {branch} Branch
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">

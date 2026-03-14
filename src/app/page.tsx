@@ -28,7 +28,7 @@ export default function RootPage() {
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-[#1E2A4A]" />
-        <p className="text-muted-foreground font-medium">Loading Sunrise Portal...</p>
+        <p className="text-muted-foreground font-medium">Loading Bharath Academy Portal...</p>
       </div>
     </div>
   );

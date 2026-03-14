@@ -41,7 +41,7 @@ const studentMenuItems = [
 
 export function StudentSidebar() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, currentBranch } = useAuth();
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
 
@@ -53,9 +53,10 @@ export function StudentSidebar() {
             <GraduationCap size={20} />
           </div>
           {!isCollapsed && (
-            <span className="text-lg font-bold tracking-tight whitespace-nowrap">
-              Student <span className="text-secondary">Portal</span>
-            </span>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold tracking-tight text-white uppercase">Bharath Academy</span>
+              <span className="text-[10px] text-secondary font-medium uppercase tracking-widest">{currentBranch} Portal</span>
+            </div>
           )}
         </Link>
         

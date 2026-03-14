@@ -23,11 +23,13 @@ interface AuthContextType {
   logout: () => void;
   isLoading: boolean;
   isAuthenticated: boolean;
+  currentBranch: string;
+  setBranch: (branch: string) => void;
+  availableBranches: string[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Hardcoded users from PRD
 const TEST_USERS = {
   staff: [
     { email: "admin@center.com", password: "admin123", role: "admin" as const, name: "Admin User", id: "ADM001" },
@@ -39,21 +41,33 @@ const TEST_USERS = {
   ]
 };
 
+const BRANCHES = ["Trichy", "Chennai", "Madurai", "Coimbatore"];
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentBranch, setCurrentBranch] = useState("Trichy");
   const router = useRouter();
 
   useEffect(() => {
     const storedUser = localStorage.getItem('sunrise_crm_session');
+    const storedBranch = localStorage.getItem('bharath_academy_branch');
+    
     if (storedUser) {
       setUser(JSON.parse(storedUser));
+    }
+    if (storedBranch) {
+      setCurrentBranch(storedBranch);
     }
     setIsLoading(false);
   }, []);
 
+  const setBranch = (branch: string) => {
+    setCurrentBranch(branch);
+    localStorage.setItem('bharath_academy_branch', branch);
+  };
+
   const login = async (credentials: { id: string; password: string }, type: 'staff' | 'student') => {
-    // Simulate auth delay
     await new Promise(resolve => setTimeout(resolve, 800));
 
     let foundUser = null;
@@ -90,7 +104,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       login, 
       logout, 
       isLoading,
-      isAuthenticated: !!user 
+      isAuthenticated: !!user,
+      currentBranch,
+      setBranch,
+      availableBranches: BRANCHES
     }}>
       {children}
     </AuthContext.Provider>

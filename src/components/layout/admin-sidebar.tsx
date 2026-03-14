@@ -7,7 +7,6 @@ import {
   LayoutDashboard, 
   Users, 
   BookOpen, 
-  Calendar, 
   FileText, 
   CreditCard, 
   Settings, 
@@ -23,9 +22,7 @@ import {
   BookMarked,
   MessageSquare,
   Globe,
-  BarChart3,
-  ChevronLeft,
-  ChevronRight
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -96,6 +93,7 @@ const navGroups = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const { currentBranch } = useAuth();
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
 
@@ -109,8 +107,8 @@ export function AdminSidebar() {
             </div>
             {!isCollapsed && (
               <div className="flex flex-col">
-                <span className="text-sm font-bold leading-tight">Sunrise Tuition</span>
-                <span className="text-[10px] font-medium text-secondary">Center</span>
+                <span className="text-sm font-bold leading-tight">Bharath Academy</span>
+                <span className="text-[10px] font-medium text-secondary">{currentBranch} Branch</span>
               </div>
             )}
           </Link>

@@ -34,7 +34,7 @@ export default function LoginPage() {
       if (success) {
         toast({
           title: "Login Successful",
-          description: "Welcome back to Sunrise Tuition Center!",
+          description: "Welcome back to Bharath Academy!",
         });
       } else {
         toast({
@@ -61,8 +61,8 @@ export default function LoginPage() {
           <div className="rounded-2xl bg-white p-3 text-[#1E2A4A] shadow-xl transition-all-150 hover:scale-105">
             <GraduationCap size={40} />
           </div>
-          <h2 className="mt-6 text-3xl font-bold tracking-tight text-white">Sunrise Tuition Center</h2>
-          <p className="mt-2 text-sm text-white/70">Management Portal</p>
+          <h2 className="mt-6 text-3xl font-bold tracking-tight text-white">Bharath Academy</h2>
+          <p className="mt-2 text-sm text-white/70">Management Portal · Trichy Branch</p>
         </div>
 
         <Tabs defaultValue="staff" className="w-full">
@@ -148,7 +148,7 @@ export default function LoginPage() {
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input 
-                        id="student-password" 
+                        id="student-roll-password" 
                         type={showPassword ? "text" : "password"} 
                         className="pl-10 pr-10" 
                         required 
@@ -175,7 +175,7 @@ export default function LoginPage() {
         </Tabs>
 
         <p className="text-center text-xs text-white/50">
-          © 2025 Sunrise Tuition Center. All rights reserved.
+          © 2025 Bharath Academy. All rights reserved.
         </p>
       </div>
     </div>

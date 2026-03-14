@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/lib/auth-context';
 
 export const metadata: Metadata = {
-  title: 'Sunrise Tuition Center',
+  title: 'Bharath Academy',
   description: 'Management Portal - Empowering Education',
 };
 
