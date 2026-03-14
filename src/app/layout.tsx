@@ -2,10 +2,11 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
+import { AuthProvider } from '@/lib/auth-context';
 
 export const metadata: Metadata = {
-  title: 'Bharath Edu Portal',
-  description: 'A professional and modern education management portal',
+  title: 'Sunrise Tuition Center',
+  description: 'Management Portal - Empowering Education',
 };
 
 export default function RootLayout({
@@ -21,8 +22,10 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased selection:bg-accent/20">
-        {children}
-        <Toaster />
+        <AuthProvider>
+          {children}
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );

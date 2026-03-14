@@ -4,18 +4,24 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  Home, 
-  BookMarked, 
-  CalendarCheck, 
-  Award, 
-  FileCheck, 
-  Wallet,
-  GraduationCap
+  LayoutDashboard,
+  BookOpen, 
+  Video, 
+  FileText, 
+  FileEdit, 
+  BarChart2,
+  Bell,
+  CreditCard,
+  Calendar,
+  GraduationCap,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/lib/auth-context';
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -24,30 +30,46 @@ import {
 } from '@/components/ui/sidebar';
 
 const studentMenuItems = [
-  { icon: Home, label: 'Overview', href: '/student' },
-  { icon: BookMarked, label: 'My Courses', href: '/student/courses' },
-  { icon: CalendarCheck, label: 'Attendance', href: '/student/attendance' },
-  { icon: Award, label: 'Results', href: '/student/results' },
-  { icon: FileCheck, label: 'Exams', href: '/student/exams' },
-  { icon: Wallet, label: 'Fees Payment', href: '/student/fees' },
+  { icon: LayoutDashboard, label: 'My Dashboard', href: '/student' },
+  { icon: BookOpen, label: 'Resources', href: '/student/resources' },
+  { icon: Video, label: 'Video Lectures', href: '/student/videos' },
+  { icon: FileText, label: 'Question Papers', href: '/student/question-papers' },
+  { icon: FileEdit, label: 'My Tests', href: '/student/tests' },
+  { icon: BarChart2, label: 'My Progress', href: '/student/progress' },
+  { icon: Bell, label: 'Notices & Homework', href: '/student/notices' },
+  { icon: CreditCard, label: 'My Fees', href: '/student/fees' },
+  { icon: Calendar, label: 'My Timetable', href: '/student/timetable' },
 ];
 
 export function StudentSidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
 
   return (
-    <Sidebar collapsible="icon" className="bg-[#1A3A5C] text-white border-r-0">
-      <SidebarHeader className="h-16 flex items-center justify-center border-b border-white/10 px-4">
-        <Link href="/student" className="flex items-center gap-3 overflow-hidden">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0D5C72] text-white">
+    <Sidebar collapsible="icon" className="bg-gradient-to-b from-[#1A3A5C] to-[#0D5C72] text-white border-r-0">
+      <SidebarHeader className="h-auto py-6 flex flex-col items-center justify-center border-b border-white/10 px-4 gap-4">
+        <Link href="/student" className="flex items-center gap-3 overflow-hidden w-full">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-white">
             <GraduationCap size={20} />
           </div>
           {!isCollapsed && (
-            <span className="text-lg font-bold tracking-tight whitespace-nowrap">My Portal</span>
+            <span className="text-lg font-bold tracking-tight whitespace-nowrap">
+              Student <span className="text-secondary">Portal</span>
+            </span>
           )}
         </Link>
+        
+        {!isCollapsed && user && (
+          <div className="flex flex-col w-full gap-1">
+            <p className="text-sm font-semibold">{user.name}</p>
+            <div className="flex items-center justify-between text-[11px] text-white/60">
+              <span>{user.rollNo}</span>
+              <span className="bg-white/10 px-1.5 py-0.5 rounded">Class {user.class} · {user.board}</span>
+            </div>
+          </div>
+        )}
       </SidebarHeader>
       
       <SidebarContent className="py-4">
@@ -61,12 +83,12 @@ export function StudentSidebar() {
                   isActive={isActive}
                   tooltip={item.label}
                   className={cn(
-                    "transition-all-150 hover:bg-white/10 h-10 mb-1",
-                    isActive && "bg-[#0D5C72] text-white hover:bg-[#0D5C72]/90"
+                    "transition-all-150 hover:bg-white/10 h-11 mb-1",
+                    isActive && "bg-white text-primary hover:bg-white font-semibold border-l-4 border-primary rounded-l-none"
                   )}
                 >
                   <Link href={item.href} className="flex items-center gap-3">
-                    <item.icon className="h-5 w-5 shrink-0" />
+                    <item.icon className={cn("h-5 w-5 shrink-0", isActive ? "text-primary" : "text-white/70")} />
                     <span>{item.label}</span>
                   </Link>
                 </SidebarMenuButton>
@@ -75,6 +97,16 @@ export function StudentSidebar() {
           })}
         </SidebarMenu>
       </SidebarContent>
+
+      <SidebarFooter className="p-4 border-t border-white/10">
+        <button 
+          onClick={logout}
+          className="flex items-center gap-3 text-sm text-white/70 hover:text-white transition-colors w-full px-2"
+        >
+          <LogOut size={18} />
+          {!isCollapsed && <span>Logout</span>}
+        </button>
+      </SidebarFooter>
     </Sidebar>
   );
 }

@@ -4,25 +4,40 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export type UserRole = 'ADMIN' | 'TEACHER' | 'STUDENT';
+export type UserRole = 'admin' | 'teacher' | 'student';
 
 interface User {
   id: string;
   name: string;
   email?: string;
-  rollNumber?: string;
+  rollNo?: string;
   role: UserRole;
   avatar?: string;
+  class?: string;
+  board?: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (userData: User) => void;
+  login: (credentials: { id: string; password: string }, role: 'staff' | 'student') => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Hardcoded users from PRD
+const TEST_USERS = {
+  staff: [
+    { email: "admin@center.com", password: "admin123", role: "admin" as const, name: "Admin User", id: "ADM001" },
+    { email: "teacher@center.com", password: "teach123", role: "teacher" as const, name: "Priya Sharma", id: "TCH001" },
+  ],
+  student: [
+    { rollNo: "ROLL001", password: "student123", role: "student" as const, name: "Arjun Krishnan", id: "STU001", class: "10", board: "CBSE" },
+    { rollNo: "ROLL002", password: "student123", role: "student" as const, name: "Meera Nair", id: "STU002", class: "9", board: "CBSE" },
+  ]
+};
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -30,31 +45,53 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('bharath_edu_session');
+    const storedUser = localStorage.getItem('sunrise_crm_session');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
     setIsLoading(false);
   }, []);
 
-  const login = (userData: User) => {
-    setUser(userData);
-    localStorage.setItem('bharath_edu_session', JSON.stringify(userData));
-    if (userData.role === 'ADMIN' || userData.role === 'TEACHER') {
-      router.push('/admin');
+  const login = async (credentials: { id: string; password: string }, type: 'staff' | 'student') => {
+    // Simulate auth delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    let foundUser = null;
+    if (type === 'staff') {
+      foundUser = TEST_USERS.staff.find(u => u.email === credentials.id && u.password === credentials.password);
     } else {
-      router.push('/student');
+      foundUser = TEST_USERS.student.find(u => u.rollNo === credentials.id && u.password === credentials.password);
     }
+
+    if (foundUser) {
+      const { password, ...userSession } = foundUser;
+      setUser(userSession as User);
+      localStorage.setItem('sunrise_crm_session', JSON.stringify(userSession));
+      
+      if (userSession.role === 'admin' || userSession.role === 'teacher') {
+        router.push('/admin');
+      } else {
+        router.push('/student');
+      }
+      return true;
+    }
+    return false;
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('bharath_edu_session');
+    localStorage.removeItem('sunrise_crm_session');
     router.push('/login');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      logout, 
+      isLoading,
+      isAuthenticated: !!user 
+    }}>
       {children}
     </AuthContext.Provider>
   );
