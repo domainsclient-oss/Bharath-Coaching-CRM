@@ -24,7 +24,8 @@ import {
   Globe,
   BarChart3,
   UserCheck,
-  Calendar
+  Calendar,
+  Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -56,6 +57,7 @@ const navGroups = [
       { icon: BookOpen, label: 'Subjects', href: '/admin/academics/subjects' },
       { icon: UserCheck, label: 'Teacher Assignment', href: '/admin/academics/teachers' },
       { icon: Calendar, label: 'Class Timetable', href: '/admin/academics/class-timetable' },
+      { icon: Clock, label: 'Teacher Timetable', href: '/admin/academics/teacher-timetable' },
       { icon: ClipboardCheck, label: 'Attendance', href: '/admin/attendance' },
       { icon: Monitor, label: 'Online Classes', href: '/admin/online-classes' },
     ]
