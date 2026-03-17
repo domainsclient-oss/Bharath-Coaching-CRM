@@ -22,7 +22,8 @@ import {
   BookMarked,
   MessageSquare,
   Globe,
-  BarChart3
+  BarChart3,
+  UserCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -51,6 +52,8 @@ const navGroups = [
     items: [
       { icon: Users, label: 'Students', href: '/admin/students' },
       { icon: GraduationCap, label: 'Classes', href: '/admin/academics/classes' },
+      { icon: BookOpen, label: 'Subjects', href: '/admin/academics/subjects' },
+      { icon: UserCheck, label: 'Teacher Assignment', href: '/admin/academics/teachers' },
       { icon: ClipboardCheck, label: 'Attendance', href: '/admin/attendance' },
       { icon: Monitor, label: 'Online Classes', href: '/admin/online-classes' },
     ]
