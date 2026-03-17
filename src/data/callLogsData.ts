@@ -1,86 +1,89 @@
 
-export interface CallLogEntry {
+import { BranchId } from '@/lib/branch-context';
+
+export interface CallLog {
   id: string;
   date: string;
   time: string;
   name: string;
   number: string;
-  type: "Incoming" | "Outgoing";
-  duration: string;
-  outcome: string;
+  type: 'Incoming' | 'Outgoing';
+  duration: string; // e.g., "5m 2s"
+  outcome: string; // e.g., "Interested", "Follow-up scheduled", "Not reachable"
   enquiryId?: string;
-  enquiryNo?: string;
-  branchId: string;
-  loggedBy: string;
+  branchId: BranchId;
 }
 
-export const mockCallLogs: CallLogEntry[] = [
+export const mockCallLogs: CallLog[] = [
   {
-    id: "CL001",
-    date: "2025-03-12",
-    time: "10:45 AM",
-    name: "Aravind Swami",
-    number: "9840012345",
-    type: "Outgoing",
-    duration: "5m 20s",
-    outcome: "Spoke to father. Interested in evening batch. Demo requested.",
-    enquiryId: "L001",
-    enquiryNo: "ENQ-2025-0001",
-    branchId: "Trichy",
-    loggedBy: "Priya Sharma"
+    id: 'CL001',
+    date: '2025-03-12',
+    time: '11:34 AM',
+    name: 'Vijay Kumar',
+    number: '9876543210',
+    type: 'Incoming',
+    duration: '3m 45s',
+    outcome: 'Scheduled a demo for Class 10',
+    enquiryId: 'ENQ-2025-0003',
+    branchId: 'BR001',
   },
   {
-    id: "CL002",
-    date: "2025-03-11",
-    time: "03:00 PM",
-    name: "Bhavana K",
-    number: "9840054321",
-    type: "Outgoing",
-    duration: "0m 45s",
-    outcome: "No answer. Left voicemail regarding demo class.",
-    enquiryId: "L002",
-    enquiryNo: "ENQ-2025-0002",
-    branchId: "Trichy",
-    loggedBy: "Rajesh Kumar"
+    id: 'CL002',
+    date: '2025-03-12',
+    time: '10:15 AM',
+    name: 'Anitha S.',
+    number: '9123456789',
+    type: 'Outgoing',
+    duration: '5m 12s',
+    outcome: 'Follow-up call, interested in CBSE board.',
+    enquiryId: 'ENQ-2025-0002',
+    branchId: 'BR002',
   },
   {
-    id: "CL003",
-    date: "2025-03-11",
-    time: "11:30 AM",
-    name: "Rahul Sharma",
-    number: "9887766554",
-    type: "Incoming",
-    duration: "12m 15s",
-    outcome: "Called to enquire about Class 10 Foundation batch. Strong lead.",
-    enquiryId: "OA001",
-    enquiryNo: "WEB-2025-001",
-    branchId: "Trichy",
-    loggedBy: "Suresh Raina"
+    id: 'CL003',
+    date: '2025-03-11',
+    time: '04:50 PM',
+    name: 'Rajesh Sharma',
+    number: '9988776655',
+    type: 'Incoming',
+    duration: '2m 05s',
+    outcome: 'Asked for fee structure.',
+    enquiryId: 'ENQ-2025-0005',
+    branchId: 'BR001',
   },
   {
-    id: "CL004",
-    date: "2025-03-10",
-    time: "09:15 AM",
-    name: "Unknown Caller",
-    number: "9000011111",
-    type: "Incoming",
-    duration: "2m 30s",
-    outcome: "Enquired about fees. Refused to give name. To follow up.",
-    branchId: "Trichy",
-    loggedBy: "Priya Sharma"
+    id: 'CL004',
+    date: '2025-03-11',
+    time: '02:30 PM',
+    name: 'Priya Mehta',
+    number: '9876501234',
+    type: 'Outgoing',
+    duration: '7m 30s',
+    outcome: 'Not interested, already joined elsewhere.',
+    enquiryId: 'ENQ-2025-0001',
+    branchId: 'BR001',
   },
   {
-    id: "CL005",
-    date: "2025-03-09",
-    time: "04:20 PM",
-    name: "Divya Bharathi",
-    number: "9840011223",
-    type: "Outgoing",
-    duration: "8m 40s",
-    outcome: "Confirmed Sunday demo. Parent requested Physics focus.",
-    enquiryId: "L004",
-    enquiryNo: "ENQ-2025-0004",
-    branchId: "Trichy",
-    loggedBy: "Karthik Raja"
-  }
+    id: 'CL005',
+    date: '2025-03-10',
+    time: '05:00 PM',
+    name: 'Suresh Iyer',
+    number: '9112233445',
+    type: 'Incoming',
+    duration: '1m 15s',
+    outcome: 'Call disconnected.',
+    branchId: 'BR003',
+  },
+   {
+    id: 'CL006',
+    date: '2025-03-10',
+    time: '12:00 PM',
+    name: 'Deepa R.',
+    number: '9567890123',
+    type: 'Outgoing',
+    duration: '4m 20s',
+    outcome: 'Requested brochure on WhatsApp.',
+    enquiryId: 'ENQ-2025-0008',
+    branchId: 'BR002',
+  },
 ];
