@@ -16,6 +16,13 @@ export interface Student {
   admissionDate: string;
   rollNo: string;
   photo?: string;
+  // Discontinued specific fields
+  discontinuedReason?: string;
+  discontinuedDate?: string;
+  totalFees?: number;
+  collectedFees?: number;
+  balance?: number;
+  billNo?: string;
 }
 
 export const mockStudents: Student[] = [
@@ -119,7 +126,36 @@ export const mockStudents: Student[] = [
     status: "Discontinued",
     branchId: "Trichy",
     admissionDate: "2025-02-05",
-    rollNo: "ROLL006"
+    rollNo: "ROLL006",
+    discontinuedReason: "Relocated to another city",
+    discontinuedDate: "2025-03-01",
+    totalFees: 12000,
+    collectedFees: 8000,
+    balance: 4000,
+    billNo: "BA-2025-0082"
+  },
+  {
+    id: "STU006B",
+    appNo: "APP-2025-0099",
+    name: "Kiran Raj",
+    class: "10",
+    board: "CBSE",
+    school: "KV Trichy",
+    subjects: ["Mathematics", "Physics"],
+    phone: "9876543299",
+    whatsapp: "9876543299",
+    parentName: "Rajesh K",
+    mode: "Offline",
+    status: "Discontinued",
+    branchId: "Trichy",
+    admissionDate: "2025-01-05",
+    rollNo: "ROLL099",
+    discontinuedReason: "Financial issues",
+    discontinuedDate: "2025-03-05",
+    totalFees: 15000,
+    collectedFees: 5000,
+    balance: 10000,
+    billNo: "BA-2025-0105"
   },
   {
     id: "STU007",
