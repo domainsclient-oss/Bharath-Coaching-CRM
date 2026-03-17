@@ -1,0 +1,21 @@
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .receipt-dialog, .receipt-dialog * {
+      visibility: visible;
+  }
+  
+  .receipt-content {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+  }
+
+  .no-print, .no-print * {
+      display: none !important;
+  }
+}

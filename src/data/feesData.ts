@@ -1,92 +1,84 @@
 
-import { BranchId } from "@/lib/branch-context";
+// src/data/feesData.ts
 
-export type PaymentMode = "Cash" | "UPI" | "Cheque" | "NEFT";
-
-export interface Instalment {
-  amount: number;
-  date: string;
-  mode: PaymentMode;
-  collected: boolean;
+export interface FeeInstallment {
+    id: string;
+    installmentName: string; // e.g., "First Term", "Monthly - July"
+    dueDate: string; // YYYY-MM-DD
+    amount: number;
+    status: "Paid" | "Pending" | "Overdue";
+    paymentDate?: string; // YYYY-MM-DD
+    paymentId?: string;
 }
 
-export interface FeeRecord {
-  id: string;
-  billNo: string;
-  studentId: string;
-  studentName: string;
-  class: string;
-  board: string;
-  subjects: string[];
-  feeType: "Standard" | "OneToOne";
-  totalFee: number;
-  instalments: {
-    i1?: Instalment;
-    i2?: Instalment;
-    i3?: Instalment;
-  };
-  collected: number;
-  balance: number;
-  nextPaymentDate?: string;
-  notes?: string;
-  branchId: BranchId;
+export interface FeeStructure {
+    studentId: string;
+    totalAnnualFee: number;
+    scholarshipAmount: number;
+    netPayable: number;
+    installments: FeeInstallment[];
+    branchId: string;
 }
 
-export const mockFeeRecords: FeeRecord[] = [
-  {
-    id: "FEE001",
-    billNo: "BA-2025-0001",
+// Mock data for Arjun Kumar (STU001)
+export const mockFeeData: FeeStructure = {
     studentId: "STU001",
-    studentName: "Riya Sharma",
-    class: "10",
-    board: "CBSE",
-    subjects: ["Math", "Science"],
-    feeType: "Standard",
-    totalFee: 12000,
-    instalments: {
-      i1: { amount: 6000, date: "2025-03-01", mode: "UPI", collected: true },
-      i2: { amount: 6000, date: "2025-04-01", mode: "Cash", collected: false },
-    },
-    collected: 6000,
-    balance: 6000,
-    nextPaymentDate: "2025-04-01",
+    totalAnnualFee: 120000,
+    scholarshipAmount: 20000,
+    netPayable: 100000,
     branchId: "BR001",
-  },
-  {
-    id: "FEE002",
-    billNo: "BA-2025-0002",
+    installments: [
+        {
+            id: "FEE001",
+            installmentName: "First Installment",
+            dueDate: "2024-04-10",
+            amount: 25000,
+            status: "Paid",
+            paymentDate: "2024-04-08",
+            paymentId: "PAY123456"
+        },
+        {
+            id: "FEE002",
+            installmentName: "Second Installment",
+            dueDate: "2024-07-10",
+            amount: 25000,
+            status: "Paid",
+            paymentDate: "2024-07-05",
+            paymentId: "PAY123789"
+        },
+        {
+            id: "FEE003",
+            installmentName: "Third Installment",
+            dueDate: "2024-10-10",
+            amount: 25000,
+            status: "Pending",
+        },
+        {
+            id: "FEE004",
+            installmentName: "Fourth Installment",
+            dueDate: "2025-01-10",
+            amount: 25000,
+            status: "Pending",
+        },
+         {
+            id: "FEE005",
+            installmentName: "Previous Overdue", // Example of overdue
+            dueDate: "2024-05-10",
+            amount: 5000, // Maybe a miscellaneous fee
+            status: "Overdue",
+        },
+    ]
+};
+
+// Fee data for another student, should not be visible
+export const mockFeeDataOther: FeeStructure = {
     studentId: "STU002",
-    studentName: "Kiran Raj",
-    class: "9",
-    board: "State",
-    subjects: ["English", "Social Science"],
-    feeType: "Standard",
-    totalFee: 8000,
-    instalments: {
-      i1: { amount: 8000, date: "2025-03-05", mode: "Cash", collected: true },
-    },
-    collected: 8000,
-    balance: 0,
+    totalAnnualFee: 110000,
+    scholarshipAmount: 10000,
+    netPayable: 100000,
     branchId: "BR001",
-  },
-   {
-    id: "FEE003",
-    billNo: "BA-2025-0003",
-    studentId: "STU003",
-    studentName: "Priya S",
-    class: "11",
-    board: "ICSE",
-    subjects: ["Physics", "Chemistry", "Math"],
-    feeType: "OneToOne",
-    totalFee: 25000,
-    instalments: {
-      i1: { amount: 10000, date: "2025-03-10", mode: "NEFT", collected: true },
-      i2: { amount: 10000, date: "2025-04-10", mode: "UPI", collected: false },
-      i3: { amount: 5000, date: "2025-05-10", mode: "Cash", collected: false },
-    },
-    collected: 10000,
-    balance: 15000,
-    nextPaymentDate: "2025-04-10",
-    branchId: "BR002",
-  },
-];
+    installments: [
+        { id: "FEE006", installmentName: "First Term", dueDate: "2024-05-10", amount: 50000, status: "Paid" },
+        { id: "FEE007", installmentName: "Second Term", dueDate: "2024-09-10", amount: 50000, status: "Pending" },
+    ]
+};

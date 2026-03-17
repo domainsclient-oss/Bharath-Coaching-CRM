@@ -1,20 +1,14 @@
 
-export interface Staff {
-  id: string;
-  staffId: string;
-  name: string;
-  role: "Teacher" | "Admin" | "Support";
-  phone: string;
-  email: string;
-  status: "Active" | "Inactive";
-  branchId: string;
-  avatar?: string;
-}
+import centerConfig from '../config/centerConfig';
 
-export const mockStaff: Staff[] = [
-  { id: "STF001", staffId: "T-001", name: "Priya Sharma", role: "Teacher", phone: "9876543210", email: "priya@example.com", status: "Active", branchId: "Trichy" },
-  { id: "STF002", staffId: "T-002", name: "Rajesh Kumar", role: "Teacher", phone: "9876543211", email: "rajesh@example.com", status: "Active", branchId: "Trichy" },
-  { id: "STF003", staffId: "T-003", name: "Anjali Devi", role: "Teacher", phone: "9876543212", email: "anjali@example.com", status: "Active", branchId: "Chennai" },
-  { id: "STF004", staffId: "A-001", name: "Suresh Raina", role: "Admin", phone: "9876543213", email: "suresh@example.com", status: "Active", branchId: "Trichy" },
-  { id: "STF005", staffId: "T-004", name: "Karthik Raja", role: "Teacher", phone: "9876543214", email: "karthik@example.com", status: "Active", branchId: "Trichy" },
+const domain = centerConfig.email.split('@')[1];
+
+export const staffData = [
+    { id: "EMP001", name: "Meena Srinivasan", role: "Admin", branch: "Trichy", contact: "9876543210", email: `meena.s@${domain}`, status: "Active" },
+    { id: "EMP002", name: "Rajesh Kumar", role: "Teacher", branch: "Trichy", contact: "9876543211", email: `rajesh.k@${domain}`, status: "Active" },
+    { id: "EMP003", name: "Anitha Das", role: "Teacher", branch: "Trichy", contact: "9876543212", email: `anitha.d@${domain}`, status: "Active" },
+    { id: "EMP004", name: "Suresh Gupta", role: "Accountant", branch: "Chennai", contact: "9876543213", email: `suresh.g@${domain}`, status: "Active" },
+    { id: "EMP005", name: "Priya Mohan", role: "Counselor", branch: "Trichy", contact: "9876543214", email: `priya.m@${domain}`, status: "Active" },
+    { id: "EMP0agaw1", name: "Kavita Singh", role: "Teacher", branch: "Chennai", contact: "9876543215", email: `kavita.s@${domain}`, status: "Inactive" },
+    { id: "EMP007", name: "Arun Pandian", role: "IT Support", branch: "Trichy", contact: "9876543216", email: `arun.p@${domain}`, status: "Active" },
 ];

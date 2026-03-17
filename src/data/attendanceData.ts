@@ -1,69 +1,40 @@
 
+// src/data/attendanceData.ts
+
 export interface AttendanceRecord {
-  id: string;
-  entityId: string; // studentId or staffId
-  entityType: "student" | "staff";
-  date: string;
-  status: "Present" | "Absent" | "Leave" | "Half-Day";
-  notes?: string;
-  markedBy: string;
-  branchId: string;
+    id: string;
+    studentId: string;
+    date: string; // YYYY-MM-DD
+    status: 'Present' | 'Absent';
+    branchId: string;
 }
 
-// Mock seed data: 30 days of attendance for Class 10 students and staff
-const generateMockAttendance = (): AttendanceRecord[] => {
-  const records: AttendanceRecord[] = [];
-  const studentIds = ["STU001", "STU002", "STU005", "STU011", "STU013"];
-  const staffIds = ["STF001", "STF002", "STF004", "STF005"];
-  const branchId = "Trichy";
-  
-  // Generate for the last 30 days
-  for (let i = 0; i < 30; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    const dateStr = date.toISOString().split('T')[0];
-    
-    // Skip Sundays
-    if (date.getDay() === 0) continue;
+// Mock data for Arjun Kumar (STU001)
+export const mockAttendanceData: AttendanceRecord[] = [
+    // Recent Month (e.g., August 2024)
+    { id: "ATT001", studentId: "STU001", date: "2024-08-01", status: "Present", branchId: "BR001" },
+    { id: "ATT002", studentId: "STU001", date: "2024-08-02", status: "Present", branchId: "BR001" },
+    { id: "ATT003", studentId: "STU001", date: "2024-08-03", status: "Absent", branchId: "BR001" }, // Saturday, assuming 6-day week
+    { id: "ATT004", studentId: "STU001", date: "2024-08-05", status: "Present", branchId: "BR001" },
+    { id: "ATT005", studentId: "STU001", date: "2024-08-06", status: "Present", branchId: "BR001" },
+    { id: "ATT006", studentId: "STU001", date: "2024-08-07", status: "Present", branchId: "BR001" }, // Streak starts here
+    { id: "ATT007", studentId: "STU001", date: "2024-08-08", status: "Present", branchId: "BR001" },
+    { id: "ATT008", studentId: "STU001", date: "2024-08-09", status: "Present", branchId: "BR001" },
 
-    // Students
-    studentIds.forEach(id => {
-      const rand = Math.random();
-      let status: AttendanceRecord["status"] = "Present";
-      if (rand > 0.95) status = "Absent";
-      else if (rand > 0.92) status = "Leave";
+    // Previous Month (e.g., July 2024)
+    { id: "ATT009", studentId: "STU001", date: "2024-07-29", status: "Absent", branchId: "BR001" },
+    { id: "ATT010", studentId: "STU001", date: "2024-07-30", status: "Present", branchId: "BR001" },
+    { id: "ATT011", studentId: "STU001", date: "2024-07-31", status: "Present", branchId: "BR001" },
 
-      records.push({
-        id: `ATT-S-${dateStr}-${id}`,
-        entityId: id,
-        entityType: "student",
-        date: dateStr,
-        status,
-        markedBy: "Admin User",
-        branchId
-      });
-    });
+    // Some other student's data that should be filtered out
+    { id: "ATT012", studentId: "STU002", date: "2024-08-01", status: "Present", branchId: "BR001" },
 
-    // Staff
-    staffIds.forEach(id => {
-      const rand = Math.random();
-      let status: AttendanceRecord["status"] = "Present";
-      if (rand > 0.98) status = "Absent";
-      else if (rand > 0.96) status = "Leave";
-      else if (rand > 0.94) status = "Half-Day";
-
-      records.push({
-        id: `ATT-T-${dateStr}-${id}`,
-        entityId: id,
-        entityType: "staff",
-        date: dateStr,
-        status,
-        markedBy: "Admin User",
-        branchId
-      });
-    });
-  }
-  return records;
-};
-
-export const mockAttendanceRecords = generateMockAttendance();
+    // Data for yearly calculation
+    ...Array.from({ length: 100 }).map((_, i) => ({
+        id: `ATT${100 + i}`,
+        studentId: "STU001",
+        date: new Date(new Date().getFullYear(), 0, i + 1).toISOString().split('T')[0],
+        status: Math.random() > 0.15 ? 'Present' as const : 'Absent' as const,
+        branchId: "BR001",
+    }))
+];

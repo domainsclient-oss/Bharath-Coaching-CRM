@@ -1,183 +1,140 @@
-
-"use client";
+'use client';
 
 import { useState } from 'react';
-import { GraduationCap, Lock, Mail, User as UserIcon, Loader2, Eye, EyeOff } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { useAuth } from '@/lib/auth-context';
-import { toast } from '@/hooks/use-toast';
+import Link from 'next/link';
+import { useAuth } from '../../lib/auth-context';
+import { resetPassword } from '../../services/authService';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
+import centerConfig from '../../config/centerConfig';
+import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [credentials, setCredentials] = useState({ id: '', password: '' });
+  const { login } = useAuth();
+  const { toast } = useToast();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setCredentials(prev => ({
-      ...prev,
-      [id === 'staff-email' || id === 'student-roll' ? 'id' : 'password']: value
-    }));
+  const getAuthErrorMessage = (errorCode: string) => {
+    switch (errorCode) {
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential':
+        return 'Invalid email or password. Please try again.';
+      case 'auth/too-many-requests':
+        return 'Too many login attempts. Please reset your password or try again later.';
+      default:
+        return 'An unexpected error occurred. Please try again.';
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent, type: 'staff' | 'student') => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const success = await login(credentials, type);
-      if (success) {
-        toast({
-          title: "Login Successful",
-          description: "Welcome back to Bharath Academy!",
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Login Failed",
-          description: "Invalid credentials. Please check your details and try again.",
-        });
-      }
-    } catch (error) {
+    if (!email || !password) {
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Something went wrong. Please try again later.",
+        title: 'Missing Information',
+        description: 'Please enter both email and password.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await login(email, password);
+      toast({
+        title: 'Login Successful',
+        description: `Welcome back to ${centerConfig.centerName}! Redirecting...`,
+      });
+      // The AuthProvider will handle redirection automatically
+    } catch (error: any) {
+      console.error('Login failed:', error);
+      toast({
+        title: 'Login Failed',
+        description: getAuthErrorMessage(error.code),
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast({
+        title: 'Email Required',
+        description: 'Please enter your email address to reset your password.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    try {
+      await resetPassword(email);
+      toast({
+        title: 'Password Reset Email Sent',
+        description: 'If an account exists for that email, a reset link has been sent to your inbox.',
+      });
+    } catch (error: any) {
+      console.error('Password reset failed:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to send password reset email. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#1E2A4A] to-[#0D7C8F] p-4 sm:p-6 lg:p-8">
-      <div className="w-full max-w-md space-y-8">
-        <div className="flex flex-col items-center text-center">
-          <div className="rounded-2xl bg-white p-3 text-[#1E2A4A] shadow-xl transition-all-150 hover:scale-105">
-            <GraduationCap size={40} />
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md shadow-2xl">
+        <CardHeader className="text-center">
+          <div className="mx-auto mb-4 h-16 w-16">
+            <img src={centerConfig.logo} alt={`${centerConfig.centerName} Logo`} className="h-full w-full object-contain" />
           </div>
-          <h2 className="mt-6 text-3xl font-bold tracking-tight text-white">Bharath Academy</h2>
-          <p className="mt-2 text-sm text-white/70">Management Portal · Trichy Branch</p>
-        </div>
-
-        <Tabs defaultValue="staff" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-white/10 p-1 text-white">
-            <TabsTrigger value="staff" className="data-[state=active]:bg-[#1E2A4A] data-[state=active]:text-white">Staff / Admin</TabsTrigger>
-            <TabsTrigger value="student" className="data-[state=active]:bg-[#1E2A4A] data-[state=active]:text-white">Student</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="staff">
-            <Card className="border-none shadow-2xl">
-              <CardHeader>
-                <CardTitle className="text-xl text-[#1E2A4A]">Staff Login</CardTitle>
-                <CardDescription>Enter your official email to access the portal.</CardDescription>
-              </CardHeader>
-              <form onSubmit={(e) => handleSubmit(e, 'staff')}>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="staff-email">Email Address</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="staff-email" 
-                        placeholder="admin@center.com" 
-                        className="pl-10" 
-                        required 
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="staff-password">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="staff-password" 
-                        type={showPassword ? "text" : "password"} 
-                        className="pl-10 pr-10" 
-                        required 
-                        onChange={handleInputChange}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-3 text-muted-foreground hover:text-primary"
-                      >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button type="submit" className="w-full bg-[#1E2A4A] hover:bg-[#0D7C8F] transition-all-150" disabled={isLoading}>
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Sign In as Staff'}
-                  </Button>
-                </CardFooter>
-              </form>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="student">
-            <Card className="border-none shadow-2xl">
-              <CardHeader>
-                <CardTitle className="text-xl text-[#1E2A4A]">Student Login</CardTitle>
-                <CardDescription>Access your dashboard using your roll number.</CardDescription>
-              </CardHeader>
-              <form onSubmit={(e) => handleSubmit(e, 'student')}>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="student-roll">Roll Number</Label>
-                    <div className="relative">
-                      <UserIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="student-roll" 
-                        placeholder="e.g. ROLL001" 
-                        className="pl-10" 
-                        required 
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="student-password">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="student-roll-password" 
-                        type={showPassword ? "text" : "password"} 
-                        className="pl-10 pr-10" 
-                        required 
-                        onChange={handleInputChange}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-3 text-muted-foreground hover:text-primary"
-                      >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button type="submit" className="w-full bg-[#0D7C8F] hover:bg-[#1E2A4A] transition-all-150" disabled={isLoading}>
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Sign In as Student'}
-                  </Button>
-                </CardFooter>
-              </form>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        <p className="text-center text-xs text-white/50">
-          © 2025 Bharath Academy. All rights reserved.
-        </p>
-      </div>
+          <CardTitle className="text-2xl font-bold">Welcome to {centerConfig.centerName}</CardTitle>
+          <CardDescription>Enter your credentials to access your portal</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isLoading ? 'Signing In...' : 'Sign In'}
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="flex justify-center">
+          <Button variant="link" size="sm" onClick={handleForgotPassword} disabled={isLoading}>
+            Forgot Password?
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

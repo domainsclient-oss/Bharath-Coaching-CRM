@@ -1,0 +1,64 @@
+
+.marksheet-container {
+    background: white;
+    padding: 2rem;
+    margin: 0 auto;
+    max-width: 800px;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.marksheet-content {
+    color: #1a202c;
+}
+
+.result-stamp {
+    font-size: 4rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    transform: rotate(-15deg);
+    border: 8px double;
+    padding: 0.5rem 1.5rem;
+    border-radius: 0.5rem;
+    opacity: 0.2;
+    text-align: center;
+    width: fit-content;
+    margin: 0 auto;
+}
+
+.result-stamp.pass {
+    color: #2f855a; /* green-700 */
+    border-color: #2f855a;
+}
+
+.result-stamp.fail {
+    color: #c53030; /* red-700 */
+    border-color: #c53030;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  .marksheet-container, .marksheet-container * {
+    visibility: visible;
+  }
+  
+  .marksheet-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: 100%;
+    border: none;
+    box-shadow: none;
+    padding: 1.5rem;
+    margin: 0;
+  }
+
+  .print-hide, .print-hide * {
+    display: none !important;
+  }
+}

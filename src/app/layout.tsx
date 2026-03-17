@@ -1,12 +1,19 @@
+import type { Metadata } from "next";
+import { DM_Sans } from "next/font/google";
+import "./globals.css";
+import { ThemeProvider } from "../components/theme-provider";
+import { AuthProvider } from "../lib/auth-context";
+import { BranchProvider } from "../context/BranchContext"; 
+import { Toaster } from "../components/ui/toaster";
+import centerConfig from "../config/centerConfig";
+import ThemeInjector from "../components/ThemeInjector";
+import FirebaseConnectionTest from "@/components/FirebaseConnectionTest";
 
-import type {Metadata} from 'next';
-import './globals.css';
-import { Toaster } from "@/components/ui/toaster"
-import { AuthProvider } from '@/lib/auth-context';
+const font = DM_Sans({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Bharath Academy',
-  description: 'Management Portal - Empowering Education',
+  title: centerConfig.centerName,
+  description: `The official portal for ${centerConfig.centerName}`,
 };
 
 export default function RootLayout({
@@ -15,17 +22,28 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased selection:bg-accent/20">
-        <AuthProvider>
-          {children}
-          <Toaster />
-        </AuthProvider>
+      <body className={font.className}>
+        <FirebaseConnectionTest />
+        <ThemeInjector />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthProvider>
+            <BranchProvider>
+              {children}
+              <Toaster />
+            </BranchProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

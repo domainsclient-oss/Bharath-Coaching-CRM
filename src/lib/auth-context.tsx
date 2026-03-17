@@ -1,123 +1,92 @@
 
-"use client";
+'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-
-export type UserRole = 'admin' | 'teacher' | 'student';
-
-interface User {
-  id: string;
-  name: string;
-  email?: string;
-  rollNo?: string;
-  role: UserRole;
-  avatar?: string;
-  class?: string;
-  board?: string;
-}
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { loginUser as apiLogin, logoutUser as apiLogout, onAuthChange, AppUser } from '../services/authService';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
 
 interface AuthContextType {
-  user: User | null;
-  login: (credentials: { id: string; password: string }, role: 'staff' | 'student') => Promise<boolean>;
-  logout: () => void;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  currentBranch: string;
-  setBranch: (branch: string) => void;
-  availableBranches: string[];
+  user: AppUser | null;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const TEST_USERS = {
-  staff: [
-    { email: "admin@center.com", password: "admin123", role: "admin" as const, name: "Admin User", id: "ADM001" },
-    { email: "teacher@center.com", password: "teach123", role: "teacher" as const, name: "Priya Sharma", id: "TCH001" },
-  ],
-  student: [
-    { rollNo: "ROLL001", password: "student123", role: "student" as const, name: "Arjun Krishnan", id: "STU001", class: "10", board: "CBSE" },
-    { rollNo: "ROLL002", password: "student123", role: "student" as const, name: "Meera Nair", id: "STU002", class: "9", board: "CBSE" },
-  ]
-};
-
-const BRANCHES = ["Trichy", "Chennai", "Madurai", "Coimbatore"];
-
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentBranch, setCurrentBranch] = useState("Trichy");
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('bharath_academy_session');
-    const storedBranch = localStorage.getItem('bharath_academy_branch');
-    
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    if (storedBranch) {
-      setCurrentBranch(storedBranch);
-    }
-    setIsLoading(false);
+    const unsubscribe = onAuthChange(async (authUser) => {
+      if (authUser) {
+          const userDoc = await getDoc(doc(db, 'users', authUser.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data() as Omit<AppUser, 'uid'>;
+            setUser({ uid: authUser.uid, ...userData });
+          } else {
+             setUser(null); // Or handle this inconsistency
+          }
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const setBranch = (branch: string) => {
-    setCurrentBranch(branch);
-    localStorage.setItem('bharath_academy_branch', branch);
+  const login = async (email: string, password: string) => {
+    // The onAuthChange listener will handle the user state update
+    await apiLogin(email, password);
   };
 
-  const login = async (credentials: { id: string; password: string }, type: 'staff' | 'student') => {
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    let foundUser = null;
-    if (type === 'staff') {
-      foundUser = TEST_USERS.staff.find(u => u.email === credentials.id && u.password === credentials.password);
-    } else {
-      foundUser = TEST_USERS.student.find(u => u.rollNo === credentials.id && u.password === credentials.password);
-    }
-
-    if (foundUser) {
-      const { password, ...userSession } = foundUser;
-      setUser(userSession as User);
-      localStorage.setItem('bharath_academy_session', JSON.stringify(userSession));
-      
-      if (userSession.role === 'admin' || userSession.role === 'teacher') {
-        router.push('/admin');
-      } else {
-        router.push('/student');
-      }
-      return true;
-    }
-    return false;
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('bharath_academy_session');
+  const logout = async () => {
+    await apiLogout();
     router.push('/login');
   };
 
-  return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
-      logout, 
-      isLoading,
-      isAuthenticated: !!user,
-      currentBranch,
-      setBranch,
-      availableBranches: BRANCHES
-    }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
+  // Handle redirection logic
+   useEffect(() => {
+    if (loading) return; // Don't redirect while loading
 
-export const useAuth = () => {
+    const isAuthRoute = pathname === '/login' || pathname === '/register'; // Add other public routes if any
+
+    if (user && isAuthRoute) {
+      // If user is logged in, redirect from auth routes to the correct dashboard
+      const targetDashboard = user.role === 'student' ? '/student/dashboard' : '/admin/dashboard';
+      router.push(targetDashboard);
+    } else if (!user && !isAuthRoute) {
+      // If user is not logged in and not on an auth route, redirect to login
+      router.push('/login');
+    }
+
+  }, [user, loading, pathname, router]);
+
+
+  const value = { user, login, logout, loading };
+
+  // Render a loading screen for the initial auth check
+  if (loading) {
+      return (
+          <div className="h-screen w-screen flex items-center justify-center">
+              <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
+          </div>
+      );
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}

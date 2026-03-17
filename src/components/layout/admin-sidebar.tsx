@@ -1,214 +1,80 @@
 
-"use client";
+'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  Users, 
-  BookOpen, 
-  FileText, 
-  CreditCard, 
-  Settings, 
-  GraduationCap,
-  Monitor,
-  PhoneCall,
-  ClipboardCheck,
-  Briefcase,
-  TrendingDown,
-  History,
-  Package,
-  Library,
-  BookMarked,
-  MessageSquare,
-  Globe,
-  BarChart3,
-  UserCheck,
-  Calendar,
-  Clock,
-  ChevronDown
+import {
+    Book, Building, Calendar, ClipboardList, DollarSign, GraduationCap, 
+    Handshake, Home, Megaphone, Settings, Users, Vote, Warehouse 
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useAuth } from '@/lib/auth-context';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarRail,
-  useSidebar,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton
-} from '@/components/ui/sidebar';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { useAuth } from '../../lib/auth-context';
+import centerConfig from '../../config/centerConfig';
 
-const navGroups = [
-  {
-    label: 'MAIN',
-    items: [
-      { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
-    ]
-  },
-  {
-    label: 'ACADEMICS',
-    items: [
-      { icon: Users, label: 'Students', href: '/admin/students' },
-      { icon: GraduationCap, label: 'Classes', href: '/admin/academics/classes' },
-      { icon: BookOpen, label: 'Subjects', href: '/admin/academics/subjects' },
-      { icon: UserCheck, label: 'Teacher Assignment', href: '/admin/academics/teachers' },
-      { icon: Calendar, label: 'Class Timetable', href: '/admin/academics/class-timetable' },
-      { icon: Clock, label: 'Teacher Timetable', href: '/admin/academics/teacher-timetable' },
-      { 
-        icon: ClipboardCheck, 
-        label: 'Attendance', 
-        href: '/admin/attendance',
-        subItems: [
-          { label: 'Student Attendance', href: '/admin/attendance/students' },
-          { label: 'Staff Attendance', href: '/admin/attendance/staff' },
-          { label: 'Reports', href: '/admin/attendance/reports' },
-        ]
-      },
-      { icon: Monitor, label: 'Online Classes', href: '/admin/online-classes' },
-    ]
-  },
-  {
-    label: 'OPERATIONS',
-    items: [
-      { icon: PhoneCall, label: 'Lead Management', href: '/admin/leads' },
-      { icon: CreditCard, label: 'Fees & Payments', href: '/admin/fees' },
-      { icon: FileText, label: 'Examination', href: '/admin/examination' },
-      { icon: BarChart3, label: 'Online Assessment', href: '/admin/assessment' },
-    ]
-  },
-  {
-    label: 'HR & ADMIN',
-    items: [
-      { icon: Briefcase, label: 'Human Resources', href: '/admin/hr' },
-      { icon: TrendingDown, label: 'Expenditure', href: '/admin/expenditure' },
-      { icon: History, label: 'Alumni', href: '/admin/alumni' },
-      { icon: Package, label: 'Inventory', href: '/admin/inventory' },
-      { icon: Library, label: 'Library', href: '/admin/library' },
-      { icon: BookMarked, label: 'Teaching Plans', href: '/admin/teaching-plans' },
-    ]
-  },
-  {
-    label: 'COMMUNICATIONS',
-    items: [
-      { icon: MessageSquare, label: 'WhatsApp', href: '/admin/whatsapp' },
-    ]
-  },
-  {
-    label: 'SYSTEM',
-    items: [
-      { icon: Globe, label: 'Website Center', href: '/admin/website' },
-      { icon: BarChart3, label: 'Reports', href: '/admin/reports' },
-      { icon: Settings, label: 'Settings', href: '/admin/settings' },
-    ]
-  }
+const navConfig = [
+    // Base navigation
+    { href: '/admin/dashboard', icon: Home, label: 'Dashboard', feature: null, role: ['admin', 'super_admin'] },
+    { href: '/admin/branches', icon: Building, label: 'Branches', feature: 'branches', role: ['super_admin'] },
+
+    // Branch-specific navigation
+    { href: '/admin/leads', icon: Handshake, label: 'Leads', feature: 'leads', role: ['admin'] },
+    { href: '/admin/admissions', icon: GraduationCap, label: 'Admissions', feature: 'admissions', role: ['admin'] },
+    { href: '/admin/students', icon: Users, label: 'Students', feature: 'students', role: ['admin'] },
+    { href: '/admin/staff', icon: Users, label: 'Staff', feature: 'staff', role: ['admin'] },
+    { href: '/admin/fees', icon: DollarSign, label: 'Fees', feature: 'fees', role: ['admin'] },
+    { href: '/admin/inventory', icon: Warehouse, label: 'Inventory', feature: 'inventory', role: ['admin'] },
+    { href: '/admin/classes', icon: Book, label: 'Classes', feature: 'classes', role: ['admin'] },
+    { href: '/admin/batches', icon: Book, label: 'Batches', feature: 'batches', role: ['admin'] },
+    { href: '/admin/timetable', icon: Calendar, label: 'Timetable', feature: 'timetable', role: ['admin'] },
+    { href: '/admin/attendance', icon: ClipboardList, label: 'Attendance', feature: 'attendance', role: ['admin'] },
+    { href: '/admin/examination', icon: Vote, label: 'Examination', feature: 'examination', role: ['admin'] },
+    { href: '/admin/communication', icon: Megaphone, label: 'Communication', feature: 'communication', role: ['admin'] },
+
+    // Super admin settings
+    { href: '/admin/settings', icon: Settings, label: 'Settings', feature: 'settings', role: ['super_admin'] },
 ];
 
-export function AdminSidebar() {
-  const pathname = usePathname();
-  const { currentBranch } = useAuth();
-  const { state } = useSidebar();
-  const isCollapsed = state === 'collapsed';
+export default function AdminSidebar() {
+    const pathname = usePathname();
+    const { user } = useAuth();
+    const userRole = user?.role;
 
-  return (
-    <Sidebar collapsible="icon" className="bg-primary text-primary-foreground border-r-0">
-      <SidebarHeader className="h-16 flex flex-col items-center justify-center border-b border-primary-foreground/10 px-4">
-        <div className="flex w-full items-center justify-between">
-          <Link href="/admin" className="flex items-center gap-3 overflow-hidden">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary-foreground">
-              <GraduationCap size={20} />
+    const getVisibleNavItems = () => {
+        return navConfig.filter(item => {
+            // Check if user has the required role
+            const hasRole = userRole && item.role.includes(userRole);
+            if (!hasRole) return false;
+
+            // Check if the feature is enabled (if applicable)
+            const featureEnabled = !item.feature || centerConfig.features[item.feature as keyof typeof centerConfig.features];
+            if (!featureEnabled) return false;
+
+            return true;
+        });
+    };
+
+    const navItems = getVisibleNavItems();
+
+    return (
+        <aside className="w-64 flex-shrink-0 bg-sidebar text-sidebar-foreground flex flex-col">
+            <div className="h-16 flex items-center justify-center px-4 border-b border-secondary">
+                <img src={centerConfig.logo} alt={`${centerConfig.centerName} Logo`} className="h-8 w-auto mr-3" />
+                <span className="text-sm font-bold leading-tight">{centerConfig.centerName}</span>
             </div>
-            {!isCollapsed && (
-              <div className="flex flex-col">
-                <span className="text-sm font-bold leading-tight">Bharath Academy</span>
-                <span className="text-[10px] font-medium text-secondary">{currentBranch} Branch</span>
-              </div>
-            )}
-          </Link>
-        </div>
-      </SidebarHeader>
-      
-      <SidebarContent className="py-2">
-        {navGroups.map((group) => (
-          <SidebarGroup key={group.label}>
-            {!isCollapsed && (
-              <SidebarGroupLabel className="text-[10px] text-white/50 px-4 py-2 uppercase tracking-widest font-bold">
-                {group.label}
-              </SidebarGroupLabel>
-            )}
-            <SidebarMenu className="px-2">
-              {group.items.map((item) => {
-                const isActive = pathname === item.href || (item.subItems && item.subItems.some(sub => pathname === sub.href));
-                
-                if (item.subItems) {
-                  return (
-                    <Collapsible key={item.href} asChild defaultOpen={isActive} className="group/collapsible">
-                      <SidebarMenuItem>
-                        <CollapsibleTrigger asChild>
-                          <SidebarMenuButton 
-                            tooltip={item.label}
-                            className={cn(
-                              "transition-all-150 hover:bg-white/10 h-10 mb-0.5",
-                              isActive && "bg-secondary/20 text-white border-l-2 border-secondary rounded-l-none"
-                            )}
-                          >
-                            <item.icon className={cn("h-5 w-5 shrink-0", isActive ? "text-secondary" : "text-white/60")} />
-                            <span>{item.label}</span>
-                            <ChevronDown className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
-                          </SidebarMenuButton>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                          <SidebarMenuSub>
-                            {item.subItems.map((sub) => (
-                              <SidebarMenuSubItem key={sub.href}>
-                                <SidebarMenuSubButton asChild isActive={pathname === sub.href}>
-                                  <Link href={sub.href}>{sub.label}</Link>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            ))}
-                          </SidebarMenuSub>
-                        </CollapsibleContent>
-                      </SidebarMenuItem>
-                    </Collapsible>
-                  );
-                }
-
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={isActive}
-                      tooltip={item.label}
-                      className={cn(
-                        "transition-all-150 hover:bg-white/10 h-10 mb-0.5",
-                        isActive && "bg-secondary/20 text-white border-l-2 border-secondary rounded-l-none"
-                      )}
-                    >
-                      <Link href={item.href} className="flex items-center gap-3">
-                        <item.icon className={cn("h-5 w-5 shrink-0", isActive ? "text-secondary" : "text-white/60")} />
-                        <span>{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroup>
-        ))}
-      </SidebarContent>
-      <SidebarRail />
-    </Sidebar>
-  );
+            <nav className="flex-1 overflow-y-auto py-4">
+                <ul className="space-y-1">
+                    {navItems.map(item => {
+                        const isActive = pathname.startsWith(item.href);
+                        return (
+                            <li key={item.href}>
+                                <Link href={item.href} className={`flex items-center px-4 py-2 text-sm font-medium transition-colors ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-secondary'}`}>
+                                    <item.icon className="h-5 w-5 mr-3" />
+                                    <span>{item.label}</span>
+                                </Link>
+                            </li>
+                        );
+                    })}
+                </ul>
+            </nav>
+        </aside>
+    );
 }
