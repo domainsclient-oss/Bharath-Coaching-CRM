@@ -10,10 +10,11 @@ export interface AttendanceRecord {
   branchId: string;
 }
 
-// Mock seed data: 30 days of attendance for Class 10 students (STU001, STU002, STU005, STU011, STU013)
+// Mock seed data: 30 days of attendance for Class 10 students and staff
 const generateMockAttendance = (): AttendanceRecord[] => {
   const records: AttendanceRecord[] = [];
   const studentIds = ["STU001", "STU002", "STU005", "STU011", "STU013"];
+  const staffIds = ["STF001", "STF002", "STF004", "STF005"];
   const branchId = "Trichy";
   
   // Generate for the last 30 days
@@ -25,17 +26,36 @@ const generateMockAttendance = (): AttendanceRecord[] => {
     // Skip Sundays
     if (date.getDay() === 0) continue;
 
+    // Students
     studentIds.forEach(id => {
-      // Random status with high probability of being Present
       const rand = Math.random();
       let status: AttendanceRecord["status"] = "Present";
       if (rand > 0.95) status = "Absent";
       else if (rand > 0.92) status = "Leave";
 
       records.push({
-        id: `ATT-${dateStr}-${id}`,
+        id: `ATT-S-${dateStr}-${id}`,
         entityId: id,
         entityType: "student",
+        date: dateStr,
+        status,
+        markedBy: "Admin User",
+        branchId
+      });
+    });
+
+    // Staff
+    staffIds.forEach(id => {
+      const rand = Math.random();
+      let status: AttendanceRecord["status"] = "Present";
+      if (rand > 0.98) status = "Absent";
+      else if (rand > 0.96) status = "Leave";
+      else if (rand > 0.94) status = "Half-Day";
+
+      records.push({
+        id: `ATT-T-${dateStr}-${id}`,
+        entityId: id,
+        entityType: "staff",
         date: dateStr,
         status,
         markedBy: "Admin User",

@@ -25,7 +25,8 @@ import {
   BarChart3,
   UserCheck,
   Calendar,
-  Clock
+  Clock,
+  ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
@@ -39,8 +40,16 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarRail,
-  useSidebar
+  useSidebar,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton
 } from '@/components/ui/sidebar';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 const navGroups = [
   {
@@ -58,7 +67,16 @@ const navGroups = [
       { icon: UserCheck, label: 'Teacher Assignment', href: '/admin/academics/teachers' },
       { icon: Calendar, label: 'Class Timetable', href: '/admin/academics/class-timetable' },
       { icon: Clock, label: 'Teacher Timetable', href: '/admin/academics/teacher-timetable' },
-      { icon: ClipboardCheck, label: 'Attendance', href: '/admin/attendance' },
+      { 
+        icon: ClipboardCheck, 
+        label: 'Attendance', 
+        href: '/admin/attendance',
+        subItems: [
+          { label: 'Student Attendance', href: '/admin/attendance/students' },
+          { label: 'Staff Attendance', href: '/admin/attendance/staff' },
+          { label: 'Reports', href: '/admin/attendance/reports' },
+        ]
+      },
       { icon: Monitor, label: 'Online Classes', href: '/admin/online-classes' },
     ]
   },
@@ -132,7 +150,41 @@ export function AdminSidebar() {
             )}
             <SidebarMenu className="px-2">
               {group.items.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive = pathname === item.href || (item.subItems && item.subItems.some(sub => pathname === sub.href));
+                
+                if (item.subItems) {
+                  return (
+                    <Collapsible key={item.href} asChild defaultOpen={isActive} className="group/collapsible">
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton 
+                            tooltip={item.label}
+                            className={cn(
+                              "transition-all-150 hover:bg-white/10 h-10 mb-0.5",
+                              isActive && "bg-secondary/20 text-white border-l-2 border-secondary rounded-l-none"
+                            )}
+                          >
+                            <item.icon className={cn("h-5 w-5 shrink-0", isActive ? "text-secondary" : "text-white/60")} />
+                            <span>{item.label}</span>
+                            <ChevronDown className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            {item.subItems.map((sub) => (
+                              <SidebarMenuSubItem key={sub.href}>
+                                <SidebarMenuSubButton asChild isActive={pathname === sub.href}>
+                                  <Link href={sub.href}>{sub.label}</Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            ))}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  );
+                }
+
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton 
