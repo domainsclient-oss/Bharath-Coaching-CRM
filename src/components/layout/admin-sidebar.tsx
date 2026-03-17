@@ -50,7 +50,7 @@ const navGroups = [
     label: 'ACADEMICS',
     items: [
       { icon: Users, label: 'Students', href: '/admin/students' },
-      { icon: GraduationCap, label: 'Academics', href: '/admin/academics' },
+      { icon: GraduationCap, label: 'Classes', href: '/admin/academics/classes' },
       { icon: ClipboardCheck, label: 'Attendance', href: '/admin/attendance' },
       { icon: Monitor, label: 'Online Classes', href: '/admin/online-classes' },
     ]
