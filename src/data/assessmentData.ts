@@ -22,7 +22,7 @@ export interface OnlineExam {
   teacherId: string;
   dateTime: string;
   durationMins: number;
-  instructions: string;
+  instructions?: string;
   questionIds: string[];
   totalMarks: number;
   status: "Draft" | "Published";

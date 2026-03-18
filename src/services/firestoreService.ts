@@ -198,10 +198,6 @@ export const paymentService = createService('payments');
 export const studentHomeworkService = createService('studentHomework');
 export const studentVideoHistoryService = createService('studentVideoHistory');
 export const studentVideoBookmarksService = createService('studentVideoBookmarks');
+export const testAttemptService = createService('testAttempts');
 
 
-export {
-    addDocument, setDocument, getDocuments, getDocument,
-    updateDocument, deleteDocument, queryDocuments,
-    subscribeToCollection, batchWrite,
-  };

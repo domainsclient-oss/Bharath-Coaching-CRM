@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Calendar, CheckCircle, Clock, BookOpen, AlertCircle, IndianRupee, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from '@/lib/auth-context';
+import { useBranch } from '@/context/BranchContext';
 import { studentDashboardService } from '@/services/studentDashboardService';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -25,7 +26,8 @@ interface StudentDashboardData {
 }
 
 const StudentDashboardPage = () => {
-  const { user, currentBranch } = useAuth();
+  const { user } = useAuth();
+  const { currentBranch } = useBranch();
   const [dashboardData, setDashboardData] = useState<StudentDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -35,6 +35,9 @@ export const mockAttendanceData: AttendanceRecord[] = [
         studentId: "STU001",
         date: new Date(new Date().getFullYear(), 0, i + 1).toISOString().split('T')[0],
         status: Math.random() > 0.15 ? 'Present' as const : 'Absent' as const,
-        branchId: "BR001",
+        branchId: "Trichy",
     }))
 ];
+
+// Alias used by page components
+export const mockAttendanceRecords = mockAttendanceData;

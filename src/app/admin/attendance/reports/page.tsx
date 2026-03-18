@@ -49,10 +49,12 @@ import { mockStaff } from "@/data/hrData";
 import { mockClasses } from "@/data/academicsData";
 import { mockAttendanceRecords } from "@/data/attendanceData";
 import { useAuth } from "@/lib/auth-context";
+import { useBranch } from "@/context/BranchContext";
 import { cn } from "@/lib/utils";
 
 export default function AttendanceReportsPage() {
-  const { currentBranch } = useAuth();
+  useAuth();
+  const { currentBranch } = useBranch();
   
   // State for Student Reports
   const [studentSearch, setStudentSearch] = useState("");

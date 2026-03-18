@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useAuth } from "@/app/auth-provider";
+import { useAuth } from "@/lib/auth-context";
 import { AccessDenied } from "@/components/auth/access-denied";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -105,7 +105,7 @@ const FeeAnalyticsPage = () => {
                             <Tooltip formatter={(value: number) => value.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })} />
                             <Bar dataKey="amount" fill="#0D7C8F" />
                         </BarChart>
-                    </responsivecontainer>
+                    </ResponsiveContainer>
                 </CardContent>
             </Card>
             <Card>

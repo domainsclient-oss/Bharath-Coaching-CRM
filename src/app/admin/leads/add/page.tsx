@@ -33,18 +33,20 @@ import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
+import { useBranch } from "@/context/BranchContext";
 import { mockStaff } from "@/data/hrData";
 import { LeadSource } from "@/data/leadsData";
 
 const SOURCES: LeadSource[] = [
-  "Walk-in", "Phone Call", "WhatsApp Enquiry", "Social Media", 
-  "Student Referral", "School Reference", "Banner / Sunpack", 
+  "Walk-in", "Phone Call", "WhatsApp Enquiry", "Social Media",
+  "Student Referral", "School Reference", "Banner / Sunpack",
   "Pamphlet", "Google (SEO)", "Website", "Old Students"
 ];
 
 export default function AddEnquiryPage() {
   const router = useRouter();
-  const { currentBranch } = useAuth();
+  useAuth();
+  const { currentBranch } = useBranch();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [subjectInput, setSubjectInput] = useState("");
   

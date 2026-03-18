@@ -46,11 +46,13 @@ import {
 } from "@/data/academicsData";
 import { mockStaff } from "@/data/hrData";
 import { useAuth } from "@/lib/auth-context";
+import { useBranch } from "@/context/BranchContext";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 export default function ClassTimetablePage() {
-  const { currentBranch } = useAuth();
+  useAuth();
+  const { currentBranch } = useBranch();
   const [selectedClassId, setSelectedClassId] = useState<string>("C001");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingSlot, setEditingSlot] = useState<{ day: string; slot: string } | null>(null);

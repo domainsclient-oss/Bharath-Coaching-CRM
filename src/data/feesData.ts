@@ -70,6 +70,47 @@ export const mockFeeData: FeeStructure = {
     ]
 };
 
+export type PaymentMode = "Cash" | "UPI" | "Cheque" | "NEFT";
+
+export interface Instalment {
+  amount: number;
+  date: string;
+  collected: boolean;
+  mode?: PaymentMode;
+}
+
+export interface FeeRecord {
+  id: string;
+  billNo: string;
+  studentId: string;
+  studentName: string;
+  class: string;
+  board: string;
+  subjects?: string[];
+  feeType: string;
+  totalFee: number;
+  instalments: { i1?: Instalment; i2?: Instalment; i3?: Instalment; i4?: Instalment };
+  collected: number;
+  balance: number;
+  nextPaymentDate?: string;
+  notes?: string;
+  branchId: string;
+}
+
+export const mockFeeRecords: FeeRecord[] = [
+  {
+    id: "FEE_REC_001", billNo: "BA-2026-0001", studentId: "STU001",
+    studentName: "Arjun Kumar", class: "12", board: "CBSE",
+    feeType: "Standard", totalFee: 45000,
+    instalments: {
+      i1: { amount: 15000, date: "2026-01-10", collected: true, mode: "UPI" },
+      i2: { amount: 15000, date: "2026-03-10", collected: false },
+    },
+    collected: 15000, balance: 30000,
+    nextPaymentDate: "2026-03-10", branchId: "Trichy",
+  },
+];
+
 // Fee data for another student, should not be visible
 export const mockFeeDataOther: FeeStructure = {
     studentId: "STU002",

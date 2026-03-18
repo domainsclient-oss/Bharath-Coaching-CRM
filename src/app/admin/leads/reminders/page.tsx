@@ -25,11 +25,13 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { mockLeads, Lead } from "@/data/leadsData";
 import { useAuth } from "@/lib/auth-context";
+import { useBranch } from "@/context/BranchContext";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 export default function FollowUpRemindersPage() {
-  const { currentBranch } = useAuth();
+  useAuth();
+  const { currentBranch } = useBranch();
   const [searchTerm, setSearchTerm] = useState("");
 
   const allLeads = useMemo(() => {

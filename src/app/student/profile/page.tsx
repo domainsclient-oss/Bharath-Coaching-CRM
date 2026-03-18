@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { mockStudentProfile } from "@/data/studentPortalData";
 import { mockStudents } from "@/data/studentsData"; // Assuming student details are in studentsData
-import { User, Mail, Phone, Home, Parent, Briefcase, Building } from 'lucide-react';
+import { User, Mail, Phone, Home, Users, Briefcase, Building } from 'lucide-react';
 import Link from "next/link";
 
 const StudentProfilePage = () => {
@@ -73,7 +73,7 @@ const StudentProfilePage = () => {
 
                         {/* Guardian Information */}
                         <div className="space-y-3">
-                           <h3 className="font-semibold flex items-center"><Parent className="mr-2 h-4 w-4"/> Guardian Details</h3>
+                           <h3 className="font-semibold flex items-center"><Users className="mr-2 h-4 w-4"/> Guardian Details</h3>
                             <InfoRow icon={<></>} label="Father's Name" value={studentDetails.fatherName} />
                             <InfoRow icon={<Briefcase className="h-4 w-4"/>} label="Father's Occupation" value={studentDetails.fatherOccupation} />
                             <InfoRow icon={<></>} label="Mother's Name" value={studentDetails.motherName} />

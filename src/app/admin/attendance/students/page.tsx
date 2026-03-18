@@ -50,11 +50,13 @@ import { mockStudents } from "@/data/studentsData";
 import { mockClasses } from "@/data/academicsData";
 import { mockAttendanceRecords, AttendanceRecord } from "@/data/attendanceData";
 import { useAuth } from "@/lib/auth-context";
+import { useBranch } from "@/context/BranchContext";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 export default function StudentAttendancePage() {
-  const { currentBranch } = useAuth();
+  useAuth();
+  const { currentBranch } = useBranch();
   
   // Filters
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);

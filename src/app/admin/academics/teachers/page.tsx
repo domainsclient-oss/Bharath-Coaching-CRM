@@ -45,10 +45,12 @@ import {
 } from "@/data/academicsData";
 import { mockStaff } from "@/data/hrData";
 import { useAuth } from "@/lib/auth-context";
+import { useBranch } from "@/context/BranchContext";
 import { toast } from "@/hooks/use-toast";
 
 export default function TeacherAssignmentPage() {
-  const { currentBranch } = useAuth();
+  useAuth();
+  const { currentBranch } = useBranch();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
@@ -198,14 +200,14 @@ export default function TeacherAssignmentPage() {
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
-                        <AvatarImage src={teacher.avatar} />
+                        <AvatarImage src={undefined} />
                         <AvatarFallback className="bg-[#0D7C8F]/10 text-[#0D7C8F] font-bold">
                           {getInitials(teacher.name)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <CardTitle className="text-base font-bold text-[#1E2A4A]">{teacher.name}</CardTitle>
-                        <CardDescription className="text-xs font-medium">{teacher.staffId}</CardDescription>
+                        <CardDescription className="text-xs font-medium">{teacher.id}</CardDescription>
                       </div>
                     </div>
                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">

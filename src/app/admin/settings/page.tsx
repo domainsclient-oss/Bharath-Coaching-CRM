@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { useAuth } from '@/context/AuthContext'; // Assuming you have an AuthContext to get user role
+import { useAuth } from '@/lib/auth-context';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { mockCenterSettings, mockBranches, mockUsers, CenterSettings, Branch, User } from '@/data/settingsData';
 import { Save, PlusCircle, Edit, Trash2, Shield, AlertTriangle } from 'lucide-react';
 
-// Mock useAuth hook for demonstration
-const useMockAuth = () => ({
-  user: { role: 'super_admin' } // Change to 'admin' or 'teacher' to test 403
-});
 
 const GeneralSettings = () => {
     const { register, handleSubmit, formState: { errors } } = useForm({ defaultValues: mockCenterSettings });
@@ -87,9 +83,9 @@ const SystemInfo = () => (
 
 
 const SettingsPage = () => {
-    const { user } = useMockAuth();
+    const { user } = useAuth();
 
-    if (user.role !== 'super_admin') {
+    if (user?.role !== 'super_admin') {
         return (
             <div className="flex flex-col items-center justify-center h-full text-center">
                  <AlertTriangle className="w-24 h-24 text-destructive mb-4"/>

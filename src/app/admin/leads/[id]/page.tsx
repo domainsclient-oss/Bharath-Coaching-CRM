@@ -33,13 +33,15 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { mockLeads, SOURCE_COLORS } from "@/data/leadsData";
 import { mockLeadTimeline, mockLeadNotes, mockLeadCalls } from "@/data/leadDetailsData";
 import { useAuth } from "@/lib/auth-context";
+import { useBranch } from "@/context/BranchContext";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 export default function LeadDetailPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { currentBranch } = useAuth();
+  useAuth();
+  const { currentBranch } = useBranch();
   const [newNote, setNewNote] = useState("");
 
   const lead = useMemo(() => {

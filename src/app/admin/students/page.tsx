@@ -44,10 +44,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/lib/auth-context";
+import { useBranch } from "@/context/BranchContext";
 import { mockStudents, Student } from "@/data/studentsData";
 
 export default function StudentListPage() {
-  const { currentBranch } = useAuth();
+  useAuth();
+  const { currentBranch } = useBranch();
   
   // State for filters
   const [searchTerm, setSearchTerm] = useState("");

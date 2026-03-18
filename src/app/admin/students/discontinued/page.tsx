@@ -36,10 +36,12 @@ import {
 } from "@/components/ui/table";
 import { mockStudents, Student } from "@/data/studentsData";
 import { useAuth } from "@/lib/auth-context";
+import { useBranch } from "@/context/BranchContext";
 import { toast } from "@/hooks/use-toast";
 
 export default function DiscontinuedStudentsPage() {
-  const { currentBranch } = useAuth();
+  useAuth();
+  const { currentBranch } = useBranch();
   const [searchTerm, setSearchTerm] = useState("");
   const [classFilter, setClassFilter] = useState("All");
 

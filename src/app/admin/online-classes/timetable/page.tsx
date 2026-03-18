@@ -32,10 +32,12 @@ import {
 } from "@/data/academicsData";
 import { mockOnlineClasses } from "@/data/onlineClassesData";
 import { useAuth } from "@/lib/auth-context";
+import { useBranch } from "@/context/BranchContext";
 import { cn } from "@/lib/utils";
 
 export default function OnlineTimetablePage() {
-  const { currentBranch } = useAuth();
+  useAuth();
+  const { currentBranch } = useBranch();
   const [selectedClassId, setSelectedClassId] = useState<string>("C001");
 
   const selectedClass = useMemo(() => {

@@ -49,3 +49,12 @@ export function useBranch() {
   }
   return context;
 }
+
+/**
+ * Convenience hook used by pages that need the current branch as `branchId`.
+ * Returns { branchId, currentBranch } for compatibility with generated page code.
+ */
+export function useBranchData() {
+  const { currentBranch } = useBranch();
+  return { branchId: currentBranch, currentBranch };
+}

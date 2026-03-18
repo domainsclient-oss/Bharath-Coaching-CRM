@@ -53,11 +53,13 @@ import { mockOnlineClasses, OnlineClass } from "@/data/onlineClassesData";
 import { mockClasses, mockSubjects } from "@/data/academicsData";
 import { mockStaff } from "@/data/hrData";
 import { useAuth } from "@/lib/auth-context";
+import { useBranch } from "@/context/BranchContext";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 export default function OnlineClassesPage() {
-  const { currentBranch } = useAuth();
+  useAuth();
+  const { currentBranch } = useBranch();
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [meetLink, setMeetLink] = useState("");

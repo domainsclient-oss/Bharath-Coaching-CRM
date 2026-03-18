@@ -33,9 +33,11 @@ import {
 } from "@/data/academicsData";
 import { mockStaff } from "@/data/hrData";
 import { useAuth } from "@/lib/auth-context";
+import { useBranch } from "@/context/BranchContext";
 
 export default function TeacherTimetablePage() {
-  const { currentBranch } = useAuth();
+  useAuth();
+  const { currentBranch } = useBranch();
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>("STF001");
 
   const teachers = useMemo(() => {
@@ -92,7 +94,7 @@ export default function TeacherTimetablePage() {
                   </SelectTrigger>
                   <SelectContent>
                     {teachers.map(t => (
-                      <SelectItem key={t.id} value={t.id}>{t.name} ({t.staffId})</SelectItem>
+                      <SelectItem key={t.id} value={t.id}>{t.name} ({t.id})</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -114,7 +116,7 @@ export default function TeacherTimetablePage() {
               <User className="h-5 w-5 text-[#0D7C8F]" />
               <h3 className="font-bold">{selectedTeacher?.name} — Weekly Schedule</h3>
             </div>
-            <Badge className="bg-white/20 text-white border-white/30">{selectedTeacher?.staffId}</Badge>
+            <Badge className="bg-white/20 text-white border-white/30">{selectedTeacher?.id}</Badge>
           </div>
           
           <div className="overflow-x-auto">

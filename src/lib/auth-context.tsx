@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    useEffect(() => {
     if (loading) return; // Don't redirect while loading
 
-    const isAuthRoute = pathname === '/login' || pathname === '/register'; // Add other public routes if any
+    const isAuthRoute = pathname === '/login' || pathname === '/register' || pathname === '/setup' || pathname.startsWith('/setup/');
 
     if (user && isAuthRoute) {
       // If user is logged in, redirect from auth routes to the correct dashboard
