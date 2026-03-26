@@ -1,5 +1,4 @@
 
-import { BranchId } from '@/lib/branch-context';
 
 export interface CallLog {
   id: string;
@@ -11,7 +10,7 @@ export interface CallLog {
   duration: string; // e.g., "5m 2s"
   outcome: string; // e.g., "Interested", "Follow-up scheduled", "Not reachable"
   enquiryId?: string;
-  branchId: BranchId;
+  branchId: string;
 }
 
 export const mockCallLogs: CallLog[] = [

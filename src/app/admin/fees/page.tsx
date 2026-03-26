@@ -71,7 +71,9 @@ export default function FeesPage() {
             amount: paymentAmount,
             paymentDate: new Date(),
             paymentMethod: 'Cash', // Example
-            receiptNumber: `RCPT-${Date.now()}` // Example
+            receiptNumber: `RCPT-${Date.now()}`, // Example
+            createdAt: new Date(),
+            updatedAt: new Date(),
         };
         await paymentService.add(newPayment);
 
@@ -98,8 +100,8 @@ export default function FeesPage() {
 
   const getStatusBadge = (status: Fee['status']) => {
     switch (status) {
-      case 'Paid': return <Badge variant="success">Paid</Badge>;
-      case 'Partially Paid': return <Badge variant="warning">Partially Paid</Badge>;
+      case 'Paid': return <Badge variant="default">Paid</Badge>;
+      case 'Partially Paid': return <Badge variant="secondary">Partially Paid</Badge>;
       case 'Unpaid': return <Badge variant="destructive">Unpaid</Badge>;
       default: return <Badge>{status}</Badge>;
     }

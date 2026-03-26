@@ -110,17 +110,28 @@ export const queryDocuments = async <T extends DocumentData>(
   sortOptions?: { field: string; direction?: OrderByDirection },
   limitCount?: number
 ): Promise<Array<T & BaseDoc>> => {
+  const buildQuery = (withSort: boolean, withLimit: boolean) => {
     const constraints: QueryConstraint[] = conditions.map(c => where(c.field, c.operator, c.value));
-    if (sortOptions) {
-        constraints.push(orderBy(sortOptions.field, sortOptions.direction));
-    }
-    if (limitCount) {
-        constraints.push(limit(limitCount));
-    }
+    if (withSort && sortOptions) constraints.push(orderBy(sortOptions.field, sortOptions.direction));
+    if (withLimit && limitCount) constraints.push(limit(limitCount));
+    return query(collection(db, collectionName), ...constraints);
+  };
 
-  const q = query(collection(db, collectionName), ...constraints);
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as T & BaseDoc));
+  try {
+    const snap = await getDocs(buildQuery(true, true));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as T & BaseDoc));
+  } catch (err: any) {
+    if (err?.code === 'failed-precondition') {
+      console.warn(`[Firestore] Missing index on '${collectionName}'. Falling back to unsorted query. Create indexes at: https://console.firebase.google.com/project/_/firestore/indexes`);
+      try {
+        const snap = await getDocs(buildQuery(false, false));
+        return snap.docs.map(d => ({ id: d.id, ...d.data() } as T & BaseDoc));
+      } catch {
+        return [];
+      }
+    }
+    throw err;
+  }
 };
 
 export const subscribeToCollection = <T extends DocumentData>(

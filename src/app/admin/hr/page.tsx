@@ -97,8 +97,8 @@ const StaffDirectoryPage = () => {
                   <CardDescription>{s.staffId} | {s.role}</CardDescription>
                 </div>
                 <div className="mt-4 flex flex-wrap justify-center gap-1">
-                    {s.subjects.slice(0, 2).map(sub => <Badge key={sub} variant="secondary">{sub}</Badge>)}
-                    {s.subjects.length > 2 && <Badge variant="outline">+{s.subjects.length-2} more</Badge>}
+                    {(s.subjects || []).slice(0, 2).map(sub => <Badge key={sub} variant="secondary">{sub}</Badge>)}
+                    {(s.subjects || []).length > 2 && <Badge variant="outline">+{(s.subjects || []).length-2} more</Badge>}
                 </div>
                 <div className="mt-4 flex justify-center items-center space-x-4 text-muted-foreground">
                     <a href={`tel:${s.phone}`}><Phone className="h-5 w-5 hover:text-primary"/></a>
@@ -126,9 +126,9 @@ const StaffDirectoryPage = () => {
                             <TableCell>{s.staffId}</TableCell>
                             <TableCell className="font-medium flex items-center"><Avatar className="w-8 h-8 mr-2"><AvatarImage src={s.photo} alt={s.name} /><AvatarFallback>{getInitials(s.name)}</AvatarFallback></Avatar>{s.name}</TableCell>
                             <TableCell><Badge className={`${roleColors[s.role] || 'bg-gray-500'} hover:${roleColors[s.role] || 'bg-gray-500'}`}>{s.role}</Badge></TableCell>
-                            <TableCell>{s.subjects.join(', ')}</TableCell>
+                            <TableCell>{(s.subjects || []).join(', ')}</TableCell>
                             <TableCell>{s.phone}</TableCell>
-                            <TableCell>{new Date(s.joinDate).toLocaleDateString()}</TableCell>
+                            <TableCell>{s.joinDate ? new Date(s.joinDate).toLocaleDateString() : 'N/A'}</TableCell>
                             <TableCell><Badge variant={s.status === 'Active' ? 'default' : 'destructive'}>{s.status}</Badge></TableCell>
                             <TableCell className="space-x-1">
                                <Link href={`/admin/hr/staff/${s.id}`} passHref><Button variant="ghost" size="icon"><Eye className="h-4 w-4"/></Button></Link>

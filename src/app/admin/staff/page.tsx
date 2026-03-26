@@ -138,13 +138,3 @@ export default function StaffPage() {
   );
 }
 
-// I've added a placeholder Staff type. In a real scenario, this would be in a model file.
-// I'll create this in `src/models/staff.ts` next.
-export type Staff = {
-  id: string;
-  name: string;
-  role: 'teacher' | 'admin' | 'super_admin';
-  branchId: string;
-  email: string;
-  phone: string;
-};

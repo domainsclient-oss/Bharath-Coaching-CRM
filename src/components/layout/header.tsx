@@ -5,13 +5,13 @@ import { useAuth } from '../../lib/auth-context';
 import { ChevronsLeft, ChevronsRight, LogOut, User as UserIcon } from 'lucide-react';
 import { Button } from '../ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
-import { useSidebar } from '../../context/SidebarContext';
-import { useBranchData } from '../../context/BranchContext';
+import { useSidebar } from '../../components/ui/sidebar';
+import { useBranch } from '../../context/BranchContext';
 
 export default function Header() {
     const { user, logout } = useAuth();
-    const { branchId, setBranchId, branches } = useBranchData(); // Assuming branches are loaded in this context
-    const { isSidebarOpen, toggleSidebar } = useSidebar();
+    const { currentBranch: branchId, setBranchId, branches } = useBranch();
+    const { open: isSidebarOpen, toggleSidebar } = useSidebar();
 
     // Find the current branch name
     const currentBranchName = branches.find(b => b.id === branchId)?.name || 'Select Branch';

@@ -40,10 +40,10 @@ const OneToOneFeesPage = () => {
     const subject2 = filters.subject2.trim().toLowerCase();
 
     if (subject1) {
-      records = records.filter(r => r.subjects.some(s => s.toLowerCase().includes(subject1)));
+      records = records.filter(r => r.subjects?.some(s => s.toLowerCase().includes(subject1)));
     }
     if (subject2) {
-      records = records.filter(r => r.subjects.some(s => s.toLowerCase().includes(subject2)));
+      records = records.filter(r => r.subjects?.some(s => s.toLowerCase().includes(subject2)));
     }
     setFilteredRecords(records);
   };
@@ -101,7 +101,7 @@ const OneToOneFeesPage = () => {
                     <TableCell className={cn('font-medium', isOverdue && 'border-l-4 border-red-500')}>{record.studentName}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {record.subjects.map(sub => <Badge key={sub} variant="secondary">{sub}</Badge>)}
+                        {(record.subjects || []).map(sub => <Badge key={sub} variant="secondary">{sub}</Badge>)}
                       </div>
                     </TableCell>
                     <TableCell>1-1-{record.billNo}</TableCell>

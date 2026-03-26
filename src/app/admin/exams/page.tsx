@@ -42,6 +42,8 @@ export default function ExamsPage() {
       name: `New Exam ${new Date().toLocaleDateString()}`,
       date: new Date(),
       totalMarks: 100,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
     try {
       const newExam = await examService.add(newExamData);

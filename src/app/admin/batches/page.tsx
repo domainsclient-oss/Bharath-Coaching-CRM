@@ -30,7 +30,7 @@ export default function BatchesPage() {
       try {
         setLoading(true);
         setError(null);
-        const batchList = await batchService.query([{ field: 'branchId', operator: '==', value: currentBranch }], 'createdAt');
+        const batchList = await batchService.query([{ field: 'branchId', operator: '==', value: currentBranch }], { field: 'createdAt' });
         setBatches(batchList as Batch[]);
       } catch (err) {
         console.error('Failed to load batches:', err);

@@ -1,80 +1,323 @@
-
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import {
-    Book, Building, Calendar, ClipboardList, DollarSign, GraduationCap, 
-    Handshake, Home, Megaphone, Settings, Users, Vote, Warehouse 
+  LayoutDashboard, Users, GraduationCap, BookOpen, CalendarDays,
+  ClipboardList, Video, Megaphone, IndianRupee, FlaskConical,
+  FileText, UserCheck, Wallet, BarChart3, Settings, LogOut,
+  ChevronDown, ChevronRight, School, Phone, Bell, CreditCard,
+  Search, BookMarked, PenLine, Trophy, UserCog, Banknote,
+  Receipt,
 } from 'lucide-react';
-import { useAuth } from '../../lib/auth-context';
-import centerConfig from '../../config/centerConfig';
+import {
+  Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
+  SidebarGroupContent, SidebarGroupLabel, SidebarHeader,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem,
+  SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem,
+  SidebarRail,
+} from '@/components/ui/sidebar';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useAuth } from '@/lib/auth-context';
+import centerConfig from '@/config/centerConfig';
 
-const navConfig = [
-    // Base navigation
-    { href: '/admin/dashboard', icon: Home, label: 'Dashboard', feature: null, role: ['admin', 'super_admin'] },
-    { href: '/admin/branches', icon: Building, label: 'Branches', feature: 'branches', role: ['super_admin'] },
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-    // Branch-specific navigation
-    { href: '/admin/leads', icon: Handshake, label: 'Leads', feature: 'leads', role: ['admin'] },
-    { href: '/admin/admissions', icon: GraduationCap, label: 'Admissions', feature: 'admissions', role: ['admin'] },
-    { href: '/admin/students', icon: Users, label: 'Students', feature: 'students', role: ['admin'] },
-    { href: '/admin/staff', icon: Users, label: 'Staff', feature: 'staff', role: ['admin'] },
-    { href: '/admin/fees', icon: DollarSign, label: 'Fees', feature: 'fees', role: ['admin'] },
-    { href: '/admin/inventory', icon: Warehouse, label: 'Inventory', feature: 'inventory', role: ['admin'] },
-    { href: '/admin/classes', icon: Book, label: 'Classes', feature: 'classes', role: ['admin'] },
-    { href: '/admin/batches', icon: Book, label: 'Batches', feature: 'batches', role: ['admin'] },
-    { href: '/admin/timetable', icon: Calendar, label: 'Timetable', feature: 'timetable', role: ['admin'] },
-    { href: '/admin/attendance', icon: ClipboardList, label: 'Attendance', feature: 'attendance', role: ['admin'] },
-    { href: '/admin/examination', icon: Vote, label: 'Examination', feature: 'examination', role: ['admin'] },
-    { href: '/admin/communication', icon: Megaphone, label: 'Communication', feature: 'communication', role: ['admin'] },
+interface FlatNavItem {
+  href: string;
+  icon: React.ElementType;
+  label: string;
+  roles?: string[];
+}
 
-    // Super admin settings
-    { href: '/admin/settings', icon: Settings, label: 'Settings', feature: 'settings', role: ['super_admin'] },
+interface SubNavItem {
+  href: string;
+  label: string;
+  roles?: string[];
+}
+
+interface FlatSection {
+  label: null;
+  roles?: string[];
+  items: FlatNavItem[];
+}
+
+interface GroupSection {
+  label: string;
+  icon?: React.ElementType;
+  roles?: string[];
+  items: SubNavItem[];
+}
+
+type NavSection = FlatSection | GroupSection;
+
+// ─── Nav structure ────────────────────────────────────────────────────────────
+
+const navSections: NavSection[] = [
+  {
+    label: null,
+    items: [
+      { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['super_admin', 'admin', 'teacher'] },
+    ],
+  },
+  {
+    label: 'Students',
+    icon: Users,
+    roles: ['super_admin', 'admin', 'teacher'],
+    items: [
+      { href: '/admin/students', label: 'All Students' },
+      { href: '/admin/students/add', label: 'Add Student', roles: ['super_admin', 'admin'] },
+      { href: '/admin/students/online', label: 'Online Admissions', roles: ['super_admin', 'admin'] },
+      { href: '/admin/students/discontinued', label: 'Discontinued', roles: ['super_admin', 'admin'] },
+    ],
+  },
+  {
+    label: 'Academics',
+    icon: BookOpen,
+    roles: ['super_admin', 'admin', 'teacher'],
+    items: [
+      { href: '/admin/academics/classes', label: 'Classes', roles: ['super_admin', 'admin'] },
+      { href: '/admin/academics/subjects', label: 'Subjects', roles: ['super_admin', 'admin'] },
+      { href: '/admin/academics/teachers', label: 'Teacher Assignment', roles: ['super_admin', 'admin'] },
+      { href: '/admin/academics/class-timetable', label: 'Class Timetable' },
+      { href: '/admin/academics/teacher-timetable', label: 'Teacher Timetable' },
+    ],
+  },
+  {
+    label: 'Attendance',
+    icon: ClipboardList,
+    roles: ['super_admin', 'admin', 'teacher'],
+    items: [
+      { href: '/admin/attendance/students', label: 'Student Attendance' },
+      { href: '/admin/attendance/staff', label: 'Staff Attendance', roles: ['super_admin', 'admin'] },
+      { href: '/admin/attendance/reports', label: 'Reports' },
+    ],
+  },
+  {
+    label: 'Online Classes',
+    icon: Video,
+    roles: ['super_admin', 'admin', 'teacher'],
+    items: [
+      { href: '/admin/online-classes', label: 'Live Classes' },
+      { href: '/admin/online-classes/timetable', label: 'Online Timetable' },
+    ],
+  },
+  {
+    label: 'CRM / Leads',
+    icon: Phone,
+    roles: ['super_admin', 'admin'],
+    items: [
+      { href: '/admin/leads', label: 'Enquiry Pipeline' },
+      { href: '/admin/leads/add', label: 'Add Enquiry' },
+      { href: '/admin/leads/phone-log', label: 'Phone Call Log' },
+      { href: '/admin/leads/reminders', label: 'Reminders' },
+    ],
+  },
+  {
+    label: 'Fees',
+    icon: IndianRupee,
+    roles: ['super_admin', 'admin'],
+    items: [
+      { href: '/admin/fees/collect', label: 'Collect Fee' },
+      { href: '/admin/fees/balance', label: 'Balance Dues' },
+      { href: '/admin/fees/one-to-one', label: 'One-to-One Fees' },
+      { href: '/admin/fees/search', label: 'Fee Search & Receipt' },
+      { href: '/admin/fees/analytics', label: 'Fee Analytics', roles: ['super_admin'] },
+    ],
+  },
+  {
+    label: 'Examination',
+    icon: PenLine,
+    roles: ['super_admin', 'admin', 'teacher'],
+    items: [
+      { href: '/admin/examination', label: 'Exam Schedule' },
+      { href: '/admin/examination/marks', label: 'Mark Entry' },
+      { href: '/admin/examination/marksheet', label: 'Print Marksheet' },
+    ],
+  },
+  {
+    label: 'Assessment',
+    icon: FlaskConical,
+    roles: ['super_admin', 'admin', 'teacher'],
+    items: [
+      { href: '/admin/assessment/question-bank', label: 'Question Bank' },
+      { href: '/admin/assessment/create', label: 'Create Online Exam' },
+    ],
+  },
+  {
+    label: 'HR',
+    icon: UserCog,
+    roles: ['super_admin', 'admin'],
+    items: [
+      { href: '/admin/hr', label: 'Staff Directory' },
+      { href: '/admin/hr/payroll', label: 'Payroll' },
+    ],
+  },
+  {
+    label: null,
+    items: [
+      { href: '/admin/expenditure', icon: Banknote, label: 'Expenditure', roles: ['super_admin', 'admin'] },
+      { href: '/admin/reports', icon: BarChart3, label: 'Reports', roles: ['super_admin', 'admin', 'teacher'] },
+      { href: '/admin/settings', icon: Settings, label: 'Settings', roles: ['super_admin'] },
+    ],
+  },
 ];
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function hasAccess(roles: string[] | undefined, userRole: string) {
+  if (!roles) return true;
+  return roles.includes(userRole);
+}
+
+function getInitials(name: string) {
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function AdminSidebar() {
-    const pathname = usePathname();
-    const { user } = useAuth();
-    const userRole = user?.role;
+  const pathname = usePathname();
+  const { user, logout } = useAuth();
+  const userRole = user?.role ?? 'admin';
 
-    const getVisibleNavItems = () => {
-        return navConfig.filter(item => {
-            // Check if user has the required role
-            const hasRole = userRole && item.role.includes(userRole);
-            if (!hasRole) return false;
+  // Track which sections are open — default open if any child is active
+  const defaultOpen: Record<string, boolean> = {};
+  navSections.forEach(section => {
+    if (section.label) {
+      defaultOpen[section.label] = section.items.some(item => pathname.startsWith(item.href));
+    }
+  });
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(defaultOpen);
 
-            // Check if the feature is enabled (if applicable)
-            const featureEnabled = !item.feature || centerConfig.features[item.feature as keyof typeof centerConfig.features];
-            if (!featureEnabled) return false;
+  const toggleSection = (label: string) => {
+    setOpenSections(prev => ({ ...prev, [label]: !prev[label] }));
+  };
 
-            return true;
-        });
-    };
+  return (
+    <Sidebar collapsible="icon">
+      {/* Header */}
+      <SidebarHeader className="border-b px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary">
+            <School className="h-5 w-5 text-primary-foreground" />
+          </div>
+          <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
+            <span className="text-sm font-bold text-foreground">{centerConfig.centerName}</span>
+            <span className="text-xs text-muted-foreground">Admin Portal</span>
+          </div>
+        </div>
+      </SidebarHeader>
 
-    const navItems = getVisibleNavItems();
+      {/* Main nav */}
+      <SidebarContent className="gap-0">
+        {navSections.map((section, si) => {
+          if (!hasAccess(section.roles, userRole)) return null;
 
-    return (
-        <aside className="w-64 flex-shrink-0 bg-sidebar text-sidebar-foreground flex flex-col">
-            <div className="h-16 flex items-center justify-center px-4 border-b border-secondary">
-                <img src={centerConfig.logo} alt={`${centerConfig.centerName} Logo`} className="h-8 w-auto mr-3" />
-                <span className="text-sm font-bold leading-tight">{centerConfig.centerName}</span>
-            </div>
-            <nav className="flex-1 overflow-y-auto py-4">
-                <ul className="space-y-1">
-                    {navItems.map(item => {
-                        const isActive = pathname.startsWith(item.href);
-                        return (
-                            <li key={item.href}>
-                                <Link href={item.href} className={`flex items-center px-4 py-2 text-sm font-medium transition-colors ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-secondary'}`}>
-                                    <item.icon className="h-5 w-5 mr-3" />
-                                    <span>{item.label}</span>
-                                </Link>
-                            </li>
-                        );
+          // Flat items (no grouping label like Dashboard, Expenditure, Reports, Settings)
+          if (!section.label) {
+            const flatItems = section.items as FlatNavItem[];
+            return (
+              <SidebarGroup key={si} className="py-1">
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {flatItems.map(item => {
+                      if (!hasAccess(item.roles, userRole)) return null;
+                      const Icon = item.icon;
+                      const isActive = pathname === item.href || (item.href !== '/admin/dashboard' && pathname.startsWith(item.href));
+                      return (
+                        <SidebarMenuItem key={item.href}>
+                          <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
+                            <Link href={item.href}>
+                              {Icon && <Icon />}
+                              <span>{item.label}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
                     })}
-                </ul>
-            </nav>
-        </aside>
-    );
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            );
+          }
+
+          // Collapsible section
+          const SectionIcon = section.icon;
+          const isOpen = !!openSections[section.label];
+          const isSectionActive = section.items.some(item => pathname.startsWith(item.href));
+          const visibleItems = section.items.filter(item => hasAccess(item.roles, userRole));
+          if (visibleItems.length === 0) return null;
+
+          return (
+            <SidebarGroup key={section.label} className="py-0">
+              <Collapsible open={isOpen} onOpenChange={() => toggleSection(section.label!)}>
+                <CollapsibleTrigger asChild>
+                  <SidebarGroupLabel
+                    className={`flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${isSectionActive ? 'text-primary' : 'text-muted-foreground'}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {SectionIcon && <SectionIcon className="h-4 w-4" />}
+                      <span className="group-data-[collapsible=icon]:hidden">{section.label}</span>
+                    </div>
+                    {isOpen
+                      ? <ChevronDown className="h-3 w-3 group-data-[collapsible=icon]:hidden" />
+                      : <ChevronRight className="h-3 w-3 group-data-[collapsible=icon]:hidden" />
+                    }
+                  </SidebarGroupLabel>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {visibleItems.map(item => {
+                        const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                        return (
+                          <SidebarMenuItem key={item.href}>
+                            <SidebarMenuSubButton asChild isActive={isActive} className="h-8">
+                              <Link href={item.href}>
+                                <span>{item.label}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuItem>
+                        );
+                      })}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </Collapsible>
+            </SidebarGroup>
+          );
+        })}
+      </SidebarContent>
+
+      {/* Footer */}
+      <SidebarFooter className="border-t p-3">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              size="lg"
+              className="w-full cursor-pointer"
+              onClick={logout}
+              tooltip="Log out"
+            >
+              <Avatar className="h-8 w-8 flex-shrink-0">
+                <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
+                  {user ? getInitials(user.name) : 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-1 flex-col text-left leading-tight group-data-[collapsible=icon]:hidden">
+                <span className="text-sm font-medium truncate">{user?.name ?? 'Admin'}</span>
+                <span className="text-xs text-muted-foreground capitalize">{user?.role}</span>
+              </div>
+              <LogOut className="ml-auto h-4 w-4 text-muted-foreground group-data-[collapsible=icon]:hidden" />
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+
+      <SidebarRail />
+    </Sidebar>
+  );
 }

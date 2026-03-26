@@ -43,7 +43,7 @@ const BalanceDuesPage = () => {
       records = records.filter(r => r.board === filters.board);
     }
     if (filters.subject) {
-      records = records.filter(r => r.subjects.includes(filters.subject));
+      records = records.filter(r => r.subjects?.includes(filters.subject));
     }
     setFilteredRecords(records);
   };

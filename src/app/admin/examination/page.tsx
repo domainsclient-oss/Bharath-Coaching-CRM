@@ -38,7 +38,7 @@ const ExamSchedulePage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExam, setEditingExam] = useState<Exam | null>(null);
 
-  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<Exam>({
+  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<z.infer<typeof examSchema>>({
     resolver: zodResolver(examSchema),
     defaultValues: { status: "Scheduled" }
   });
@@ -58,7 +58,7 @@ const ExamSchedulePage = () => {
 
   const openModal = (exam: Exam | null = null) => {
     setEditingExam(exam);
-    reset(exam || { status: "Scheduled", branchId });
+    reset((exam || { status: "Scheduled" }) as any);
     setIsModalOpen(true);
   }
 
@@ -68,14 +68,14 @@ const ExamSchedulePage = () => {
     reset();
   }
 
-  const onSubmit = (data: Exam) => {
+  const onSubmit = (data: z.infer<typeof examSchema>) => {
     if (editingExam) {
       // Update existing exam
-      setExams(prev => prev.map(e => e.id === editingExam.id ? { ...data, id: editingExam.id, branchId: editingExam.branchId } : e));
+      setExams(prev => prev.map(e => e.id === editingExam.id ? { ...data, id: editingExam.id, branchId: editingExam.branchId } as Exam : e));
     } else {
       // Create new exam
       const newExam = { ...data, id: `EXM${Date.now()}`, branchId };
-      setExams(prev => [...prev, newExam]);
+      setExams(prev => [...prev, newExam as Exam]);
     }
     closeModal();
   };

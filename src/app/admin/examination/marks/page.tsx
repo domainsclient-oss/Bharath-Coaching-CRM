@@ -17,7 +17,7 @@ import { ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
 import { useBranchId } from '@/hooks/use-branch-id';
 
-interface MarkEntryRow extends Student {
+interface MarkEntryRow extends Omit<Student, 'status'> {
   markId: string | null;
   marksObtained: number | null;
   status: "Present" | "Absent";
@@ -107,14 +107,19 @@ const MarkEntryPage = () => {
       if (!exam) return;
       
       const updatedMarks: Mark[] = markEntryRows.map(row => ({
-          id: row.markId || `MRK${Date.now()}${row.studentId}`,
+          id: row.markId || `MRK${Date.now()}${row.id}`,
           examId: exam.id,
           studentId: row.id,
           studentName: row.name,
-          marksObtained: row.marksObtained,
+          marksObtained: row.marksObtained ?? 0,
           status: row.status,
           grade: row.grade,
           branchId: exam.branchId,
+          // Required fields from MarksRecord
+          subject: exam.subject,
+          testName: exam.name,
+          date: exam.date,
+          maxMarks: exam.maxMarks,
       }));
       
       // This logic merges new/updated marks with existing marks from other exams
@@ -163,7 +168,7 @@ const MarkEntryPage = () => {
                     <TableBody>
                         {markEntryRows.map(row => (
                             <TableRow key={row.id}>
-                                <TableCell>{row.rollNumber}</TableCell>
+                                <TableCell>{row.rollNo}</TableCell>
                                 <TableCell>{row.name}</TableCell>
                                 <TableCell>
                                   <div className="flex items-center space-x-2">

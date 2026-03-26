@@ -10,6 +10,11 @@ export interface MarksRecord {
     marksObtained: number;
     maxMarks: number;
     branchId: string;
+    // Examination-specific fields
+    examId?: string;
+    studentName?: string;
+    status?: "Present" | "Absent";
+    grade?: string | null;
 }
 
 // Mock data for Arjun Kumar (STU001)
@@ -76,3 +81,7 @@ export const mockMarksData: MarksRecord[] = [
         branchId: "BR001"
     }
 ];
+
+// Aliases used by page components
+export const mockMarks = mockMarksData;
+export type Mark = MarksRecord;

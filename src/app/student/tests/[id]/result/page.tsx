@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle, XCircle, MinusCircle, Target, ArrowLeft } from 'lucide-react';
+import { CheckCircle, XCircle, MinusCircle, Target, ArrowLeft, AlertCircle } from 'lucide-react';
 
 const TestResultPage = () => {
     const router = useRouter();

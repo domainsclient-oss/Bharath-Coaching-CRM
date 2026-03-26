@@ -4,6 +4,7 @@ import centerConfig from '../config/centerConfig';
 export interface CenterSettings {
   appName: string;
   contactEmail: string;
+  contactPhone: string;
   defaultBranch: string;
   currency: string;
   address: string;
@@ -14,6 +15,9 @@ export interface Branch {
   name: string;
   city: string;
   status: string;
+  address?: string;
+  phone?: string;
+  headmaster?: string;
 }
 
 export interface User {
@@ -29,6 +33,7 @@ export interface User {
 export const initialSettings: CenterSettings = {
   appName: centerConfig.centerName,
   contactEmail: centerConfig.email,
+  contactPhone: "",
   defaultBranch: "BR001",
   currency: "INR",
   address: centerConfig.address,

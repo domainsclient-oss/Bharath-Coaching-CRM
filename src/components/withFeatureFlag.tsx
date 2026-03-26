@@ -1,6 +1,7 @@
 
 'use client';
 
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import centerConfig from '../config/centerConfig';
 import { useEffect } from 'react';
@@ -15,7 +16,7 @@ const FeatureDisabledPage = () => (
     </div>
 );
 
-export function withFeatureFlag<P extends JSX.IntrinsicAttributes>( 
+export function withFeatureFlag<P extends React.JSX.IntrinsicAttributes>(
     WrappedComponent: React.ComponentType<P>,
     feature: keyof typeof centerConfig.features
 ) {

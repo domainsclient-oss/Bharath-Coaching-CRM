@@ -65,7 +65,7 @@ export default function StaffAttendancePage() {
     if (existing.length > 0) {
       const map: Record<string, { status: string; reason: string }> = {};
       existing.forEach(r => {
-        map[r.entityId] = { status: r.status, reason: r.notes || "" };
+        if (r.entityId) map[r.entityId] = { status: r.status, reason: r.notes || "" };
       });
       setAttendanceMap(map);
       setIsAlreadyMarked(true);

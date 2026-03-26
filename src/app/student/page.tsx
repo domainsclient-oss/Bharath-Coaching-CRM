@@ -5,7 +5,7 @@ import { SharedHeader } from '@/components/layout/shared-header';
 import { useAuth } from '@/lib/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { BookOpen, Calendar, Clock, Award } from 'lucide-react';
+import { BookOpen, Calendar, Clock, Award, GraduationCap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function StudentDashboard() {

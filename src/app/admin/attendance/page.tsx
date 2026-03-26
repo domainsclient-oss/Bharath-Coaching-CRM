@@ -157,4 +157,7 @@ function AttendancePage() {
   );
 }
 
-export default withFeatureFlag(AttendancePage, 'attendance');
+const AttendancePageWithFlag = withFeatureFlag(AttendancePage, 'attendance');
+export default function Page() {
+  return <AttendancePageWithFlag />;
+}

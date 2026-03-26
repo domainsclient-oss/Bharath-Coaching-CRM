@@ -64,7 +64,7 @@ const PhoneLogPage = () => {
       duration,
       outcome,
       enquiryId: linkedEnquiry || undefined,
-      branchId: allLeads.find(lead => lead.id === linkedEnquiry)?.branchId || "BR001", // Default or derive branch
+      branchId: (allLeads.find(lead => lead.id === linkedEnquiry)?.branchId as string) || "BR001", // Default or derive branch
     };
 
     setLogs([newLog, ...logs]);

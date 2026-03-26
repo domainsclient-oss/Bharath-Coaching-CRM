@@ -3,6 +3,7 @@
 
 import { Bell, Search, LogOut, MapPin } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { useBranch } from '@/context/BranchContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -27,7 +28,10 @@ interface HeaderProps {
 }
 
 export function SharedHeader({ title }: HeaderProps) {
-  const { user, logout, currentBranch, setBranch, availableBranches } = useAuth();
+  const { user, logout } = useAuth();
+  const { currentBranch, setBranchId, branches } = useBranch();
+  const availableBranches = branches.map(b => b.id);
+  const setBranch = setBranchId;
   
   const getInitials = (name: string) => {
     return name
@@ -81,7 +85,7 @@ export function SharedHeader({ title }: HeaderProps) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2 px-0 transition-all-150 md:px-2">
               <Avatar className="h-9 w-9 border-2 border-primary/10">
-                <AvatarImage src={user?.avatar} />
+                <AvatarImage src={undefined} />
                 <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
                   {user ? getInitials(user.name) : '??'}
                 </AvatarFallback>

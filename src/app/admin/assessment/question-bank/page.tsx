@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { useBranchData } from "@/hooks/use-branch-data";
 import { useBranchId } from '@/hooks/use-branch-id';
 import { mockQuestions, Question } from "@/data/assessmentData";
@@ -41,7 +42,7 @@ const QuestionBankPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
-  const { register, handleSubmit, control, reset, formState: { errors }, setValue } = useForm<Question>({
+  const { register, handleSubmit, control, reset, formState: { errors }, setValue } = useForm<z.infer<typeof questionSchema>>({
     resolver: zodResolver(questionSchema),
     defaultValues: { type: 'MCQ', difficulty: 'Medium', marks: 1, options: ['','','',''] }
   });
@@ -64,7 +65,7 @@ const QuestionBankPage = () => {
     setEditingQuestion(question);
     if (question) {
         const questionOptions = question.options || ['','','',''];
-        reset({ ...question, options: questionOptions });
+        reset({ ...question, options: questionOptions } as any);
     } else {
         reset({ type: 'MCQ', difficulty: 'Medium', marks: 1, options: ['','','',''], subject: '', class: '', question: '', correctAnswer: '' });
     }
@@ -77,7 +78,7 @@ const QuestionBankPage = () => {
     reset();
   }
 
-  const onSubmit = (data: Question) => {
+  const onSubmit = (data: z.infer<typeof questionSchema>) => {
     const questionData = { ...data, branchId };
     if (editingQuestion) {
       setQuestions(prev => prev.map(q => q.id === editingQuestion.id ? { ...questionData, id: editingQuestion.id } : q));

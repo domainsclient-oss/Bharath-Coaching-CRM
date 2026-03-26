@@ -48,6 +48,8 @@ export default function TimetablePage() {
             branchId,
             batchId: selectedBatchId,
             schedule: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
           } as Timetable);
         }
       } catch (err) {

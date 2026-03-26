@@ -13,7 +13,7 @@ export interface Subject {
   name: string;
   classIds: string[];
   board: string;
-  type: "Theory" | "Practical";
+  type: "Theory" | "Practical" | "Both";
   branchId: string;
 }
 

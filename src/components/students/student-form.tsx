@@ -38,6 +38,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
+import { useBranch } from "@/context/BranchContext";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
@@ -55,7 +56,8 @@ interface StudentFormProps {
 
 export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
   const router = useRouter();
-  const { currentBranch } = useAuth();
+  useAuth();
+  const { currentBranch } = useBranch();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState(initialData || {
     name: "", dob: "", gender: "Male",

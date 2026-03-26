@@ -5,13 +5,13 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
-  Pencil, 
-  Printer, 
-  ChevronRight, 
-  User, 
-  CreditCard, 
-  ClipboardCheck, 
-  FileText, 
+  Pencil,
+  Printer,
+  ChevronRight,
+  User,
+  CreditCard,
+  ClipboardCheck,
+  FileText,
   History,
   Mail,
   Phone,
@@ -22,7 +22,8 @@ import {
   XCircle,
   AlertCircle,
   IndianRupee,
-  MessageSquare
+  MessageSquare,
+  GraduationCap
 } from "lucide-react";
 import { SharedHeader } from "@/components/layout/shared-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

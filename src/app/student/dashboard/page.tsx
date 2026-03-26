@@ -155,7 +155,7 @@ const StudentDashboardPage = () => {
                 <CardContent>
                     {loading ? <div className="space-y-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div> :
                         <div className="space-y-4">
-                         {dashboardData?.todayClasses?.length > 0 ? dashboardData.todayClasses.map(item => (
+                         {(dashboardData?.todayClasses?.length ?? 0) > 0 ? dashboardData!.todayClasses.map(item => (
                             <div key={item.id} className="flex items-center">
                                 <Clock className="h-5 w-5 mr-4 text-muted-foreground"/>
                                 <div className="flex-1">

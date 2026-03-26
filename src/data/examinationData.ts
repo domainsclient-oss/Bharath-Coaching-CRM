@@ -10,7 +10,7 @@ export interface Exam {
   endTime: string; // HH:MM
   maxMarks: number;
   passMarks: number;
-  examiner: string;
+  examiner?: string;
   status: "Scheduled" | "Completed";
   branchId: string;
 }

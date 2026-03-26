@@ -20,9 +20,9 @@ const CalendarGrid = ({ data, loading }: { data: Record<string, AttendanceStatus
     const getBadge = (status?: AttendanceStatus) => {
         if (!status) return <Badge variant="secondary">No Record</Badge>;
         switch (status) {
-          case 'Present': return <Badge variant="success">Present</Badge>;
+          case 'Present': return <Badge variant="default">Present</Badge>;
           case 'Absent': return <Badge variant="destructive">Absent</Badge>;
-          case 'Late': return <Badge variant="warning">Late</Badge>;
+          case 'Late': return <Badge variant="secondary">Late</Badge>;
           case 'Excused': return <Badge>Excused</Badge>;
           default: return null;
         }
@@ -68,7 +68,10 @@ export default function StudentAttendancePage() {
         // Process the records to extract the student's specific status
         const studentHistory: Record<string, AttendanceStatus> = {};
         dailyRecords.forEach(doc => {
-            const dateStr = new Date(doc.date.seconds * 1000).toISOString().split('T')[0];
+            const dateVal = doc.date;
+            const dateStr = (dateVal && typeof dateVal === 'object' && 'toDate' in dateVal)
+              ? (dateVal as any).toDate().toISOString().split('T')[0]
+              : new Date(dateVal as string | Date).toISOString().split('T')[0];
             if (doc.records && doc.records[studentId]) {
                 studentHistory[dateStr] = doc.records[studentId];
             }

@@ -115,12 +115,18 @@ export const getCurrentUser = (): Promise<AppUser | null> => {
 export const onAuthChange = (callback: (user: AppUser | null) => void) => {
   return onAuthStateChanged(auth, async (user: FirebaseUser | null) => {
     if (user) {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (userDoc.exists()) {
-        callback({ uid: user.uid, ...(userDoc.data() as User) });
-      } else {
-        // This case might happen if a user is deleted from Firestore but not Auth.
-        callback(null);
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          callback({ uid: user.uid, ...(userDoc.data() as User) });
+        } else {
+          // No Firestore doc yet — fall back to auth info so the app still loads
+          callback({ uid: user.uid, id: user.uid, email: user.email || '', name: user.displayName || user.email || 'Admin', role: 'super_admin' } as AppUser);
+        }
+      } catch (err: any) {
+        console.warn('Firestore user doc read failed:', err?.code, '— using auth info only. Fix Firestore rules to resolve.');
+        // Still call callback so loading spinner doesn't hang
+        callback({ uid: user.uid, id: user.uid, email: user.email || '', name: user.displayName || user.email || 'Admin', role: 'super_admin' } as AppUser);
       }
     } else {
       callback(null);

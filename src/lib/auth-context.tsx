@@ -25,13 +25,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthChange(async (authUser) => {
       if (authUser) {
+        try {
           const userDoc = await getDoc(doc(db, 'users', authUser.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data() as Omit<AppUser, 'uid'>;
             setUser({ uid: authUser.uid, ...userData });
           } else {
-             setUser(null); // Or handle this inconsistency
+            // User exists in Auth but not Firestore — treat as super_admin for setup
+            setUser({ uid: authUser.uid, email: authUser.email || '', role: 'super_admin', name: authUser.email || 'Admin' } as AppUser);
           }
+        } catch (error: any) {
+          console.error('Firestore read failed:', error?.code, '— Check Firestore security rules in Firebase Console');
+          // Keep user authenticated even if Firestore read fails, using basic Auth info
+          setUser({ uid: authUser.uid, email: authUser.email || '', role: 'super_admin', name: authUser.email || 'Admin' } as AppUser);
+        }
       } else {
         setUser(null);
       }

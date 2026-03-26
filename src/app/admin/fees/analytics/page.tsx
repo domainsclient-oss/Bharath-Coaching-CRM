@@ -51,7 +51,8 @@ const FeeAnalyticsPage = () => {
     const paymentModes = allFeeRecords
         .flatMap(r => Object.values(r.instalments).filter(i => i?.collected))
         .reduce((acc, i) => {
-            acc[i!.mode] = (acc[i!.mode] || 0) + i!.amount;
+            const mode = i!.mode || 'Unknown';
+            acc[mode] = (acc[mode] || 0) + i!.amount;
             return acc;
         }, {} as Record<string, number>);
 

@@ -15,8 +15,8 @@ const ThemeInjector = () => {
       const theme = centerConfig.theme;
 
       Object.entries(theme).forEach(([key, value]) => {
-        if (typeof value === 'object' && value !== null && 'h' in value) {
-          root.style.setProperty(`--${key}`, `${value.h} ${value.s}% ${value.l}%`);
+        if (typeof value === 'object' && value !== null && 'h' in value && 's' in value && 'l' in value) {
+          root.style.setProperty(`--${key}`, `${(value as any).h} ${(value as any).s}% ${(value as any).l}%`);
         } else if (typeof value === 'string') {
             // For string values like fontFamily
             if (key === 'fontFamily') {

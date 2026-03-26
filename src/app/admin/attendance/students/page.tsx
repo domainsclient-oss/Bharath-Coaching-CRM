@@ -91,7 +91,7 @@ export default function StudentAttendancePage() {
     if (existing.length > 0) {
       const map: Record<string, { status: string; notes: string }> = {};
       existing.forEach(r => {
-        map[r.entityId] = { status: r.status, notes: r.notes || "" };
+        if (r.entityId) map[r.entityId] = { status: r.status, notes: r.notes || "" };
       });
       setAttendanceMap(map);
       setIsAlreadyMarked(true);

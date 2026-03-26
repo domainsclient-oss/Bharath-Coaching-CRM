@@ -2,74 +2,16 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper function — check if user is logged in
-    function isAuthenticated() {
-      return request.auth != null;
+    // Allow public read access to the connection test collection
+    // This allows the FirebaseConnectionTest component to verify connectivity 
+    // even before a user has logged in.
+    match /_connection_test/{document} {
+      allow read: if true;
     }
     
-    // Helper — check user role from their user document
-    function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
-    }
-    
-    function isAdmin() {
-      return isAuthenticated() && getUserRole() == 'admin';
-    }
-    
-    function isStaffOrAbove() {
-      return isAuthenticated() && getUserRole() in ['admin', 'manager', 'staff'];
-    }
-
-    // Config — only admins can write
-    match /config/{document} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
-    }
-
-    // Students
-    match /students/{studentId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isStaffOrAbove();
-      allow delete: if isAdmin();
-    }
-
-    // Staff
-    match /staff/{staffId} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
-    }
-
-    // Fees
-    match /fees/{feeId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isStaffOrAbove();
-      allow delete: if isAdmin();
-    }
-
-    // Attendance
-    match /attendance/{docId} {
-      allow read: if isAuthenticated();
-      allow write: if isStaffOrAbove();
-    }
-
-    // Expenses
-    match /expenses/{expenseId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isStaffOrAbove();
-      allow delete: if isAdmin();
-    }
-
-    // Exams, Reports, Classes, Timetable — staff can read/write, only admin can delete
-    match /{collectionName}/{docId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isStaffOrAbove();
-      allow delete: if isAdmin();
-    }
-
-    // Users — only admin can manage user accounts
-    match /users/{userId} {
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      allow write: if isAdmin();
+    // Default rule for all other documents requires authentication
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }

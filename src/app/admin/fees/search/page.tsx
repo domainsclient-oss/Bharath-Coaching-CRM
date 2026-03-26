@@ -7,7 +7,7 @@ import { Input } from '../../../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../../../../components/ui/card';
 import { studentService } from '../../../../services/firestoreService';
 import { useBranchData } from '../../../../context/BranchContext';
-import type { Student } from '../../../../models/student';
+import type { Student } from '../../../../models/index';
 import { toast } from '../../../../components/ui/use-toast';
 import { Printer, Loader2 } from 'lucide-react';
 import centerConfig from '../../../../config/centerConfig';
@@ -102,7 +102,7 @@ export default function FeeSearchPage() {
                     <CardContent className="p-8 space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div><span className="font-semibold">Student Name:</span> {student.name}</div>
-                            <div><span className="font-semibold">Student ID:</span> {student.studentId}</div>
+                            <div><span className="font-semibold">Student ID:</span> {student.id}</div>
                             <div><span className="font-semibold">Date:</span> {new Date().toLocaleDateString()}</div>
                             <div><span className="font-semibold">Receipt No:</span> #{Date.now()}</div>
                         </div>

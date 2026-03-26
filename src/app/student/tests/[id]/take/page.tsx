@@ -113,6 +113,7 @@ export default function TakeTestPage() {
           answers,
           markedForReview,
           timeLeft,
+          startedAt: new Date(),
           lastSavedAt: new Date(),
         };
         try {

@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight, ChevronLeft, Save, ArrowLeft, X, Upload } from 'lucide-react';
+import Link from 'next/link';
 
 const staffSchema = z.object({
     name: z.string().min(2, "Name is required"),
@@ -89,14 +90,14 @@ const StaffProfilePage = () => {
       const foundStaff = staff.find(s => s.id === staffId);
       if (foundStaff) {
         setCurrentStaff(foundStaff);
-        reset(foundStaff);
+        reset(foundStaff as any);
       } else {
         router.push('/admin/hr');
       }
     }
   }, [staff, staffId, isNew, router]);
 
-  const { register, handleSubmit, control, formState: { errors }, reset, trigger, getValues } = useForm<Staff>({
+  const { register, handleSubmit, control, formState: { errors }, reset, trigger, getValues, setValue } = useForm<z.infer<typeof staffSchema>>({
     resolver: zodResolver(staffSchema),
     defaultValues: { subjects: [], classes: [], status: 'Active' },
   });
@@ -119,14 +120,14 @@ const StaffProfilePage = () => {
     }
   };
 
-  const onSubmit = (data: Staff) => {
+  const onSubmit = (data: z.infer<typeof staffSchema>) => {
     if (isNew) {
         const newStaffId = `STF${Date.now().toString().slice(-4)}`;
-        const newStaff: Staff = { ...data, id: newStaffId, staffId: `STF-${newStaffId}`, branchId };
+        const newStaff: Staff = { ...currentStaff, ...data, id: newStaffId, staffId: `STF-${newStaffId}`, branchId, contact: data.phone || '', branch: '' };
         setStaff(prev => [...prev, newStaff]);
         alert('New staff member added!');
     } else {
-        setStaff(prev => prev.map(s => s.id === staffId ? { ...currentStaff, ...data } : s));
+        setStaff(prev => prev.map(s => s.id === staffId ? { ...currentStaff, ...data } as Staff : s));
         alert('Staff profile updated!');
     }
     router.push('/admin/hr');

@@ -23,6 +23,19 @@ export interface Student {
   collectedFees?: number;
   balance?: number;
   billNo?: string;
+  // Extended profile fields
+  studentId?: string;
+  dob?: string;
+  gender?: string;
+  email?: string;
+  address?: { street?: string; city?: string; state?: string; pincode?: string } | string;
+  fatherName?: string;
+  fatherOccupation?: string;
+  motherName?: string;
+  motherOccupation?: string;
+  joinDate?: string;
+  previousSchool?: string;
+  previousSchoolMarks?: number;
 }
 
 export const mockStudents: Student[] = [

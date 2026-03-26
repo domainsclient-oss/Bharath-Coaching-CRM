@@ -68,7 +68,7 @@ const StudentProfilePage = () => {
                          {/* Address Information */}
                         <div className="space-y-3">
                             <h3 className="font-semibold flex items-center"><Home className="mr-2 h-4 w-4"/> Address</h3>
-                            <InfoRow icon={<></>} label="Address" value={`${studentDetails.address.street}, ${studentDetails.address.city}, ${studentDetails.address.state} - ${studentDetails.address.pincode}`} />
+                            <InfoRow icon={<></>} label="Address" value={typeof studentDetails.address === 'string' ? studentDetails.address : studentDetails.address ? `${(studentDetails.address as any).street || ''}, ${(studentDetails.address as any).city || ''}, ${(studentDetails.address as any).state || ''} - ${(studentDetails.address as any).pincode || ''}` : undefined} />
                         </div>
 
                         {/* Guardian Information */}
