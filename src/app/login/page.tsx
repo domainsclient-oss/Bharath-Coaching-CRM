@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useAuth } from '../../lib/auth-context';
 import { resetPassword } from '../../services/authService';
 import { Button } from '../../components/ui/button';
@@ -10,7 +9,8 @@ import { Label } from '../../components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
 import centerConfig from '../../config/centerConfig';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle, ShieldCheck } from 'lucide-react';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -49,7 +49,6 @@ export default function LoginPage() {
         title: 'Login Successful',
         description: `Welcome back to ${centerConfig.centerName}! Redirecting...`,
       });
-      // The AuthProvider will handle redirection automatically
     } catch (error: any) {
       console.error('Login failed:', error);
       toast({
@@ -88,7 +87,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4 flex-col gap-6">
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 h-16 w-16">
@@ -104,7 +103,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="name@example.com"
+                placeholder="admin@bharathacademy.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -123,7 +122,7 @@ export default function LoginPage() {
                 disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full bg-[#1E2A4A] hover:bg-[#0D7C8F]" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLoading ? 'Signing In...' : 'Sign In'}
             </Button>
@@ -134,6 +133,26 @@ export default function LoginPage() {
             Forgot Password?
           </Button>
         </CardFooter>
+      </Card>
+
+      {/* Developer Helper Box */}
+      <Card className="w-full max-w-md border-amber-200 bg-amber-50">
+        <CardContent className="pt-6">
+          <div className="flex gap-3">
+            <ShieldCheck className="h-5 w-5 text-amber-600 shrink-0" />
+            <div className="space-y-2">
+              <p className="text-sm font-bold text-amber-800">Developer Access</p>
+              <p className="text-xs text-amber-700">
+                1. Navigate to <Link href="/setup" className="font-bold underline">/setup</Link> to initialize your database first.<br />
+                2. Use the following credentials for testing:
+              </p>
+              <div className="bg-white/50 p-2 rounded border border-amber-200 text-[10px] font-mono text-amber-900">
+                Email: admin@bharathacademy.com<br />
+                Pass: password123
+              </div>
+            </div>
+          </div>
+        </CardContent>
       </Card>
     </div>
   );

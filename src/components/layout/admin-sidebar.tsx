@@ -4,19 +4,16 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import {
-  LayoutDashboard, Users, GraduationCap, BookOpen, CalendarDays,
-  ClipboardList, Video, Megaphone, IndianRupee, FlaskConical,
-  FileText, UserCheck, Wallet, BarChart3, Settings, LogOut,
-  ChevronDown, ChevronRight, School, Phone, Bell, CreditCard,
-  Search, BookMarked, PenLine, Trophy, UserCog, Banknote,
-  Receipt,
+  LayoutDashboard, Users, BookOpen, ClipboardList, Video, 
+  IndianRupee, FlaskConical, UserCog, Banknote, BarChart3, 
+  Settings, LogOut, ChevronDown, ChevronRight, School, Phone, 
+  PenLine
 } from 'lucide-react';
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
   SidebarGroupContent, SidebarGroupLabel, SidebarHeader,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem,
-  SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem,
-  SidebarRail,
+  SidebarMenuSubButton, SidebarRail,
 } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -173,6 +170,7 @@ function hasAccess(roles: string[] | undefined, userRole: string) {
 }
 
 function getInitials(name: string) {
+  if (!name) return 'A';
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
@@ -216,7 +214,7 @@ export default function AdminSidebar() {
         {navSections.map((section, si) => {
           if (!hasAccess(section.roles, userRole)) return null;
 
-          // Flat items (no grouping label like Dashboard, Expenditure, Reports, Settings)
+          // Flat items (no grouping label)
           if (!section.label) {
             const flatItems = section.items as FlatNavItem[];
             return (
