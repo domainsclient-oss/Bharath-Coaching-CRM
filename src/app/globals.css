@@ -1,30 +1,29 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
  
 @layer base {
   :root {
-    --background: hsl(var(--background));
-    --foreground: hsl(var(--foreground));
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
 
-    --card: hsl(var(--card));
-    --card-foreground: hsl(var(--card-foreground));
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
  
-    --popover: hsl(var(--popover));
-    --popover-foreground: hsl(var(--popover-foreground));
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
  
-    --primary: hsl(var(--primary));
-    --primary-foreground: hsl(var(--primary-foreground));
+    --primary: 224 42% 20%;
+    --primary-foreground: 210 40% 98%;
  
-    --secondary: hsl(var(--secondary));
-    --secondary-foreground: hsl(var(--secondary-foreground));
+    --secondary: 189 83% 31%;
+    --secondary-foreground: 210 40% 98%;
  
-    --muted: hsl(var(--muted));
-    --muted-foreground: hsl(var(--muted-foreground));
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
  
-    --accent: hsl(var(--accent));
-    --accent-foreground: hsl(var(--accent-foreground));
+    --accent: 189 83% 31%;
+    --accent-foreground: 210 40% 98%;
  
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;

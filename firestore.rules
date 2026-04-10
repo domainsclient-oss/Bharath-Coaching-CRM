@@ -3,8 +3,6 @@ service cloud.firestore {
   match /databases/{database}/documents {
     
     // Allow public read access to the connection test collection
-    // This allows the FirebaseConnectionTest component to verify connectivity 
-    // even before a user has logged in.
     match /_connection_test/{document} {
       allow read: if true;
     }

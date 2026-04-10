@@ -9,7 +9,7 @@ import { Label } from '../../components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
 import centerConfig from '../../config/centerConfig';
-import { Loader2, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Loader2, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 
 export default function LoginPage() {
@@ -88,7 +88,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4 flex-col gap-6">
-      <Card className="w-full max-w-md shadow-2xl">
+      <Card className="w-full max-w-md shadow-2xl border-none">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 h-16 w-16">
             <img src={centerConfig.logo} alt={`${centerConfig.centerName} Logo`} className="h-full w-full object-contain" />

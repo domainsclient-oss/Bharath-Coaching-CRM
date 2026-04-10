@@ -1,4 +1,3 @@
-
 // =======================================================
 //        CENTER-SPECIFIC CONFIGURATION
 // =======================================================
@@ -16,9 +15,26 @@ const centerConfig = {
   email: "contact@bharathacademy.com",
   address: "123 Srirangam, Trichy, Tamil Nadu 620006, India",
 
-  // --- Theme (HSL Color Space) ---
+  // --- Theme (HSL Color Space values only - no hsl() wrapper) ---
   theme: {
-    // ... (theme properties as defined before) ...
+    background: { h: 0, s: 0, l: 100 },
+    foreground: { h: 222, s: 84, l: 4.9 },
+    card: { h: 0, s: 0, l: 100 },
+    "card-foreground": { h: 222, s: 84, l: 4.9 },
+    popover: { h: 0, s: 0, l: 100 },
+    "popover-foreground": { h: 222, s: 84, l: 4.9 },
+    primary: { h: 224, s: 42, l: 20 },
+    "primary-foreground": { h: 210, s: 40, l: 98 },
+    secondary: { h: 189, s: 83, l: 31 },
+    "secondary-foreground": { h: 210, s: 40, l: 98 },
+    muted: { h: 210, s: 40, l: 96.1 },
+    "muted-foreground": { h: 215, s: 16, l: 46.9 },
+    accent: { h: 189, s: 83, l: 31 },
+    "accent-foreground": { h: 210, s: 40, l: 98 },
+    border: { h: 214, s: 32, l: 91 },
+    input: { h: 214, s: 32, l: 91 },
+    ring: { h: 222, s: 84, l: 4.9 },
+    fontFamily: "DM Sans",
   },
 
   // --- Feature Flags ---
