@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -38,7 +37,7 @@ const questionSchema = z.object({
 const QuestionBankPage = () => {
   const branchId = useBranchId();
   const { data: questions, setData: setQuestions } = useBranchData<Question>(mockQuestions);
-  const [filters, setFilters] = useState({ subject: '', type: '', difficulty: '' });
+  const [filters, setFilters] = useState({ subject: '', type: 'all', difficulty: 'all' });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
@@ -52,8 +51,8 @@ const QuestionBankPage = () => {
   const filteredQuestions = useMemo(() => {
     return questions.filter(q => 
       (filters.subject ? q.subject.toLowerCase().includes(filters.subject.toLowerCase()) : true) &&
-      (filters.type ? q.type === filters.type : true) &&
-      (filters.difficulty ? q.difficulty === filters.difficulty : true)
+      (filters.type !== 'all' ? q.type === filters.type : true) &&
+      (filters.difficulty !== 'all' ? q.difficulty === filters.difficulty : true)
     );
   }, [questions, filters]);
 
@@ -182,8 +181,24 @@ const QuestionBankPage = () => {
         <CardContent className="pt-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <Input placeholder="Filter by Subject..." value={filters.subject} onChange={e => handleFilterChange('subject', e.target.value)} />
-                <Select value={filters.type} onValueChange={v => handleFilterChange('type', v)}><SelectTrigger><SelectValue placeholder="Filter by Type..." /></SelectTrigger><SelectContent><SelectItem value="">All Types</SelectItem><SelectItem value="MCQ">MCQ</SelectItem><SelectItem value="Short Answer">Short Answer</SelectItem><SelectItem value="True/False">True/False</SelectItem></SelectContent></Select>
-                <Select value={filters.difficulty} onValueChange={v => handleFilterChange('difficulty', v)}><SelectTrigger><SelectValue placeholder="Filter by Difficulty..." /></SelectTrigger><SelectContent><SelectItem value="">All Difficulties</SelectItem><SelectItem value="Easy">Easy</SelectItem><SelectItem value="Medium">Medium</SelectItem><SelectItem value="Hard">Hard</SelectItem></SelectContent></Select>
+                <Select value={filters.type} onValueChange={v => handleFilterChange('type', v)}>
+                  <SelectTrigger><SelectValue placeholder="Filter by Type..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="MCQ">MCQ</SelectItem>
+                    <SelectItem value="Short Answer">Short Answer</SelectItem>
+                    <SelectItem value="True/False">True/False</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={filters.difficulty} onValueChange={v => handleFilterChange('difficulty', v)}>
+                  <SelectTrigger><SelectValue placeholder="Filter by Difficulty..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Difficulties</SelectItem>
+                    <SelectItem value="Easy">Easy</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="Hard">Hard</SelectItem>
+                  </SelectContent>
+                </Select>
             </div>
         </CardContent>
       </Card>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -19,12 +18,12 @@ const StaffDirectoryPage = () => {
   const router = useRouter();
   const { data: staff } = useBranchData<Staff>(mockStaff);
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
-  const [filters, setFilters] = useState({ role: '', status: '', search: '' });
+  const [filters, setFilters] = useState({ role: 'all', status: 'all', search: '' });
 
   const filteredStaff = useMemo(() => {
     return staff.filter(s => 
-      (filters.role ? s.role === filters.role : true) &&
-      (filters.status ? s.status === filters.status : true) &&
+      (filters.role !== 'all' ? s.role === filters.role : true) &&
+      (filters.status !== 'all' ? s.status === filters.status : true) &&
       (filters.search ? s.name.toLowerCase().includes(filters.search.toLowerCase()) || s.staffId.toLowerCase().includes(filters.search.toLowerCase()) : true)
     );
   }, [staff, filters]);
@@ -66,11 +65,21 @@ const StaffDirectoryPage = () => {
             <div className="flex items-center gap-4">
                 <Select value={filters.role} onValueChange={v => handleFilterChange('role', v)}>
                     <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter by Role" /></SelectTrigger>
-                    <SelectContent><SelectItem value="">All Roles</SelectItem><SelectItem value="Principal">Principal</SelectItem><SelectItem value="Admin">Admin</SelectItem><SelectItem value="Teacher">Teacher</SelectItem><SelectItem value="Support">Support</SelectItem></SelectContent>
+                    <SelectContent>
+                      <SelectItem value="all">All Roles</SelectItem>
+                      <SelectItem value="Principal">Principal</SelectItem>
+                      <SelectItem value="Admin">Admin</SelectItem>
+                      <SelectItem value="Teacher">Teacher</SelectItem>
+                      <SelectItem value="Support">Support</SelectItem>
+                    </SelectContent>
                 </Select>
                  <Select value={filters.status} onValueChange={v => handleFilterChange('status', v)}>
                     <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter by Status" /></SelectTrigger>
-                    <SelectContent><SelectItem value="">All Statuses</SelectItem><SelectItem value="Active">Active</SelectItem><SelectItem value="Inactive">Inactive</SelectItem></SelectContent>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Inactive">Inactive</SelectItem>
+                    </SelectContent>
                 </Select>
                 <div className="flex items-center bg-muted p-1 rounded-md">
                     <Button variant={viewMode === 'card' ? 'default' : 'ghost'} size="icon" onClick={() => setViewMode('card')}><LayoutGrid className="h-5 w-5"/></Button>

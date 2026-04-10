@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -34,7 +33,7 @@ const examSchema = z.object({
 const ExamSchedulePage = () => {
   const branchId = useBranchId();
   const { data: exams, setData: setExams } = useBranchData<Exam>(mockExams);
-  const [filters, setFilters] = useState({ class: '', subject: '', date: '', status: '' });
+  const [filters, setFilters] = useState({ class: '', subject: '', date: '', status: 'all' });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExam, setEditingExam] = useState<Exam | null>(null);
 
@@ -48,7 +47,7 @@ const ExamSchedulePage = () => {
       (filters.class ? exam.class === filters.class : true) &&
       (filters.subject ? exam.subject.toLowerCase().includes(filters.subject.toLowerCase()) : true) &&
       (filters.date ? exam.date === filters.date : true) &&
-      (filters.status ? exam.status === filters.status : true)
+      (filters.status !== 'all' ? exam.status === filters.status : true)
     );
   }, [exams, filters]);
 
@@ -143,7 +142,7 @@ const ExamSchedulePage = () => {
                 <Select value={filters.status} onValueChange={value => handleFilterChange('status', value)}>
                     <SelectTrigger><SelectValue placeholder="Filter by Status..." /></SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">All Statuses</SelectItem>
+                        <SelectItem value="all">All Statuses</SelectItem>
                         <SelectItem value="Scheduled">Scheduled</SelectItem>
                         <SelectItem value="Completed">Completed</SelectItem>
                     </SelectContent>
@@ -168,7 +167,7 @@ const ExamSchedulePage = () => {
                   <TableCell><Badge variant={exam.status === 'Scheduled' ? 'default' : 'secondary'}>{exam.status}</Badge></TableCell>
                   <TableCell className="space-x-1">
                     <Button variant="outline" size="icon" onClick={() => openModal(exam)}><Edit className="h-4 w-4" /></Button>
-                    <Button variant="outline" size="icon" asChild><a href={`/examination/marks?examId=${exam.id}`}><BookOpen className="h-4 w-4" /></a></Button>
+                    <Button variant="outline" size="icon" asChild><Link href={`/admin/examination/marks?examId=${exam.id}`}><BookOpen className="h-4 w-4" /></Link></Button>
                     <Button variant="destructive" size="icon" onClick={() => deleteExam(exam.id)}><Trash2 className="h-4 w-4" /></Button>
                   </TableCell>
                 </TableRow>
