@@ -76,8 +76,8 @@ const navSections: NavSection[] = [
     roles: ['super_admin', 'admin', 'teacher'],
     items: [
       { href: '/admin/academics/classes', label: 'Classes', roles: ['super_admin', 'admin'] },
+      { href: '/admin/academics/teachers', label: 'Subject Teachers', roles: ['super_admin', 'admin'] },
       { href: '/admin/academics/subjects', label: 'Subjects', roles: ['super_admin', 'admin'] },
-      { href: '/admin/academics/teachers', label: 'Teacher Assignment', roles: ['super_admin', 'admin'] },
       { href: '/admin/academics/class-timetable', label: 'Class Timetable' },
       { href: '/admin/academics/teacher-timetable', label: 'Teacher Timetable' },
     ],
