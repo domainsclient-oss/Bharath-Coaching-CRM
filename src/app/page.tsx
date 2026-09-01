@@ -5,10 +5,11 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../lib/auth-context';
 import { Loader2 } from 'lucide-react';
-import centerConfig from '../config/centerConfig';
+import { useSettings } from '../context/SettingsContext';
 
 export default function HomePage() {
   const { user, loading } = useAuth();
+  const { settings } = useSettings();
   const router = useRouter();
 
   useEffect(() => {
@@ -33,7 +34,7 @@ export default function HomePage() {
     <div className="flex h-screen w-full flex-col items-center justify-center bg-background text-foreground">
       <div className="flex items-center space-x-3">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground font-medium">Loading {centerConfig.centerName} Portal...</p>
+        <p className="text-muted-foreground font-medium">Loading {settings.appName} Portal...</p>
       </div>
     </div>
   );

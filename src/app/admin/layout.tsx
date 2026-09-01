@@ -7,7 +7,7 @@ export default function AdminPortalLayout({ children }: { children: React.ReactN
   return (
     <PortalLayout>
       <AdminSidebar />
-      <SidebarInset className="flex flex-col min-h-screen bg-background">
+      <SidebarInset className="flex flex-col min-h-screen bg-background min-w-0 overflow-x-hidden">
         {children}
       </SidebarInset>
     </PortalLayout>

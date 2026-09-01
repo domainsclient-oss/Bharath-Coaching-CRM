@@ -3,11 +3,11 @@ import { DM_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "../components/theme-provider";
 import { AuthProvider } from "../lib/auth-context";
-import { BranchProvider } from "../context/BranchContext"; 
+import { BranchProvider } from "../context/BranchContext";
+import { SettingsProvider } from "../context/SettingsContext";
 import { Toaster } from "../components/ui/toaster";
 import centerConfig from "../config/centerConfig";
 import ThemeInjector from "../components/ThemeInjector";
-import FirebaseConnectionTest from "@/components/FirebaseConnectionTest";
 
 const font = DM_Sans({ subsets: ["latin"] });
 
@@ -29,7 +29,6 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet" />
       </head>
       <body className={font.className}>
-        <FirebaseConnectionTest />
         <ThemeInjector />
         <ThemeProvider
           attribute="class"
@@ -38,10 +37,12 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            <BranchProvider>
-              {children}
-              <Toaster />
-            </BranchProvider>
+            <SettingsProvider>
+              <BranchProvider>
+                {children}
+                <Toaster />
+              </BranchProvider>
+            </SettingsProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

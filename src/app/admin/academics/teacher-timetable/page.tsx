@@ -1,13 +1,12 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { 
-  ChevronRight, 
-  Printer, 
-  Clock, 
-  Calendar,
+import {
+  ChevronRight,
+  Printer,
+  Clock,
   User,
   BookOpen,
   MapPin,
@@ -25,46 +24,50 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { 
-  mockClasses, 
-  mockTimetable, 
-  TIME_SLOTS, 
-  DAYS 
-} from "@/data/academicsData";
-import { mockStaff } from "@/data/hrData";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TIME_SLOTS, DAYS } from "@/data/academicsData";
 import { useAuth } from "@/lib/auth-context";
 import { useBranch } from "@/context/BranchContext";
+import { useFirestoreCollection } from "@/hooks/useFirestoreCollection";
 
 export default function TeacherTimetablePage() {
   useAuth();
   const { currentBranch } = useBranch();
-  const [selectedTeacherId, setSelectedTeacherId] = useState<string>("STF001");
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
 
-  const teachers = useMemo(() => {
-    return mockStaff.filter(s => s.role === "Teacher" && s.branchId === currentBranch);
-  }, [currentBranch]);
+  const { data: allStaff, loading: staffLoading } = useFirestoreCollection<any>("staff", currentBranch);
+  const { data: allClasses } = useFirestoreCollection<any>("classes", currentBranch);
+  const { data: allEntries, loading: ttLoading } = useFirestoreCollection<any>("timetable", currentBranch);
 
-  const selectedTeacher = useMemo(() => {
-    return teachers.find(t => t.id === selectedTeacherId);
-  }, [selectedTeacherId, teachers]);
+  const teachers = useMemo(() => allStaff.filter((s: any) => s.role === "Teacher"), [allStaff]);
 
-  const teacherSchedule = useMemo(() => {
-    return mockTimetable.filter(t => t.teacherId === selectedTeacherId && t.branchId === currentBranch);
-  }, [selectedTeacherId, currentBranch]);
+  // Auto-select first teacher when data loads
+  useEffect(() => {
+    if (!selectedTeacherId && teachers.length > 0) {
+      setSelectedTeacherId(teachers[0].id);
+    }
+  }, [teachers, selectedTeacherId]);
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const selectedTeacher = useMemo(
+    () => teachers.find((t: any) => t.id === selectedTeacherId),
+    [teachers, selectedTeacherId]
+  );
 
-  const getClassName = (classId: string) => {
-    return mockClasses.find(c => c.id === classId)?.name || classId;
-  };
+  const teacherSchedule = useMemo(
+    () => allEntries.filter((t: any) => t.teacherId === selectedTeacherId),
+    [allEntries, selectedTeacherId]
+  );
+
+  const getClassName = (classId: string) =>
+    allClasses.find((c: any) => c.id === classId)?.name || classId;
+
+  const loading = staffLoading || ttLoading;
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
       <SharedHeader title="Teacher Timetable" />
       
-      <main className="p-4 md:p-6 lg:p-8 space-y-6 animate-in fade-in duration-500 print:p-0 print:bg-white">
+      <main className="p-4 md:p-6 lg:p-8 space-y-6 animate-in fade-in duration-500 overflow-x-hidden print:p-0 print:bg-white">
         {/* Breadcrumbs & Header */}
         <div className="flex flex-col gap-1 mb-2 print:hidden">
           <div className="flex items-center text-xs text-muted-foreground gap-2">
@@ -76,7 +79,7 @@ export default function TeacherTimetablePage() {
           </div>
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-[#1E2A4A]">Faculty Schedule</h2>
-            <Button variant="outline" className="gap-2" onClick={handlePrint}>
+            <Button variant="outline" className="gap-2" onClick={() => window.print()}>
               <Printer className="h-4 w-4" /> Print Schedule
             </Button>
           </div>
@@ -88,16 +91,20 @@ export default function TeacherTimetablePage() {
             <div className="flex flex-col md:flex-row gap-4 items-end">
               <div className="grid gap-2 flex-1">
                 <Label className="text-xs font-bold uppercase text-muted-foreground">Select Teacher</Label>
-                <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId}>
-                  <SelectTrigger className="h-10">
-                    <SelectValue placeholder="Choose Faculty" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {teachers.map(t => (
-                      <SelectItem key={t.id} value={t.id}>{t.name} ({t.id})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {staffLoading ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : (
+                  <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Choose Faculty" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teachers.map((t: any) => (
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <div className="bg-slate-50 px-4 py-2 rounded-lg border flex items-center gap-3">
                 <div className="flex flex-col">
@@ -110,13 +117,23 @@ export default function TeacherTimetablePage() {
         </Card>
 
         {/* Timetable Grid */}
+        {loading && <Skeleton className="h-96 w-full" />}
+        {!loading && teachers.length === 0 && (
+          <Card className="border-none shadow-sm">
+            <CardContent className="py-16 text-center text-muted-foreground">
+              No teachers found. Add staff with role "Teacher" in{" "}
+              <Link href="/admin/hr" className="text-[#0D7C8F] underline">HR → Staff</Link>.
+            </CardContent>
+          </Card>
+        )}
+        {!loading && teachers.length > 0 && (
         <Card className="border-none shadow-sm overflow-hidden print:shadow-none print:border">
           <div className="bg-[#1E2A4A] text-white p-4 flex justify-between items-center">
             <div className="flex items-center gap-3">
               <User className="h-5 w-5 text-[#0D7C8F]" />
               <h3 className="font-bold">{selectedTeacher?.name} — Weekly Schedule</h3>
             </div>
-            <Badge className="bg-white/20 text-white border-white/30">{selectedTeacher?.id}</Badge>
+            <Badge className="bg-white/20 text-white border-white/30">{selectedTeacher?.role ?? "Teacher"}</Badge>
           </div>
           
           <div className="overflow-x-auto">
@@ -183,6 +200,7 @@ export default function TeacherTimetablePage() {
             </table>
           </div>
         </Card>
+        )}
       </main>
 
       <style jsx global>{`

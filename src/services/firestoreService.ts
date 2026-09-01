@@ -1,5 +1,6 @@
 
 import { db } from '../config/firebase';
+import { logAuditAuto } from '../lib/auditLogger';
 import {
   collection,
   doc,
@@ -58,6 +59,7 @@ export const addDocument = async <T extends DocumentData>(collectionName: string
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+  logAuditAuto("Create", collectionName, `Created record in ${collectionName} (id: ${docRef.id})`);
   return { id: docRef.id, ...data } as T & BaseDoc;
 };
 
@@ -96,11 +98,13 @@ export const updateDocument = async <T extends DocumentData>(collectionName: str
     ...data,
     updatedAt: serverTimestamp(),
   });
+  logAuditAuto("Update", collectionName, `Updated record in ${collectionName} (id: ${docId})`);
   return { id: docId, ...data };
 };
 
 export const deleteDocument = async (collectionName: string, docId: string): Promise<string> => {
   await deleteDoc(doc(db, collectionName, docId));
+  logAuditAuto("Delete", collectionName, `Deleted record from ${collectionName} (id: ${docId})`, { severity: "Warning" });
   return docId;
 };
 

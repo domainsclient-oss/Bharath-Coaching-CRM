@@ -1,91 +1,259 @@
 
-import { 
-    studentService, 
-    staffService, 
-    feeService, 
-    enquiryService 
+import {
+  studentService,
+  staffService,
+  feeService,
+  enquiryService,
+  attendanceService,
 } from './firestoreService';
-import { startOfMonth, endOfMonth } from 'date-fns';
+import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
 
-const getDashboardKPIs = async (branchId: string) => {
-    // 1. Total Students
-    const students = await studentService.query([
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Safely converts Firestore Timestamp / JS Date / ISO string → JS Date */
+function toDate(value: unknown): Date {
+  if (!value) return new Date(0);
+  if (typeof (value as any).toDate === 'function') return (value as any).toDate();
+  if (value instanceof Date) return value;
+  return new Date(value as string);
+}
+
+/** Runs fn(), returns fallback silently on any error (index missing, permission, etc.) */
+async function safeFetch<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    console.warn('[dashboardService] query failed (returning fallback):', err);
+    return fallback;
+  }
+}
+
+// ── KPIs ─────────────────────────────────────────────────────────────────────
+
+export interface DashboardKPIs {
+  totalStudents: number;
+  activeStaff: number;
+  feesCollectedThisMonth: number;
+  pendingDues: number;
+}
+
+const getDashboardKPIs = async (branchId: string): Promise<DashboardKPIs> => {
+  const today = new Date();
+  const start = startOfMonth(today);
+  const end   = endOfMonth(today);
+
+  const [students, staff, feesThisMonth, pendingFees] = await Promise.all([
+    safeFetch(
+      () => studentService.query([
         { field: 'branchId', operator: '==', value: branchId },
-        { field: 'status', operator: '==', value: 'Active' }
-    ]);
-    const totalStudents = students.length;
-
-    // 2. Active Staff
-    const staff = await staffService.query([
+        { field: 'status',   operator: '==', value: 'Active'  },
+      ]),
+      []
+    ),
+    safeFetch(
+      () => staffService.query([
         { field: 'branchId', operator: '==', value: branchId },
-        { field: 'status', operator: '==', value: 'Active' }
-    ]);
-    const activeStaff = staff.length;
+        { field: 'status',   operator: '==', value: 'Active'  },
+      ]),
+      []
+    ),
+    safeFetch(
+      () => feeService.query([
+        { field: 'branchId',     operator: '==', value: branchId },
+        { field: 'paymentDate',  operator: '>=', value: start    },
+        { field: 'paymentDate',  operator: '<=', value: end      },
+      ]),
+      []
+    ),
+    safeFetch(
+      () => feeService.query([
+        { field: 'branchId', operator: '==',  value: branchId                  },
+        { field: 'status',   operator: 'in',  value: ['Unpaid', 'Partially Paid'] },
+      ]),
+      []
+    ),
+  ]);
 
-    // 3. Fees Collected This Month
-    const today = new Date();
-    const start = startOfMonth(today);
-    const end = endOfMonth(today);
-    const feesThisMonth = await feeService.query([
-        { field: 'branchId', operator: '==', value: branchId },
-        { field: 'paymentDate', operator: '>=', value: start },
-        { field: 'paymentDate', operator: '<=', value: end }
-    ]);
-    const feesCollectedThisMonth = feesThisMonth.reduce((acc, fee) => acc + fee.amountPaid, 0);
+  return {
+    totalStudents:         students.length,
+    activeStaff:           staff.length,
+    feesCollectedThisMonth: feesThisMonth.reduce((s: number, f: any) => s + (f.amountPaid ?? 0), 0),
+    pendingDues:           pendingFees.reduce((s: number, f: any) => s + (f.balance ?? 0), 0),
+  };
+};
 
-    // 4. Pending Dues
-    const pendingFees = await feeService.query([
-        { field: 'branchId', operator: '==', value: branchId },
-        { field: 'status', operator: 'in', value: ['Unpaid', 'Partially Paid'] }
-    ]);
-    const pendingDues = pendingFees.reduce((acc, fee) => acc + fee.balance, 0);
+// ── Monthly Fee Collection ────────────────────────────────────────────────────
 
+export interface MonthlyFee {
+  month: string;
+  collected: number;
+}
+
+const getMonthlyFeeCollection = async (branchId: string): Promise<MonthlyFee[]> => {
+  const today  = new Date();
+  // Build 6-month buckets: oldest first
+  const buckets: MonthlyFee[] = Array.from({ length: 6 }, (_, i) => {
+    const d = subMonths(today, 5 - i);
+    return { month: format(d, 'MMM'), collected: 0 };
+  });
+
+  // Query fees paid in the last 6 months
+  const rangeStart = startOfMonth(subMonths(today, 5));
+  const rangeEnd   = endOfMonth(today);
+
+  const fees = await safeFetch(
+    () => feeService.query([
+      { field: 'branchId',    operator: '==', value: branchId  },
+      { field: 'paymentDate', operator: '>=', value: rangeStart },
+      { field: 'paymentDate', operator: '<=', value: rangeEnd   },
+    ]),
+    []
+  );
+
+  fees.forEach((fee: any) => {
+    const pd    = toDate(fee.paymentDate);
+    const label = format(pd, 'MMM');
+    const bucket = buckets.find(b => b.month === label);
+    if (bucket) bucket.collected += fee.amountPaid ?? 0;
+  });
+
+  return buckets;
+};
+
+// ── Lead Sources ──────────────────────────────────────────────────────────────
+
+export interface LeadSource {
+  name: string;
+  value: number;
+}
+
+const getLeadSources = async (branchId: string): Promise<LeadSource[]> => {
+  const start = startOfMonth(new Date());
+
+  const enquiries = await safeFetch(
+    () => enquiryService.query([
+      { field: 'branchId',  operator: '==', value: branchId },
+      { field: 'createdAt', operator: '>=', value: start    },
+    ]),
+    []
+  );
+
+  const map: Record<string, number> = {};
+  enquiries.forEach((e: any) => {
+    const src = e.source || 'Unknown';
+    map[src] = (map[src] || 0) + 1;
+  });
+
+  return Object.entries(map).map(([name, value]) => ({ name, value }));
+};
+
+// ── Fee Alerts ────────────────────────────────────────────────────────────────
+
+export interface FeeAlert {
+  id: string;
+  name: string;
+  class: string;
+  dueDate: Date;
+  amount: number;
+  overdue: boolean;
+}
+
+const getFeeAlerts = async (branchId: string): Promise<FeeAlert[]> => {
+  const now = new Date();
+
+  const fees = await safeFetch(
+    () => feeService.query(
+      [
+        { field: 'branchId', operator: '==', value: branchId                       },
+        { field: 'status',   operator: 'in', value: ['Unpaid', 'Partially Paid']   },
+      ],
+      { field: 'dueDate', direction: 'asc' },
+      5
+    ),
+    []
+  );
+
+  return fees.map((f: any) => {
+    const due = toDate(f.dueDate);
     return {
-        totalStudents,
-        activeStaff,
-        feesCollectedThisMonth,
-        pendingDues
+      id:      f.id      ?? '',
+      name:    f.name    ?? f.studentName ?? 'Unknown',
+      class:   f.class   ?? f.className   ?? '—',
+      dueDate: due,
+      amount:  f.balance ?? f.amount      ?? 0,
+      overdue: due < now,
     };
+  });
 };
 
-const getMonthlyFeeCollection = async (branchId: string) => {
-    // Implementation for monthly fee collection chart
-    // This will require a more complex query, likely involving multiple queries and data aggregation
-    return [];
+// ── Recent Enquiries ──────────────────────────────────────────────────────────
+
+export interface RecentEnquiry {
+  id: string;
+  name: string;
+  source: string;
+  class: string;
+  status: string;
+  date: Date;
+}
+
+const getRecentEnquiries = async (branchId: string): Promise<RecentEnquiry[]> => {
+  const enquiries = await safeFetch(
+    () => enquiryService.query(
+      [{ field: 'branchId', operator: '==', value: branchId }],
+      { field: 'createdAt', direction: 'desc' },
+      5
+    ),
+    []
+  );
+
+  return enquiries.map((e: any) => ({
+    id:     e.id       ?? '',
+    name:   e.name     ?? e.studentName ?? 'Unknown',
+    source: e.source   ?? 'Unknown',
+    class:  e.class    ?? e.className   ?? '—',
+    status: e.status   ?? 'New',
+    date:   toDate(e.createdAt ?? e.date),
+  }));
 };
 
-const getLeadSources = async (branchId: string) => {
-    const enquiries = await enquiryService.query([
-        { field: 'branchId', operator: '==', value: branchId }
-    ]);
+// ── Today's Attendance ────────────────────────────────────────────────────────
 
-    const leadSources = enquiries.reduce((acc, enquiry) => {
-        const source = enquiry.source || 'Unknown';
-        acc[source] = (acc[source] || 0) + 1;
-        return acc;
-    }, {} as { [key: string]: number });
+export interface TodayAttendance {
+  present: number;
+  absent: number;
+  late: number;
+  total: number;
+  pct: number;
+}
 
-    return Object.entries(leadSources).map(([name, value]) => ({ name, value }));
+const getTodayAttendance = async (branchId: string): Promise<TodayAttendance> => {
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+  const records = await safeFetch(
+    () => attendanceService.query([
+      { field: 'branchId', operator: '==', value: branchId },
+      { field: 'date',     operator: '==', value: todayStr },
+    ]),
+    []
+  );
+
+  const present = records.filter((r: any) => r.status === 'Present').length;
+  const absent  = records.filter((r: any) => r.status === 'Absent').length;
+  const late    = records.filter((r: any) => r.status === 'Late').length;
+  const total   = records.length;
+  const pct     = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
+
+  return { present, absent, late, total, pct };
 };
 
-const getFeeAlerts = async (branchId: string) => {
-    return await feeService.query([
-        { field: 'branchId', operator: '==', value: branchId },
-        { field: 'status', operator: 'in', value: ['Unpaid', 'Partially Paid'] },
-        { field: 'dueDate', operator: '<=', value: new Date() }
-    ], { field: 'dueDate', direction: 'asc' }, 5);
-};
-
-const getRecentEnquiries = async (branchId: string) => {
-    return await enquiryService.query([
-        { field: 'branchId', operator: '==', value: branchId }
-    ], { field: 'createdAt', direction: 'desc' }, 5);
-};
+// ── Exports ───────────────────────────────────────────────────────────────────
 
 export const dashboardService = {
-    getDashboardKPIs,
-    getMonthlyFeeCollection,
-    getLeadSources,
-    getFeeAlerts,
-    getRecentEnquiries
+  getDashboardKPIs,
+  getMonthlyFeeCollection,
+  getLeadSources,
+  getFeeAlerts,
+  getRecentEnquiries,
+  getTodayAttendance,
 };

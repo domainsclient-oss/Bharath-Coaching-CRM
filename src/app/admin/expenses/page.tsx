@@ -8,6 +8,7 @@ import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 
@@ -55,15 +56,18 @@ export default function ExpensesPage() {
     }
   };
 
-  const handleDeleteExpense = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this expense?")) return;
+  const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
+  const handleDeleteExpense = async () => {
+    if (!deleteTarget) return;
     try {
-      await expenseService.delete(id);
-      setExpenses(prev => prev.filter(e => e.id !== id));
+      await expenseService.delete(deleteTarget.id);
+      setExpenses(prev => prev.filter(e => e.id !== deleteTarget.id));
       toast({ title: "Success", description: "Expense deleted." });
     } catch (err) {
       console.error("Error deleting expense:", err);
       toast({ title: "Error", description: "Could not delete expense.", variant: "destructive" });
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -112,7 +116,7 @@ export default function ExpensesPage() {
                     <TableCell>{expense.category}</TableCell>
                     <TableCell>₹{expense.amount.toLocaleString()}</TableCell>
                     <TableCell>
-                      <Button variant="destructive" size="sm" onClick={() => handleDeleteExpense(expense.id)}>
+                      <Button variant="destructive" size="sm" onClick={() => setDeleteTarget(expense)}>
                         <Trash2 className="h-4 w-4 mr-1" /> Delete
                       </Button>
                     </TableCell>
@@ -124,6 +128,18 @@ export default function ExpensesPage() {
           {!loading && expenses.length === 0 && <p className="text-center p-4">No expenses found for this branch.</p>}
         </CardContent>
       </Card>
+      <Dialog open={!!deleteTarget} onOpenChange={v => { if (!v) setDeleteTarget(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Delete Expense</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete this expense record? This cannot be undone.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteExpense}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

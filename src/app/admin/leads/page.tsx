@@ -37,16 +37,47 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { 
-  mockLeads, 
-  LEAD_STATUSES, 
-  SOURCE_COLORS, 
-  Lead, 
-  LeadStatus 
+import {
+  LEAD_STATUSES,
+  SOURCE_COLORS,
+  LeadStatus
 } from "@/data/leadsData";
 import { useAuth } from "@/lib/auth-context";
 import { useBranch } from "@/context/BranchContext";
 import { cn } from "@/lib/utils";
+import { useFirestoreCollection } from "@/hooks/useFirestoreCollection";
+import { updateDocument, deleteDocument } from "@/services/firestoreService";
+import { toast } from "@/hooks/use-toast";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub,
+  DropdownMenuSubTrigger, DropdownMenuSubContent,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { Eye, Edit, Trash2, MoveRight } from "lucide-react";
+
+interface Lead {
+  id: string;
+  enquiryNo?: string;
+  name: string;
+  age?: number;
+  classInterested?: string;
+  board?: string;
+  parentName?: string;
+  phone?: string;
+  whatsapp?: string;
+  email?: string;
+  source: string;
+  subjects?: string[];
+  mode?: string;
+  status: LeadStatus;
+  assignedTo?: string;
+  followUpDate?: string;
+  notes?: string;
+  branchId: string;
+}
 
 export default function EnquiryPipelinePage() {
   useAuth();
@@ -55,18 +86,41 @@ export default function EnquiryPipelinePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClass, setSelectedClass] = useState("All");
   const [selectedSource, setSelectedSource] = useState("All");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const handleStatusChange = async (leadId: string, status: LeadStatus) => {
+    try {
+      await updateDocument("enquiries", leadId, { status });
+      toast({ title: "Status updated" });
+    } catch {
+      toast({ title: "Error", description: "Could not update status.", variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await deleteDocument("enquiries", deleteId);
+      toast({ title: "Enquiry deleted", variant: "destructive" });
+    } catch {
+      toast({ title: "Error", description: "Could not delete enquiry.", variant: "destructive" });
+    } finally {
+      setDeleteId(null);
+    }
+  };
+
+  // ── Real-time Firestore subscription ─────────────────────────────────────
+  const { data: allLeads } = useFirestoreCollection<Lead>("enquiries", currentBranch);
 
   const leads = useMemo(() => {
-    return mockLeads.filter(l => {
-      const matchesBranch = l.branchId === currentBranch;
-      const matchesSearch = l.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           l.enquiryNo.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesClass = selectedClass === "All" || l.classInterested === selectedClass;
-      const matchesSource = selectedSource === "All" || l.source === selectedSource;
-      
-      return matchesBranch && matchesSearch && matchesClass && matchesSource;
+    return allLeads.filter(l => {
+      const matchesSearch = l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            (l.enquiryNo ?? "").toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesClass  = selectedClass  === "All" || l.classInterested === selectedClass;
+      const matchesSource = selectedSource === "All" || l.source           === selectedSource;
+      return matchesSearch && matchesClass && matchesSource;
     });
-  }, [currentBranch, searchTerm, selectedClass, selectedSource]);
+  }, [allLeads, searchTerm, selectedClass, selectedSource]);
 
   const leadsByStatus = useMemo(() => {
     const map: Record<LeadStatus, Lead[]> = {
@@ -87,7 +141,7 @@ export default function EnquiryPipelinePage() {
     <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
       <SharedHeader title="Lead Management" />
       
-      <main className="p-4 md:p-6 lg:p-8 space-y-6 animate-in fade-in duration-500">
+      <main className="p-4 md:p-6 lg:p-8 space-y-6 animate-in fade-in duration-500 overflow-x-hidden">
         {/* Header & Breadcrumbs */}
         <div className="flex flex-col gap-1 mb-2">
           <div className="flex items-center text-xs text-muted-foreground gap-2">
@@ -100,18 +154,18 @@ export default function EnquiryPipelinePage() {
             
             <div className="flex items-center gap-2">
               <div className="bg-white border rounded-lg p-1 flex">
-                <Button 
-                  variant={viewMode === "kanban" ? "secondary" : "ghost"} 
-                  size="sm" 
-                  className={cn("h-8 gap-2", viewMode === "kanban" && "bg-slate-100")}
+                <Button
+                  variant={viewMode === "kanban" ? "secondary" : "ghost"}
+                  size="sm"
+                  className={cn("h-8 gap-2", viewMode === "kanban" ? "bg-slate-100 text-[#1E2A4A]" : "text-slate-600 hover:text-[#1E2A4A]")}
                   onClick={() => setViewMode("kanban")}
                 >
                   <LayoutGrid className="h-4 w-4" /> Kanban
                 </Button>
-                <Button 
-                  variant={viewMode === "list" ? "secondary" : "ghost"} 
-                  size="sm" 
-                  className={cn("h-8 gap-2", viewMode === "list" && "bg-slate-100")}
+                <Button
+                  variant={viewMode === "list" ? "secondary" : "ghost"}
+                  size="sm"
+                  className={cn("h-8 gap-2", viewMode === "list" ? "bg-slate-100 text-[#1E2A4A]" : "text-slate-600 hover:text-[#1E2A4A]")}
                   onClick={() => setViewMode("list")}
                 >
                   <List className="h-4 w-4" /> List View
@@ -193,16 +247,51 @@ export default function EnquiryPipelinePage() {
                           <Link href={`/admin/leads/${lead.id}`} className="font-bold text-[#1E2A4A] hover:text-[#0D7C8F] transition-colors line-clamp-1">
                             {lead.name}
                           </Link>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <MoreVertical className="h-3.5 w-3.5" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <MoreVertical className="h-3.5 w-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem asChild>
+                                <Link href={`/admin/leads/${lead.id}`} className="flex items-center gap-2">
+                                  <Eye className="h-3.5 w-3.5" /> View Profile
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link href={`/admin/leads/add?edit=${lead.id}`} className="flex items-center gap-2">
+                                  <Edit className="h-3.5 w-3.5" /> Edit Enquiry
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger className="flex items-center gap-2">
+                                  <MoveRight className="h-3.5 w-3.5" /> Move to
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent>
+                                  {LEAD_STATUSES.filter(s => s !== lead.status).map(s => (
+                                    <DropdownMenuItem key={s} onClick={() => handleStatusChange(lead.id, s)}>
+                                      {s}
+                                    </DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-red-600 focus:text-red-600 flex items-center gap-2"
+                                onClick={() => setDeleteId(lead.id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                         
                         <div className="flex flex-wrap gap-1.5">
-                          <Badge variant="secondary" className="text-[9px] font-bold h-4 bg-slate-100">
+                          <Badge variant="secondary" className="text-[9px] font-bold h-4 bg-slate-100 text-slate-700">
                             Class {lead.classInterested}
                           </Badge>
-                          <Badge className={cn("text-[9px] font-bold h-4 border", SOURCE_COLORS[lead.source])}>
+                          <Badge className={cn("text-[9px] font-bold h-4 border", SOURCE_COLORS[lead.source as keyof typeof SOURCE_COLORS] ?? "bg-slate-100 text-slate-700 border-slate-200")}>
                             {lead.source}
                           </Badge>
                         </div>
@@ -214,7 +303,7 @@ export default function EnquiryPipelinePage() {
                           </div>
                           <div className={cn(
                             "flex items-center gap-2 text-[10px] font-medium",
-                            new Date(lead.followUpDate) < new Date() ? "text-red-600" : "text-amber-600"
+                            lead.followUpDate && new Date(lead.followUpDate) < new Date() ? "text-red-600" : "text-amber-600"
                           )}>
                             <Calendar className="h-3 w-3" />
                             <span>Follow-up: {lead.followUpDate}</span>
@@ -224,10 +313,25 @@ export default function EnquiryPipelinePage() {
                         <div className="flex items-center justify-between pt-2 border-t mt-2">
                           <span className="text-[9px] text-slate-400 font-medium">{lead.enquiryNo}</span>
                           <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:bg-green-50">
+                            <Button
+                              variant="ghost" size="icon"
+                              className="h-7 w-7 text-green-600 hover:bg-green-50 hover:text-green-700"
+                              title="WhatsApp"
+                              disabled={!lead.whatsapp && !lead.phone}
+                              onClick={() => {
+                                const num = (lead.whatsapp || lead.phone || "").replace(/\D/g, "");
+                                window.open(`https://wa.me/${num}`, "_blank");
+                              }}
+                            >
                               <MessageSquare className="h-3.5 w-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600 hover:bg-blue-50">
+                            <Button
+                              variant="ghost" size="icon"
+                              className="h-7 w-7 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                              title="Call"
+                              disabled={!lead.phone}
+                              onClick={() => window.open(`tel:${lead.phone}`, "_self")}
+                            >
                               <PhoneCall className="h-3.5 w-3.5" />
                             </Button>
                           </div>
@@ -270,7 +374,7 @@ export default function EnquiryPipelinePage() {
                       <TableCell className="font-bold">{lead.name}</TableCell>
                       <TableCell>Class {lead.classInterested}</TableCell>
                       <TableCell>
-                        <Badge className={cn("text-[10px] font-bold border", SOURCE_COLORS[lead.source])}>
+                        <Badge className={cn("text-[10px] font-bold border", SOURCE_COLORS[lead.source as keyof typeof SOURCE_COLORS] ?? "bg-slate-100 text-slate-700 border-slate-200")}>
                           {lead.source}
                         </Badge>
                       </TableCell>
@@ -279,7 +383,7 @@ export default function EnquiryPipelinePage() {
                       <TableCell>
                         <span className={cn(
                           "text-xs font-bold",
-                          new Date(lead.followUpDate) < new Date() ? "text-red-600" : "text-amber-600"
+                          lead.followUpDate && new Date(lead.followUpDate) < new Date() ? "text-red-600" : "text-amber-600"
                         )}>
                           {lead.followUpDate}
                         </span>
@@ -291,6 +395,27 @@ export default function EnquiryPipelinePage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost" size="icon"
+                            className="h-8 w-8 text-green-600 hover:bg-green-50 hover:text-green-700"
+                            title="WhatsApp"
+                            disabled={!lead.whatsapp && !lead.phone}
+                            onClick={() => {
+                              const num = (lead.whatsapp || lead.phone || "").replace(/\D/g, "");
+                              window.open(`https://wa.me/${num}`, "_blank");
+                            }}
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost" size="icon"
+                            className="h-8 w-8 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                            title="Call"
+                            disabled={!lead.phone}
+                            onClick={() => window.open(`tel:${lead.phone}`, "_self")}
+                          >
+                            <PhoneCall className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-[#0D7C8F]" asChild>
                             <Link href={`/admin/leads/${lead.id}`}><ChevronRight className="h-4 w-4" /></Link>
                           </Button>
@@ -310,6 +435,20 @@ export default function EnquiryPipelinePage() {
           </Card>
         )}
       </main>
+
+      {/* Delete confirmation */}
+      <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Enquiry?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">This will permanently remove the enquiry. This action cannot be undone.</p>
+          <DialogFooter className="gap-2 mt-2">
+            <Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

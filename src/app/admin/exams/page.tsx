@@ -8,6 +8,7 @@ import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { PlusCircle, Trash2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 
@@ -54,14 +55,17 @@ export default function ExamsPage() {
     }
   };
 
-  const handleDeleteExam = async (id: string) => {
-    if (!window.confirm("Delete this exam? This may affect existing mark records.")) return;
+  const [deleteTarget, setDeleteTarget] = useState<Exam | null>(null);
+  const handleDeleteExam = async () => {
+    if (!deleteTarget) return;
     try {
-      await examService.delete(id);
-      setExams(prev => prev.filter(e => e.id !== id));
+      await examService.delete(deleteTarget.id);
+      setExams(prev => prev.filter(e => e.id !== deleteTarget.id));
       toast({ title: "Success", description: "Exam deleted." });
     } catch (err) {
       toast({ title: "Error", description: "Could not delete exam." });
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -103,7 +107,7 @@ export default function ExamsPage() {
                     <TableCell>{formatDate(exam.date)}</TableCell>
                     <TableCell>{exam.totalMarks}</TableCell>
                     <TableCell>
-                      <Button variant="destructive" size="sm" onClick={() => handleDeleteExam(exam.id)}>
+                      <Button variant="destructive" size="sm" onClick={() => setDeleteTarget(exam)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -115,6 +119,18 @@ export default function ExamsPage() {
           {!loading && exams.length === 0 && <p className="text-center p-4">No exams scheduled.</p>}
         </CardContent>
       </Card>
+      <Dialog open={!!deleteTarget} onOpenChange={v => { if (!v) setDeleteTarget(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Delete Exam</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete <span className="font-semibold text-foreground">"{deleteTarget?.name}"</span>? This may affect existing mark records.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteExam}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

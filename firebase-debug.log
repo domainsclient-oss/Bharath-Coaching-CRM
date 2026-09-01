@@ -1,0 +1,31 @@
+[debug] [2026-09-01T12:20:03.761Z] ----------------------------------------------------------------------
+[debug] [2026-09-01T12:20:03.764Z] Command:       /nix/store/ws50yvm6vzlzf7jzz6n7xh4szddrack1-nodejs-20.19.1/bin/node /home/user/.global_modules/bin/firebase login:add domainsclient@gmail.com
+[debug] [2026-09-01T12:20:03.765Z] CLI Version:   15.10.1
+[debug] [2026-09-01T12:20:03.765Z] Platform:      linux
+[debug] [2026-09-01T12:20:03.765Z] Node Version:  v20.19.1
+[debug] [2026-09-01T12:20:03.765Z] Time:          Tue Sep 01 2026 12:20:03 GMT+0000 (Coordinated Universal Time)
+[debug] [2026-09-01T12:20:03.766Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-09-01T12:20:03.769Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-09-01T12:20:04.325Z] No OAuth tokens found
+[debug] [2026-09-01T12:20:04.326Z] No OAuth tokens found
+[error] Failed to fetch Firebase Project from current Studio Workspace: Unable to refresh auth: not yet authenticated.
+[debug] [2026-09-01T12:20:04.331Z] >>> [apiv2][query] POST https://auth.firebase.tools/attest [none]
+[debug] [2026-09-01T12:20:04.332Z] >>> [apiv2][body] POST https://auth.firebase.tools/attest {"session_id":"61d3fb60-34cf-4f84-8fab-009e093fddf6"}
+[debug] [2026-09-01T12:20:04.706Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-09-01T12:20:04.709Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-09-01T12:20:04.927Z] <<< [apiv2][status] POST https://auth.firebase.tools/attest 200
+[debug] [2026-09-01T12:20:04.927Z] <<< [apiv2][body] POST https://auth.firebase.tools/attest {"token":"XhILXFQ6ST1z-YqKE-ui-o2g5UDYMOtqv01ccVEccZQ"}
+[info] 
+[info] To sign in to the Firebase CLI:
+[info] 
+[info] 1. Take note of your session ID:
+[info] 
+[info]    61D3F
+[info] 
+[info] 2. Visit the URL below on any device and follow the instructions to get your code:
+[info] 
+[info]    https://auth.firebase.tools/login?code_challenge=L1KKmqMx1ICtaYBKQlzDhMfwpKbq3Seq24_6xoJHG3w&session=61d3fb60-34cf-4f84-8fab-009e093fddf6&attest=XhILXFQ6ST1z-YqKE-ui-o2g5UDYMOtqv01ccVEccZQ
+[info] 
+[info] 3. Paste or enter the authorization code below once you have it:
+[info] 

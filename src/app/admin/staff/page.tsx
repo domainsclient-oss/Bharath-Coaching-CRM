@@ -7,6 +7,7 @@ import type { Staff } from '../../../models/staff'; // Assuming a Staff type def
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 
@@ -67,15 +68,18 @@ export default function StaffPage() {
     }
   };
 
-  const handleDeleteStaff = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this staff member?")) return;
+  const [deleteTarget, setDeleteTarget] = useState<Staff | null>(null);
+  const handleDeleteStaff = async () => {
+    if (!deleteTarget) return;
     try {
-      await staffService.delete(id);
-      setStaff(prev => prev.filter(s => s.id !== id));
+      await staffService.delete(deleteTarget.id);
+      setStaff(prev => prev.filter(s => s.id !== deleteTarget.id));
       toast({ title: "Success", description: "Staff member deleted." });
     } catch (err) {
       console.error("Failed to delete staff:", err);
       toast({ title: "Error", description: "Could not delete staff member.", variant: "destructive" });
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -120,7 +124,7 @@ export default function StaffPage() {
                     <Button variant="outline" size="icon" onClick={() => alert(`Editing ${member.name}`) /* setSelectedStaff(member); setIsFormOpen(true); */}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button variant="destructive" size="icon" onClick={() => handleDeleteStaff(member.id)}>
+                    <Button variant="destructive" size="icon" onClick={() => setDeleteTarget(member)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -134,6 +138,19 @@ export default function StaffPage() {
       
       {/* Placeholder for Staff Form Modal */}
       {/* {isFormOpen && <StaffForm staff={selectedStaff} onSave={selectedStaff ? (data) => handleUpdateStaff(selectedStaff.id, data) : handleAddStaff} onCancel={() => setIsFormOpen(false)} />} */}
+
+      <Dialog open={!!deleteTarget} onOpenChange={v => { if (!v) setDeleteTarget(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Delete Staff Member</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete <span className="font-semibold text-foreground">"{deleteTarget?.name}"</span>? This cannot be undone.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteStaff}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

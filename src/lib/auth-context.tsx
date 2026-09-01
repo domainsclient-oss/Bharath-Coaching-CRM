@@ -4,8 +4,10 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { loginUser as apiLogin, logoutUser as apiLogout, onAuthChange, AppUser } from '../services/authService';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { setAuditUser, logAudit } from './auditLogger';
+import { releaseUiLock } from './release-ui-lock';
 
 interface AuthContextType {
   user: AppUser | null;
@@ -29,18 +31,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userDoc = await getDoc(doc(db, 'users', authUser.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data() as Omit<AppUser, 'uid'>;
-            setUser({ uid: authUser.uid, ...userData });
+            const appUser = { uid: authUser.uid, ...userData };
+            setUser(appUser);
+            setAuditUser({ name: appUser.name ?? appUser.email, role: appUser.role, branchId: (appUser as any).branchId ?? "" });
           } else {
-            // User exists in Auth but not Firestore — treat as super_admin for setup
-            setUser({ uid: authUser.uid, email: authUser.email || '', role: 'super_admin', name: authUser.email || 'Admin' } as AppUser);
+            // User exists in Auth but not Firestore — create doc and treat as super_admin
+            const fallback = { uid: authUser.uid, id: authUser.uid, email: authUser.email || '', role: 'super_admin' as const, name: authUser.displayName || authUser.email || 'Admin', status: 'active' };
+            await setDoc(doc(db, 'users', authUser.uid), {
+              email: fallback.email, name: fallback.name, role: fallback.role, status: fallback.status, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+            }, { merge: true }).catch(() => {});
+            setUser(fallback as AppUser);
+            setAuditUser({ name: fallback.name, role: fallback.role, branchId: "" });
           }
         } catch (error: any) {
           console.error('Firestore read failed:', error?.code, '— Check Firestore security rules in Firebase Console');
-          // Keep user authenticated even if Firestore read fails, using basic Auth info
-          setUser({ uid: authUser.uid, email: authUser.email || '', role: 'super_admin', name: authUser.email || 'Admin' } as AppUser);
+          setUser({ uid: authUser.uid, email: authUser.email || '', role: 'super_admin', name: authUser.displayName || authUser.email || 'Admin', status: 'active' } as AppUser);
         }
       } else {
         setUser(null);
+        setAuditUser(null);
       }
       setLoading(false);
     });
@@ -49,13 +58,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    // The onAuthChange listener will handle the user state update
     await apiLogin(email, password);
+    // Audit logged after onAuthChange resolves user — see setAuditUser above
+    // Log here with email as a fallback since user object isn't set yet
+    logAudit({ user: email, role: "unknown", action: "Login", module: "Auth", details: `Signed in: ${email}`, severity: "Info" });
   };
 
   const logout = async () => {
+    const snap = user;
     await apiLogout();
+    if (snap) {
+      logAudit({ user: snap.name ?? snap.email, role: snap.role, action: "Logout", module: "Auth", details: `Signed out: ${snap.email}`, severity: "Info", branchId: (snap as any).branchId ?? "" });
+    }
     router.push('/login');
+    // Logout is triggered from inside a Radix confirm dialog / dropdown, which
+    // this navigation unmounts before Radix can undo its body lock. Release it
+    // after the unmount settles so /login is interactive immediately.
+    requestAnimationFrame(releaseUiLock);
   };
 
   // Handle redirection logic

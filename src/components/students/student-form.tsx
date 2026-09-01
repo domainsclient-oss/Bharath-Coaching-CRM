@@ -3,15 +3,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  User, 
-  Phone, 
-  GraduationCap, 
-  BookOpen, 
-  CreditCard, 
-  ChevronRight, 
-  ChevronLeft, 
-  Save, 
+import {
+  User,
+  Phone,
+  GraduationCap,
+  BookOpen,
+  CreditCard,
+  ChevronRight,
+  ChevronLeft,
+  Save,
   Upload,
   Check,
   X,
@@ -20,6 +20,7 @@ import {
   Building2,
   Calendar as CalendarIcon
 } from "lucide-react";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,10 @@ import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
 import { useBranch } from "@/context/BranchContext";
 import { cn } from "@/lib/utils";
+import { addDocument, updateDocument } from "@/services/firestoreService";
+import { storage } from "@/config/firebase";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { useRef } from "react";
 
 const STEPS = [
   { id: 1, name: "Personal", icon: User },
@@ -59,17 +64,95 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
   useAuth();
   const { currentBranch } = useBranch();
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState(initialData || {
+  const DEFAULT_FORM = {
     name: "", dob: "", gender: "Male",
     parentName: "", phone: "", whatsapp: "", isWhatsappSame: true,
     email: "", address: "", city: "", pincode: "",
     school: "", class: "", board: "CBSE", medium: "English",
     subjects: [] as string[], mode: "Offline", batchPreference: "",
-    docs: { reportCard: false, idProof: false, photo: false },
+    docs: { reportCard: false, idProof: false, photo: false } as Record<string, boolean>,
     feeType: "Standard", totalFee: "", instalmentPlan: "Full", firstDueDate: ""
-  });
+  };
+
+  const [formData, setFormData] = useState(() => ({
+    ...DEFAULT_FORM,
+    ...(initialData || {}),
+    // Always ensure docs is an object, merging any saved flags
+    docs: {
+      ...DEFAULT_FORM.docs,
+      ...(initialData?.docs ?? {}),
+    },
+    // Ensure subjects is always an array
+    subjects: Array.isArray(initialData?.subjects) ? initialData.subjects : [],
+  }));
 
   const [subjectInput, setSubjectInput] = useState("");
+
+  // ── Photo upload state ──────────────────────────────────────────────────
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photoFile, setPhotoFile]       = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(initialData?.photo ?? null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0); // 0-100
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate: image only, max 5 MB
+    if (!file.type.startsWith("image/")) {
+      toast({ variant: "destructive", title: "Invalid file", description: "Please select an image file (JPG, PNG, etc.)" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ variant: "destructive", title: "File too large", description: "Photo must be under 5 MB." });
+      return;
+    }
+
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
+
+  const handlePhotoDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    // Reuse the same validation by creating a synthetic change event
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    if (fileInputRef.current) {
+      fileInputRef.current.files = dt.files;
+      fileInputRef.current.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  };
+
+  /**
+   * Uploads photo to Firebase Storage in the background AFTER the student
+   * is already saved. Patches the Firestore doc once the URL is ready.
+   * Never blocks the main save flow.
+   */
+  const uploadPhotoInBackground = (docId: string) => {
+    if (!photoFile) return;
+
+    const ext        = photoFile.name.split(".").pop() ?? "jpg";
+    const path       = `students/${docId}/photo.${ext}`;
+    const storageRef = ref(storage, path);
+    const task       = uploadBytesResumable(storageRef, photoFile);
+
+    task.on(
+      "state_changed",
+      (snap) => setUploadProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100)),
+      (err)  => console.warn("[photo upload] failed:", err),
+      async () => {
+        try {
+          const url = await getDownloadURL(task.snapshot.ref);
+          await updateDocument("students", docId, { photo: url });
+          setUploadProgress(100);
+        } catch (e) {
+          console.warn("[photo upload] could not patch doc:", e);
+        }
+      }
+    );
+  };
 
   const updateFormData = (fields: any) => {
     setFormData((prev: any) => ({ ...prev, ...fields }));
@@ -120,49 +203,129 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
     updateFormData({ subjects: formData.subjects.filter((s: string) => s !== sub) });
   };
 
+  const [saving, setSaving] = useState(false);
+
   const handleSubmit = async () => {
     if (!validateStep(5)) return;
+    setSaving(true);
 
-    // Simulate save
-    const appNo = `APP-2025-${Math.floor(1000 + Math.random() * 9000)}`;
-    
-    toast({
-      title: isEdit ? "Student Updated" : "Student Added",
-      description: `Registration Number: ${appNo}`,
-    });
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const year  = new Date().getFullYear();
 
-    // In a real app: await addDoc(collection(db, `branches/${currentBranch}/students`), { ...formData, appNo, createdAt: new Date() });
-    
-    router.push("/admin/students");
+      if (isEdit && initialData?.id) {
+        // ── UPDATE existing student ────────────────────────────────────────
+        await updateDocument("students", initialData.id, {
+          ...formData,
+          branchId: currentBranch,
+          whatsapp: formData.isWhatsappSame ? formData.phone : formData.whatsapp,
+        });
+
+        // Upload photo in background — does NOT block navigation
+        uploadPhotoInBackground(initialData.id);
+
+        toast({ title: "Student Updated", description: `${formData.name} has been updated.` });
+
+      } else {
+        // ── ADD new student ────────────────────────────────────────────────
+        const appNo  = `APP-${year}-${Math.floor(1000 + Math.random() * 9000)}`;
+        const rollNo = `ROLL-${Date.now().toString(36).toUpperCase()}`;
+
+        // 1. Save student to Firestore immediately (no photo yet)
+        const saved = await addDocument("students", {
+          appNo,
+          rollNo,
+          name:            formData.name,
+          dob:             formData.dob,
+          gender:          formData.gender,
+          parentName:      formData.parentName,
+          phone:           formData.phone,
+          whatsapp:        formData.isWhatsappSame ? formData.phone : formData.whatsapp,
+          email:           formData.email,
+          address:         formData.address,
+          city:            formData.city,
+          pincode:         formData.pincode,
+          school:          formData.school,
+          class:           formData.class,
+          board:           formData.board,
+          medium:          formData.medium,
+          subjects:        formData.subjects,
+          mode:            formData.mode,
+          batchPreference: formData.batchPreference,
+          feeType:         formData.feeType,
+          totalFee:        Number(formData.totalFee) || 0,
+          instalmentPlan:  formData.instalmentPlan,
+          firstDueDate:    formData.firstDueDate,
+          branchId:        currentBranch,
+          status:          "Active",
+          admissionDate:   today,
+          photo:           "",
+        });
+
+        // 2. Upload photo in background using the real Firestore doc ID
+        uploadPhotoInBackground(saved.id);
+
+        toast({
+          title: "Student Enrolled",
+          description: `${formData.name} saved. App No: ${appNo}`,
+        });
+      }
+
+      // Navigate immediately — photo uploads continue in background
+      router.push("/admin/students");
+
+    } catch (err: any) {
+      console.error("Failed to save student:", err);
+      toast({
+        variant: "destructive",
+        title: "Save Failed",
+        description: err?.message ?? "Could not save to database. Please try again.",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const progress = (currentStep / STEPS.length) * 100;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Progress Indicator */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center mb-2 px-2">
-          {STEPS.map((step) => (
-            <div key={step.id} className="flex flex-col items-center gap-2">
-              <div 
+      {/* Progress Indicator — border-bottom style, no background on steps */}
+      <div className="space-y-3">
+        <div className="flex border-b border-slate-200">
+          {STEPS.map((step) => {
+            const isActive   = currentStep === step.id;
+            const isComplete = currentStep > step.id;
+            return (
+              <div
+                key={step.id}
                 className={cn(
-                  "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300",
-                  currentStep >= step.id ? "bg-[#0D7C8F] text-white shadow-md" : "bg-slate-200 text-slate-500"
+                  "flex flex-1 flex-col items-center gap-1.5 pb-3 pt-2 transition-all duration-200 border-b-2",
+                  isActive   ? "border-[#0D7C8F]"  : "border-transparent"
                 )}
               >
-                {currentStep > step.id ? <Check className="h-5 w-5" /> : <step.icon className="h-5 w-5" />}
+                <div className={cn(
+                  "flex items-center justify-center transition-colors duration-200",
+                  isActive   ? "text-[#0D7C8F]" :
+                  isComplete ? "text-[#0D7C8F]" : "text-slate-400"
+                )}>
+                  {isComplete
+                    ? <Check className="h-5 w-5" />
+                    : <step.icon className="h-5 w-5" />
+                  }
+                </div>
+                <span className={cn(
+                  "text-[10px] font-semibold uppercase tracking-wider hidden sm:block",
+                  isActive   ? "text-[#0D7C8F]" :
+                  isComplete ? "text-slate-500"  : "text-slate-400"
+                )}>
+                  {step.name}
+                </span>
               </div>
-              <span className={cn(
-                "text-[10px] font-bold uppercase tracking-wider hidden sm:block",
-                currentStep >= step.id ? "text-[#0D7C8F]" : "text-slate-400"
-              )}>
-                {step.name}
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
-        <Progress value={progress} className="h-2 bg-slate-100 [&>div]:bg-[#0D7C8F]" />
+        <Progress value={progress} className="h-1 bg-slate-100 [&>div]:bg-[#0D7C8F]" />
       </div>
 
       <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden">
@@ -216,10 +379,70 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                 </div>
                 <div className="space-y-2">
                   <Label>Photo Upload</Label>
-                  <div className="border-2 border-dashed border-slate-200 rounded-lg p-4 text-center cursor-pointer hover:border-[#0D7C8F] transition-colors">
-                    <Upload className="h-6 w-6 mx-auto text-slate-400 mb-2" />
-                    <p className="text-xs text-muted-foreground">Click or drag to upload photo</p>
-                  </div>
+
+                  {/* Hidden native file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoSelect}
+                  />
+
+                  {photoPreview ? (
+                    /* ── Preview state ── */
+                    <div className="relative w-28 h-28 mx-auto">
+                      <img
+                        src={photoPreview}
+                        alt="Student photo"
+                        className="w-28 h-28 rounded-xl object-cover border-2 border-[#0D7C8F]"
+                      />
+                      {/* Remove button */}
+                      <button
+                        type="button"
+                        onClick={() => { setPhotoFile(null); setPhotoPreview(null); setUploadProgress(0); }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 transition-colors"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                      {/* Change label */}
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="absolute bottom-0 inset-x-0 text-[10px] font-semibold bg-black/50 text-white py-1 rounded-b-xl hover:bg-black/70 transition-colors"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  ) : (
+                    /* ── Drop zone ── */
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => fileInputRef.current?.click()}
+                      onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={handlePhotoDrop}
+                      className="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center cursor-pointer hover:border-[#0D7C8F] hover:bg-[#0D7C8F]/5 transition-colors"
+                    >
+                      <Upload className="h-7 w-7 mx-auto text-slate-400 mb-2" />
+                      <p className="text-xs font-medium text-slate-500">Click or drag photo here</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">JPG, PNG, WEBP · max 5 MB</p>
+                    </div>
+                  )}
+
+                  {/* Upload progress bar (shown during save) */}
+                  {uploadProgress > 0 && uploadProgress < 100 && (
+                    <div className="space-y-1">
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[#0D7C8F] rounded-full transition-all"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                      <p className="text-[10px] text-[#0D7C8F] text-center">Uploading… {uploadProgress}%</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -256,11 +479,11 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                   <Label htmlFor="phone">Phone Number *</Label>
                   <div className="relative">
                     <Smartphone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      id="phone" 
+                    <PhoneInput
+                      id="phone"
                       className="pl-10"
-                      value={formData.phone} 
-                      onChange={(e) => updateFormData({ phone: e.target.value })} 
+                      value={formData.phone}
+                      onChange={(v) => updateFormData({ phone: v })}
                       placeholder="9876543210"
                     />
                   </div>
@@ -277,11 +500,11 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                       <Label htmlFor="same" className="text-[10px] font-normal cursor-pointer">Same as phone</Label>
                     </div>
                   </div>
-                  <Input 
-                    id="whatsapp" 
-                    value={formData.whatsapp} 
+                  <PhoneInput
+                    id="whatsapp"
+                    value={formData.whatsapp}
                     disabled={formData.isWhatsappSame}
-                    onChange={(e) => updateFormData({ whatsapp: e.target.value })} 
+                    onChange={(v) => updateFormData({ whatsapp: v })}
                     placeholder="WhatsApp number"
                   />
                 </div>
@@ -355,7 +578,7 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                       <SelectValue placeholder="Select Board" />
                     </SelectTrigger>
                     <SelectContent>
-                      {["CBSE", "ICSE", "State", "IB"].map(board => (
+                      {["CBSE", "ICSE", "State", "Samacheer", "IB"].map(board => (
                         <SelectItem key={board} value={board}>{board}</SelectItem>
                       ))}
                     </SelectContent>
@@ -550,11 +773,15 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                 Next <ChevronRight className="h-4 w-4" />
               </Button>
             ) : (
-              <Button 
-                onClick={handleSubmit} 
+              <Button
+                onClick={handleSubmit}
+                disabled={saving}
                 className="bg-green-600 hover:bg-green-700 gap-2"
               >
-                <Save className="h-4 w-4" /> Save & Finish
+                {saving
+                  ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> Saving...</>
+                  : <><Save className="h-4 w-4" /> {isEdit ? "Update Student" : "Save & Enroll"}</>
+                }
               </Button>
             )}
           </div>

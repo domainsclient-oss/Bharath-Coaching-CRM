@@ -1,134 +1,223 @@
-
 "use client";
 
-import { useState, useMemo } from 'react';
-import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useState, useMemo } from "react";
+import Link from "next/link";
+import { ChevronRight, Search, IndianRupee } from "lucide-react";
+import { SharedHeader } from "@/components/layout/shared-header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useBranchData } from "@/hooks/use-branch-data";
-import { mockFeeRecords, FeeRecord } from "@/data/feesData";
-import { IndianRupee, MessageCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import { mockFeeRecords } from "@/data/feesData";
+import { useBranch } from "@/context/BranchContext";
 
-const OneToOneFeesPage = () => {
-  const { data: allFeeRecords } = useBranchData<FeeRecord>(mockFeeRecords);
+const ALL_SUBJECTS = [
+  "All", "Mathematics", "Physics", "Chemistry", "Biology",
+  "English", "Science", "Computer Science", "Economics",
+  "Accountancy", "Business Studies", "Commerce",
+];
 
-  const oneToOneFeeRecords = useMemo(() => 
-    allFeeRecords.filter(r => r.feeType === 'OneToOne')
-  , [allFeeRecords]);
+export default function OneToOneFeesPage() {
+  const { currentBranch } = useBranch();
+  const [name, setName] = useState("");
+  const [stdFilter, setStdFilter] = useState("All");
+  const [boardFilter, setBoardFilter] = useState("All");
+  const [subject1, setSubject1] = useState("All");
+  const [subject2, setSubject2] = useState("All");
+  const [searched, setSearched] = useState(false);
 
-  const [filters, setFilters] = useState({ subject1: '', subject2: '' });
-  const [filteredRecords, setFilteredRecords] = useState<FeeRecord[]>(oneToOneFeeRecords);
+  const records = useMemo(() => {
+    if (!searched) return [];
+    return mockFeeRecords.filter(r =>
+      r.branchId === currentBranch &&
+      (!name || r.studentName.toLowerCase().includes(name.toLowerCase())) &&
+      (stdFilter === "All" || r.class === stdFilter) &&
+      (boardFilter === "All" || r.board === boardFilter) &&
+      (subject1 === "All" || (r.subjects ?? []).includes(subject1)) &&
+      (subject2 === "All" || (r.subjects ?? []).includes(subject2))
+    );
+  }, [searched, currentBranch, name, stdFilter, boardFilter, subject1, subject2]);
 
-  const summary = useMemo(() => {
-    const totalBilled = filteredRecords.reduce((sum, record) => sum + record.totalFee, 0);
-    const totalCollected = filteredRecords.reduce((sum, record) => sum + record.collected, 0);
-    const totalOutstanding = filteredRecords.reduce((sum, record) => sum + record.balance, 0);
-    return { totalBilled, totalCollected, totalOutstanding };
-  }, [filteredRecords]);
+  const fmt = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
-  const handleFilterChange = (key: keyof typeof filters, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-  };
-
-  const handleSearch = () => {
-    let records = oneToOneFeeRecords;
-    const subject1 = filters.subject1.trim().toLowerCase();
-    const subject2 = filters.subject2.trim().toLowerCase();
-
-    if (subject1) {
-      records = records.filter(r => r.subjects?.some(s => s.toLowerCase().includes(subject1)));
-    }
-    if (subject2) {
-      records = records.filter(r => r.subjects?.some(s => s.toLowerCase().includes(subject2)));
-    }
-    setFilteredRecords(records);
-  };
-
-  const today = new Date();
+  const instCell = (inst?: { amount: number; collected: boolean }) =>
+    inst ? (
+      <div className="text-xs">
+        <p className="font-semibold">{fmt(inst.amount)}</p>
+        <p className={inst.collected ? "text-green-600" : "text-amber-500"}>
+          {inst.collected ? "Paid" : "Pending"}
+        </p>
+      </div>
+    ) : <span className="text-xs text-muted-foreground">—</span>;
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Filters for One-to-One Fees</CardTitle>
-          <CardDescription>Filter by one or two subjects to find specific records.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Input 
-              placeholder="Subject 1" 
-              value={filters.subject1} 
-              onChange={e => handleFilterChange('subject1', e.target.value)} 
-            />
-            <Input 
-              placeholder="Subject 2 (optional)" 
-              value={filters.subject2} 
-              onChange={e => handleFilterChange('subject2', e.target.value)} 
-            />
-            <Button onClick={handleSearch}>Search</Button>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
+      <SharedHeader title="One to One Class Fees" />
+      <main className="p-4 md:p-6 lg:p-8 space-y-6 animate-in fade-in duration-500 overflow-x-hidden">
+        {/* Breadcrumb */}
+        <div className="flex items-center text-xs text-muted-foreground gap-2">
+          <Link href="/admin" className="hover:text-[#0D7C8F]">Dashboard</Link>
+          <ChevronRight className="h-3 w-3" />
+          <span className="font-medium text-foreground">One to One Fees</span>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>One-to-One Fee Records</CardTitle>
-          <CardDescription>
-            Showing fee records for students enrolled in one-to-one coaching.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Student Name</TableHead>
-                <TableHead>Subjects</TableHead>
-                <TableHead>Bill No</TableHead>
-                <TableHead>Balance</TableHead>
-                <TableHead>Next Due Date</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredRecords.map((record) => {
-                const isOverdue = record.nextPaymentDate && new Date(record.nextPaymentDate) < today && record.balance > 0;
-                return (
-                  <TableRow key={record.id} className={cn(isOverdue && 'bg-amber-50')}>
-                    <TableCell className={cn('font-medium', isOverdue && 'border-l-4 border-red-500')}>{record.studentName}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {(record.subjects || []).map(sub => <Badge key={sub} variant="secondary">{sub}</Badge>)}
-                      </div>
-                    </TableCell>
-                    <TableCell>1-1-{record.billNo}</TableCell>
-                    <TableCell className="font-bold text-red-600">{record.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</TableCell>
-                    <TableCell>{record.nextPaymentDate ? new Date(record.nextPaymentDate).toLocaleDateString() : 'N/A'}</TableCell>
-                    <TableCell className="space-x-2">
-                      <Button asChild variant="outline" size="sm">
-                        <Link href={`/admin/fees/collect?studentId=${record.studentId}`}>Collect</Link>
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <MessageCircle className="h-4 w-4 mr-1" /> Remind
-                      </Button>
-                    </TableCell>
+        <h2 className="text-2xl font-bold text-[#1E2A4A]">One to One Class Fees</h2>
+
+        {/* Filter bar */}
+        <Card className="border-none shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex flex-wrap gap-3 items-end">
+              <div className="space-y-1">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Name</p>
+                <Input
+                  className="w-44"
+                  placeholder="Student name..."
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && setSearched(true)}
+                />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Std</p>
+                <Select value={stdFilter} onValueChange={setStdFilter}>
+                  <SelectTrigger className="w-28">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["All", "8", "9", "10", "11", "12"].map(c => (
+                      <SelectItem key={c} value={c}>
+                        {c === "All" ? "All Std" : `Class ${c}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Board</p>
+                <Select value={boardFilter} onValueChange={setBoardFilter}>
+                  <SelectTrigger className="w-28">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["All", "CBSE", "ICSE", "State", "Samacheer", "IB"].map(b => (
+                      <SelectItem key={b} value={b}>
+                        {b === "All" ? "All Boards" : b}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Subject</p>
+                <Select value={subject1} onValueChange={setSubject1}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ALL_SUBJECTS.map(s => (
+                      <SelectItem key={s} value={s}>
+                        {s === "All" ? "All Subjects" : s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Subject</p>
+                <Select value={subject2} onValueChange={setSubject2}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ALL_SUBJECTS.map(s => (
+                      <SelectItem key={s} value={s}>
+                        {s === "All" ? "Any Subject" : s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                className="bg-[#1E2A4A] hover:bg-[#0D7C8F] gap-2"
+                onClick={() => setSearched(true)}
+              >
+                <Search className="h-4 w-4" /> Search
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Results table */}
+        {searched && (
+          <Card className="border-none shadow-sm overflow-hidden">
+            <CardHeader className="bg-slate-50 border-b py-3 px-6">
+              <CardTitle className="text-base flex items-center gap-2">
+                <IndianRupee className="h-4 w-4 text-[#0D7C8F]" />
+                {records.length} Record{records.length !== 1 ? "s" : ""}
+              </CardTitle>
+            </CardHeader>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-slate-50">
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Class</TableHead>
+                    <TableHead>Subject</TableHead>
+                    <TableHead>Bill No</TableHead>
+                    <TableHead className="text-right">Total Fees</TableHead>
+                    <TableHead>Instalment I</TableHead>
+                    <TableHead>Instalment II</TableHead>
+                    <TableHead>Instalment III</TableHead>
+                    <TableHead className="text-right">Balance</TableHead>
+                    <TableHead>Next Payment Date</TableHead>
                   </TableRow>
-                );
-              })}
-              {filteredRecords.length === 0 && (
-                <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">No records found matching your criteria.</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {records.length > 0 ? records.map(r => (
+                    <TableRow key={r.id} className="hover:bg-slate-50/50">
+                      <TableCell className="font-semibold text-sm text-[#1E2A4A]">{r.studentName}</TableCell>
+                      <TableCell className="text-sm">Class {r.class}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1 max-w-[150px]">
+                          {(r.subjects ?? []).map(s => (
+                            <Badge key={s} variant="secondary" className="text-xs py-0">{s}</Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">{r.billNo}</TableCell>
+                      <TableCell className="text-right font-medium">{fmt(r.totalFee)}</TableCell>
+                      <TableCell>{instCell(r.instalments.i1)}</TableCell>
+                      <TableCell>{instCell(r.instalments.i2)}</TableCell>
+                      <TableCell>{instCell(r.instalments.i3)}</TableCell>
+                      <TableCell className={`text-right font-bold ${r.balance > 0 ? "text-red-600" : "text-green-600"}`}>
+                        {fmt(r.balance)}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {r.nextPaymentDate ?? "—"}
+                      </TableCell>
+                    </TableRow>
+                  )) : (
+                    <TableRow>
+                      <TableCell colSpan={10} className="h-32 text-center text-muted-foreground">
+                        <div className="flex flex-col items-center gap-2">
+                          <IndianRupee className="h-8 w-8 opacity-20" />
+                          <p>No fee records found matching your filters.</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        )}
+      </main>
     </div>
   );
-};
-
-export default OneToOneFeesPage;
+}

@@ -1,23 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../lib/auth-context';
+import { releaseUiLock } from '../../lib/release-ui-lock';
 import { resetPassword } from '../../services/authService';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
-import centerConfig from '../../config/centerConfig';
-import { Loader2, ShieldCheck } from 'lucide-react';
-import Link from 'next/link';
+import { useSettings } from '../../context/SettingsContext';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
   const { toast } = useToast();
+  const { settings } = useSettings();
+
+  // Any body lock still set once this page mounts was leaked by a modal layer
+  // on the page we came from (e.g. the logout confirm dialog) and would leave
+  // these inputs unfocusable. Clear it so the form is usable without a refresh.
+  useEffect(() => {
+    releaseUiLock();
+  }, []);
 
   const getAuthErrorMessage = (errorCode: string) => {
     switch (errorCode) {
@@ -47,7 +57,7 @@ export default function LoginPage() {
       await login(email, password);
       toast({
         title: 'Login Successful',
-        description: `Welcome back to ${centerConfig.centerName}! Redirecting...`,
+        description: `Welcome back to ${settings.appName}! Redirecting...`,
       });
     } catch (error: any) {
       console.error('Login failed:', error);
@@ -90,10 +100,17 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4 flex-col gap-6">
       <Card className="w-full max-w-md shadow-2xl border-none">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 h-16 w-16">
-            <img src={centerConfig.logo} alt={`${centerConfig.centerName} Logo`} className="h-full w-full object-contain" />
+          <div className="mx-auto mb-4 flex items-center justify-center">
+            <Image
+              src="/Logo-bcc.webp"
+              alt="Bharath Academy"
+              width={200}
+              height={60}
+              className="object-contain"
+              priority
+            />
           </div>
-          <CardTitle className="text-2xl font-bold">Welcome to {centerConfig.centerName}</CardTitle>
+          <CardTitle className="text-2xl font-bold">Welcome to {settings.appName}</CardTitle>
           <CardDescription>Enter your credentials to access your portal</CardDescription>
         </CardHeader>
         <CardContent>
@@ -112,15 +129,26 @@ export default function LoginPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             <Button type="submit" className="w-full bg-[#1E2A4A] hover:bg-[#0D7C8F]" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -135,25 +163,6 @@ export default function LoginPage() {
         </CardFooter>
       </Card>
 
-      {/* Developer Helper Box */}
-      <Card className="w-full max-w-md border-amber-200 bg-amber-50">
-        <CardContent className="pt-6">
-          <div className="flex gap-3">
-            <ShieldCheck className="h-5 w-5 text-amber-600 shrink-0" />
-            <div className="space-y-2">
-              <p className="text-sm font-bold text-amber-800">Developer Access</p>
-              <p className="text-xs text-amber-700">
-                1. Navigate to <Link href="/setup" className="font-bold underline">/setup</Link> to initialize your database first.<br />
-                2. Use the following credentials for testing:
-              </p>
-              <div className="bg-white/50 p-2 rounded border border-amber-200 text-[10px] font-mono text-amber-900">
-                Email: admin@bharathacademy.com<br />
-                Pass: password123
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

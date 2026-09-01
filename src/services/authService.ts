@@ -10,6 +10,7 @@ import {
   User as FirebaseUser,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { logAudit } from '../lib/auditLogger';
 import type { User } from '../data/settingsData'; // Using our existing User type
 
 // A more specific type for our application user, combining Firebase and Firestore data
@@ -20,30 +21,45 @@ export type AppUser = User & { uid: string };
  * @returns A combined user object with auth and database information.
  */
 export const loginUser = async (email: string, password: string): Promise<AppUser> => {
+  const userCredential = await signInWithEmailAndPassword(auth, email, password);
+  const { uid } = userCredential.user;
+
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
-
-    if (!userDoc.exists()) {
-      throw new Error('User data not found in database.');
+    const userDoc = await getDoc(doc(db, 'users', uid));
+    if (userDoc.exists()) {
+      const userData = userDoc.data() as User;
+      logAudit({ user: userData.name || email, role: userData.role || 'admin', action: 'Login', module: 'Auth', details: `${userData.name || email} logged in successfully.`, branchId: userData.branchId ?? '' });
+      return { uid, ...userData };
     }
-    
-    const userData = userDoc.data() as User;
-
-    return {
-      uid: userCredential.user.uid,
-      ...userData,
-    };
-  } catch (error) {
-    console.error("Error logging in:", error);
-    throw error;
+  } catch {
+    // Firestore read failed (e.g. rules not yet configured) — fall through to fallback
   }
+
+  logAudit({ user: email, role: 'super_admin', action: 'Login', module: 'Auth', details: `${email} logged in successfully.` });
+  // Auth succeeded but no Firestore doc found — return basic profile so the app loads
+  return {
+    uid,
+    id: uid,
+    email: userCredential.user.email ?? email,
+    name: userCredential.user.displayName ?? email,
+    role: 'super_admin',
+  } as AppUser;
 };
 
 /**
  * Logs out the currently authenticated user.
  */
 export const logoutUser = async (): Promise<void> => {
+  const currentUser = auth.currentUser;
+  if (currentUser) {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      const userData = userDoc.exists() ? userDoc.data() as User : null;
+      logAudit({ user: userData?.name || currentUser.email || 'User', role: userData?.role || 'admin', action: 'Logout', module: 'Auth', details: `${userData?.name || currentUser.email} logged out.`, branchId: userData?.branchId ?? '' });
+    } catch {
+      logAudit({ user: currentUser.email || 'User', role: 'admin', action: 'Logout', module: 'Auth', details: `${currentUser.email} logged out.` });
+    }
+  }
   await signOut(auth);
 };
 

@@ -37,37 +37,10 @@ import {
 } from "recharts";
 import { useAuth } from "@/lib/auth-context";
 import { useBranch } from "@/context/BranchContext";
-import { dashboardService } from "@/services/dashboardService";
+import { dashboardService, DashboardKPIs, FeeAlert, RecentEnquiry, LeadSource, MonthlyFee, TodayAttendance } from "@/services/dashboardService";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const COLORS = ["#0D7C8F", "#1E2A4A", "#E8A020", "#059669", "#6B7280"];
-
-interface KpiData {
-  totalStudents: number;
-  activeStaff: number;
-  feesCollectedThisMonth: number;
-  pendingDues: number;
-}
-interface FeeAlert {
-  id: string;
-  name: string;
-  class: string;
-  dueDate: { toDate: () => Date };
-  amount: number;
-  overdue?: boolean;
-}
-interface RecentEnquiry {
-  id: string;
-  name: string;
-  source: string;
-  class: string;
-  status: string;
-  date: { toDate: () => Date };
-}
-interface LeadSourceData {
-  name: string;
-  value: number;
-}
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -75,11 +48,12 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [kpis, setKpis] = useState<KpiData | null>(null);
-  const [monthlyFees, setMonthlyFees] = useState<any[]>([]);
-  const [leadSources, setLeadSources] = useState<LeadSourceData[]>([]);
+  const [kpis, setKpis] = useState<DashboardKPIs | null>(null);
+  const [monthlyFees, setMonthlyFees] = useState<MonthlyFee[]>([]);
+  const [leadSources, setLeadSources] = useState<LeadSource[]>([]);
   const [feeAlerts, setFeeAlerts] = useState<FeeAlert[]>([]);
   const [recentEnquiries, setRecentEnquiries] = useState<RecentEnquiry[]>([]);
+  const [todayAttendance, setTodayAttendance] = useState<TodayAttendance | null>(null);
 
   useEffect(() => {
     if (!currentBranch) return;
@@ -94,19 +68,22 @@ export default function AdminDashboard() {
           leadSourceData,
           feeAlertsData,
           recentEnquiriesData,
+          todayAttData,
         ] = await Promise.all([
           dashboardService.getDashboardKPIs(currentBranch),
           dashboardService.getMonthlyFeeCollection(currentBranch),
           dashboardService.getLeadSources(currentBranch),
           dashboardService.getFeeAlerts(currentBranch),
           dashboardService.getRecentEnquiries(currentBranch),
+          dashboardService.getTodayAttendance(currentBranch),
         ]);
 
         setKpis(kpiData);
         setMonthlyFees(monthlyFeeData);
         setLeadSources(leadSourceData);
-        setFeeAlerts(feeAlertsData as FeeAlert[]);
-        setRecentEnquiries(recentEnquiriesData as RecentEnquiry[]);
+        setFeeAlerts(feeAlertsData);
+        setRecentEnquiries(recentEnquiriesData);
+        setTodayAttendance(todayAttData);
       } catch (err) {
         console.error("Dashboard data fetching error:", err);
         setError("Failed to load dashboard data. Please refresh the page.");
@@ -328,10 +305,41 @@ export default function AdminDashboard() {
         <div className="grid gap-6 md:grid-cols-2">
           <Card className="border-none shadow-sm">
             <CardHeader>
-              <CardTitle>Today&apos;s Attendance</CardTitle>
+              <CardTitle className="text-lg font-bold text-[#1E2A4A]">Today&apos;s Attendance</CardTitle>
             </CardHeader>
             <CardContent>
-              <Skeleton className="h-20 w-full" />
+              {loading || !todayAttendance ? (
+                <Skeleton className="h-20 w-full" />
+              ) : todayAttendance.total === 0 ? (
+                <p className="text-sm text-muted-foreground">No attendance data recorded for today.</p>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-3xl font-bold text-[#0D7C8F]">{todayAttendance.pct}%</span>
+                    <span className="text-sm text-muted-foreground">{todayAttendance.total} students</span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-[#0D7C8F] transition-all"
+                      style={{ width: `${todayAttendance.pct}%` }}
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 pt-1">
+                    <div className="text-center">
+                      <p className="text-lg font-bold text-green-600">{todayAttendance.present}</p>
+                      <p className="text-xs text-muted-foreground">Present</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-lg font-bold text-red-500">{todayAttendance.absent}</p>
+                      <p className="text-xs text-muted-foreground">Absent</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-lg font-bold text-amber-500">{todayAttendance.late}</p>
+                      <p className="text-xs text-muted-foreground">Late</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card className="border-none shadow-sm">
@@ -364,7 +372,7 @@ export default function AdminDashboard() {
                         </p>
                         <p className="text-xs text-muted-foreground">
                           Class {alert.class} • Due{" "}
-                          {alert.dueDate.toDate().toLocaleDateString()}
+                          {alert.dueDate.toLocaleDateString()}
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
@@ -439,7 +447,7 @@ export default function AdminDashboard() {
                           {enq.status}
                         </Badge>
                         <p className="text-[10px] text-muted-foreground mt-1">
-                          {enq.date.toDate().toLocaleDateString()}
+                          {enq.date.toLocaleDateString()}
                         </p>
                       </div>
                     </div>

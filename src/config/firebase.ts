@@ -1,6 +1,6 @@
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 
@@ -24,12 +24,23 @@ if (typeof window !== 'undefined') {
     }
 }
 
-// Initialize Firebase App
-// This pattern prevents re-initializing the app on hot-reloads in development
+// Initialize Firebase App — singleton pattern prevents re-init on hot-reloads
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 console.log("Firebase connected");
 
-export const db = getFirestore(app);
+// Use initializeFirestore with long-polling to avoid WebChannel teardown crash
+// in React 18 Strict Mode (which double-invokes effects in development).
+// Falls back to getFirestore if already initialized.
+export const db = (() => {
+  try {
+    return initializeFirestore(app, {
+      experimentalAutoDetectLongPolling: true,
+    });
+  } catch {
+    // Already initialized — return existing instance
+    return getFirestore(app);
+  }
+})();
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 export default app;

@@ -6,7 +6,28 @@ import { Check, ChevronRight, Circle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const DropdownMenu = DropdownMenuPrimitive.Root
+/**
+ * Defaults to `modal={false}` — deliberately, not cosmetically.
+ *
+ * A modal menu sets `pointer-events: none` on <body> while open, and restores
+ * the value it saw on mount when it closes. This project has TWO copies of
+ * @radix-ui/react-dismissable-layer installed (one nested under react-menu, one
+ * under react-alert-dialog), and each copy keeps that saved value in its own
+ * module-level variable. So when a dialog is opened from a menu item, the
+ * dialog's copy records the menu's `none` as the "original" body value and
+ * restores *that* on close, leaving the page permanently unclickable.
+ *
+ * Every menu in this app opens a dialog from one of its items (header logout,
+ * delete lead, delete student), so non-modal is the correct default here.
+ * Pass `modal` explicitly to opt back in.
+ */
+const DropdownMenu = ({
+  modal = false,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) => (
+  <DropdownMenuPrimitive.Root modal={modal} {...props} />
+)
+DropdownMenu.displayName = "DropdownMenu"
 
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger
 

@@ -187,5 +187,94 @@ export const mockLeads: Lead[] = [
     notes: "Fee too high for them.",
     createdAt: "2025-03-01",
     branchId: "Trichy"
+  },
+  {
+    id: "L007", enquiryNo: "ENQ-2025-0007", name: "Gokul Raj", age: 15,
+    classInterested: "10", board: "CBSE", parentName: "Rajendran G",
+    phone: "9841100001", whatsapp: "9841100001", email: "gokul@example.com",
+    source: "Phone Call", subjects: ["Math", "Physics"], mode: "Offline",
+    status: "Interested", assignedTo: "Rajesh Kumar", followUpDate: "2025-03-18",
+    notes: "Called to enquire about Class 10 batch timings.", createdAt: "2025-03-13", branchId: "Trichy"
+  },
+  {
+    id: "L008", enquiryNo: "ENQ-2025-0008", name: "Harini Suresh", age: 13,
+    classInterested: "8", board: "ICSE", parentName: "Suresh M",
+    phone: "9841100002", whatsapp: "9841100002", email: "harini@example.com",
+    source: "Website", subjects: ["English", "Science"], mode: "Online",
+    status: "New", assignedTo: "Priya Sharma", followUpDate: "2025-03-19",
+    notes: "Filled website contact form. Wants online batch.", createdAt: "2025-03-14", branchId: "Trichy"
+  },
+  {
+    id: "L009", enquiryNo: "ENQ-2025-0009", name: "Ismail Khan", age: 16,
+    classInterested: "11", board: "State", parentName: "Ibrahim Khan",
+    phone: "9841100003", whatsapp: "9841100003", email: "ismail@example.com",
+    source: "Banner / Sunpack", subjects: ["Chemistry", "Biology"], mode: "Offline",
+    status: "Contacted", assignedTo: "Karthik Raja", followUpDate: "2025-03-20",
+    notes: "Saw banner near school. Called for details.", createdAt: "2025-03-12", branchId: "Trichy"
+  },
+  {
+    id: "L010", enquiryNo: "ENQ-2025-0010", name: "Jayalakshmi P", age: 17,
+    classInterested: "12", board: "CBSE", parentName: "Prakash P",
+    phone: "9841100004", whatsapp: "9841100004", email: "jaya@example.com",
+    source: "School Reference", subjects: ["Math", "Physics"], mode: "Offline",
+    status: "Demo Scheduled", assignedTo: "Suresh Raina", followUpDate: "2025-03-17",
+    notes: "Referred by Class 12 school teacher.", createdAt: "2025-03-11", branchId: "Trichy"
+  },
+  {
+    id: "L011", enquiryNo: "ENQ-2025-0011", name: "Kiran Babu", age: 14,
+    classInterested: "9", board: "CBSE", parentName: "Babu K",
+    phone: "9841100005", whatsapp: "9841100005", email: "kiran@example.com",
+    source: "Old Students", subjects: ["Science"], mode: "Offline",
+    status: "Admitted", assignedTo: "Priya Sharma", followUpDate: "2025-03-10",
+    notes: "Elder sibling studied here. Came back for younger child.", createdAt: "2025-03-08", branchId: "Trichy"
+  },
+  {
+    id: "L012", enquiryNo: "ENQ-2025-0012", name: "Lavanya Sri", age: 15,
+    classInterested: "10", board: "State", parentName: "Srikanth L",
+    phone: "9841100006", whatsapp: "9841100006", email: "lavanya@example.com",
+    source: "WhatsApp Enquiry", subjects: ["Math", "English"], mode: "Online",
+    status: "Contacted", assignedTo: "Rajesh Kumar", followUpDate: "2025-03-21",
+    notes: "Sent message on WhatsApp group. Wants online class details.", createdAt: "2025-03-15", branchId: "Trichy"
+  },
+  {
+    id: "L013", enquiryNo: "ENQ-2025-0013", name: "Manikandan R", age: 16,
+    classInterested: "11", board: "CBSE", parentName: "Rajesh R",
+    phone: "9841100007", whatsapp: "9841100007", email: "mani@example.com",
+    source: "Social Media", subjects: ["Physics", "Math"], mode: "Either",
+    status: "New", assignedTo: "Karthik Raja", followUpDate: "2025-03-22",
+    notes: "Commented on Instagram post. Wants to know fee structure.", createdAt: "2025-03-14", branchId: "Trichy"
+  },
+  {
+    id: "L014", enquiryNo: "ENQ-2025-0014", name: "Nithya Devi", age: 13,
+    classInterested: "8", board: "CBSE", parentName: "Devi S",
+    phone: "9841100008", whatsapp: "9841100008", email: "nithya@example.com",
+    source: "Pamphlet", subjects: ["English", "Science"], mode: "Offline",
+    status: "Interested", assignedTo: "Priya Sharma", followUpDate: "2025-03-23",
+    notes: "Got pamphlet from school gate distribution.", createdAt: "2025-03-13", branchId: "Trichy"
+  },
+  {
+    id: "L015", enquiryNo: "ENQ-2025-0015", name: "Omar Farouk", age: 17,
+    classInterested: "12", board: "State", parentName: "Farouk A",
+    phone: "9841100009", whatsapp: "9841100009", email: "omar@example.com",
+    source: "Student Referral", referredBy: "Chandru Singh (ENQ-2025-0003)",
+    subjects: ["Chemistry", "Biology"], mode: "Offline",
+    status: "New", assignedTo: "Suresh Raina", followUpDate: "2025-03-24",
+    notes: "Friend of Chandru. Both want to join together.", createdAt: "2025-03-15", branchId: "Trichy"
+  },
+  {
+    id: "L016", enquiryNo: "ENQ-2025-0016", name: "Preethi Anand", age: 15,
+    classInterested: "10", board: "CBSE", parentName: "Anand P",
+    phone: "9841100010", whatsapp: "9841100010", email: "preethi@example.com",
+    source: "Google (SEO)", subjects: ["Math", "Science"], mode: "Offline",
+    status: "Contacted", assignedTo: "Rajesh Kumar", followUpDate: "2025-03-25",
+    notes: "Found us through Google search. Visited website and called.", createdAt: "2025-03-16", branchId: "Trichy"
+  },
+  {
+    id: "L017", enquiryNo: "ENQ-2025-0017", name: "Ragul Krishnan", age: 16,
+    classInterested: "11", board: "CBSE", parentName: "Krishnan A",
+    phone: "9841100011", whatsapp: "9841100011", email: "ragul@example.com",
+    source: "Walk-in", subjects: ["Physics", "Chemistry"], mode: "Offline",
+    status: "Demo Scheduled", assignedTo: "Karthik Raja", followUpDate: "2025-03-26",
+    notes: "Walked in during evening. Wants to see facility before enrolling.", createdAt: "2025-03-16", branchId: "Trichy"
   }
 ];

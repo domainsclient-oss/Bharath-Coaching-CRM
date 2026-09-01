@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PlusCircle, Trash2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 
@@ -58,14 +59,17 @@ export default function BatchesPage() {
     }
   };
 
-  const handleDeleteBatch = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this batch?')) return;
+  const [deleteTarget, setDeleteTarget] = useState<Batch | null>(null);
+  const handleDeleteBatch = async () => {
+    if (!deleteTarget) return;
     try {
-      await batchService.delete(id);
-      setBatches(prev => prev.filter(b => b.id !== id));
+      await batchService.delete(deleteTarget.id);
+      setBatches(prev => prev.filter(b => b.id !== deleteTarget.id));
       toast({ title: 'Success', description: 'Batch deleted.' });
     } catch (err) {
       toast({ title: 'Error', description: 'Could not delete batch.', variant: 'destructive' });
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -113,7 +117,7 @@ export default function BatchesPage() {
                     <TableCell>{formatDate(batch.startDate)}</TableCell>
                     <TableCell>{formatDate(batch.endDate)}</TableCell>
                     <TableCell>
-                      <Button variant="destructive" size="sm" onClick={() => handleDeleteBatch(batch.id)}>
+                      <Button variant="destructive" size="sm" onClick={() => setDeleteTarget(batch)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -127,6 +131,18 @@ export default function BatchesPage() {
           )}
         </CardContent>
       </Card>
+      <Dialog open={!!deleteTarget} onOpenChange={v => { if (!v) setDeleteTarget(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Delete Batch</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete <span className="font-semibold text-foreground">"{deleteTarget?.name}"</span>? This cannot be undone.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteBatch}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

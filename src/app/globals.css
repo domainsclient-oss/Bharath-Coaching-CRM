@@ -75,20 +75,68 @@
   }
 }
 
+/* Hide sidebar scrollbar while keeping scroll functionality */
+[data-sidebar="content"] {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+[data-sidebar="content"]::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
+}
+
 /* Print-specific styles */
+.print-only-block {
+    display: none;
+}
+
 @media print {
     .print-hide {
-        display: none;
+        display: none !important;
+    }
+    .print-only-block {
+        display: block !important;
+    }
+    /* Hide sidebar and layout chrome */
+    [data-sidebar],
+    aside,
+    nav {
+        display: none !important;
+    }
+    /* Make the content fill the full page */
+    body, html {
+        background: white !important;
     }
     .print-area {
         width: 100%;
-        position: absolute;
-        left: 0;
-        top: 0;
-        padding: 2rem;
+        padding: 1rem;
+    }
+    /* Remove all overflow/scroll so the full table prints */
+    .print-area *,
+    .print-area .overflow-x-auto,
+    .print-area [class*="overflow"] {
+        overflow: visible !important;
+        max-width: none !important;
+    }
+    /* Force table to full width and wrap text */
+    .print-area table {
+        width: 100% !important;
+        table-layout: auto !important;
+        font-size: 10px !important;
+        border-collapse: collapse !important;
+    }
+    .print-area th,
+    .print-area td {
+        white-space: normal !important;
+        word-break: break-word !important;
+        padding: 4px 6px !important;
+    }
+    /* Page layout */
+    @page {
+        size: A4 landscape;
+        margin: 1cm;
     }
     body {
-        -webkit-print-color-adjust: exact; 
+        -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
 }

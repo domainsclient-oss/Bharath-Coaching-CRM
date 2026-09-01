@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, ClipboardList, BookOpen, FileText, Calendar, DollarSign, User, Megaphone } from 'lucide-react';
 import centerConfig from '../../config/centerConfig';
+import { useSettings } from '../../context/SettingsContext';
 
 const navConfig = [
   { href: '/student/dashboard', icon: Home, label: 'Dashboard', feature: null },
@@ -19,6 +20,7 @@ const navConfig = [
 
 export function StudentSidebar() {
   const pathname = usePathname();
+  const { settings } = useSettings();
 
   const visibleNavItems = navConfig.filter(item => 
       !item.feature || centerConfig.features[item.feature as keyof typeof centerConfig.features]
@@ -27,8 +29,8 @@ export function StudentSidebar() {
   return (
     <div className="w-64 bg-sidebar text-sidebar-foreground flex flex-col h-screen">
       <div className="h-16 flex items-center justify-center border-b border-secondary">
-         <img src={centerConfig.logo} alt={`${centerConfig.centerName} Logo`} className="h-9 w-auto" />
-         <span className="ml-3 text-sm font-bold tracking-tight uppercase">{centerConfig.centerName}</span>
+         <img src={centerConfig.logo} alt={`${settings.appName} Logo`} className="h-9 w-auto" />
+         <span className="ml-3 text-sm font-bold tracking-tight uppercase">{settings.appName}</span>
       </div>
       <nav className="flex-1 px-2 py-4 space-y-1">
         {visibleNavItems.map((item) => {

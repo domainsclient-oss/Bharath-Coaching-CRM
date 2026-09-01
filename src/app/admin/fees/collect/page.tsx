@@ -1,236 +1,352 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import Link from "next/link";
+import { ChevronRight, Search, IndianRupee, CreditCard, Check, PlusCircle } from "lucide-react";
+import { SharedHeader } from "@/components/layout/shared-header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { Check, ChevronsUpDown, Search, CalendarIcon, Printer, UserPlus } from "lucide-react";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { useBranch } from "@/context/BranchContext";
+import { useFirestoreCollection } from "@/hooks/useFirestoreCollection";
+import { updateDocument } from "@/services/firestoreService";
+import { toast } from "@/hooks/use-toast";
 
-import { useBranchData } from "@/hooks/use-branch-data";
-import { mockStudents, Student } from "@/data/studentsData";
-import { mockFeeRecords, FeeRecord, Instalment, PaymentMode } from "@/data/feesData";
-import { cn } from "@/lib/utils";
+interface FeeDoc {
+  id: string;
+  studentName?: string;
+  name?: string;
+  class?: string;
+  board?: string;
+  subjects?: string[];
+  billNo?: string;
+  feeType?: string;
+  totalFee: number;
+  amountPaid: number;
+  balance: number;
+  status: string;
+  paymentDate?: string | null;
+  dueDate?: string;
+  mode?: string | null;
+  branchId: string;
+}
 
-const CollectFeePage = () => {
-  const searchParams = useSearchParams();
-  const studentIdFromQuery = searchParams.get('studentId');
+type PaymentMode = "Cash" | "UPI" | "Cheque" | "NEFT";
 
-  const { data: students } = useBranchData<Student>(mockStudents);
-  const [open, setOpen] = useState(false);
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(studentIdFromQuery);
+function localToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
-  const selectedStudent = useMemo(() => 
-    students.find(s => s.id === selectedStudentId)
-  , [students, selectedStudentId]);
+export default function CollectFeesPage() {
+  const { currentBranch } = useBranch();
+  const [name, setName] = useState("");
+  const [classFilter, setClassFilter] = useState("");
+  const [boardFilter, setBoardFilter] = useState("");
+  const [searched, setSearched] = useState(false);
 
-  // Fee form state
-  const [totalFee, setTotalFee] = useState(0);
-  const [instalments, setInstalments] = useState<FeeRecord['instalments']>({});
-  const [notes, setNotes] = useState("");
-  const [billNo, setBillNo] = useState("");
+  const { data: allRecords } = useFirestoreCollection<FeeDoc>("fees", currentBranch);
 
-  const handleStudentSelect = (studentId: string) => {
-    setSelectedStudentId(studentId);
-    setOpen(false);
-    // Reset form when new student is selected
-    setTotalFee(0);
-    setInstalments({});
-    setNotes("");
-    setBillNo("");
+  // Collect payment dialog
+  const [collectRecord, setCollectRecord] = useState<FeeDoc | null>(null);
+  const [payAmount, setPayAmount] = useState("");
+  const [payMode, setPayMode] = useState<PaymentMode>("Cash");
+  const [payDate, setPayDate] = useState(localToday());
+  const [saving, setSaving] = useState(false);
+
+  const records = useMemo(() => {
+    if (!searched) return [];
+    return allRecords.filter(r =>
+      (!name || (r.studentName ?? r.name ?? "").toLowerCase().includes(name.toLowerCase())) &&
+      (!classFilter || (r.class ?? "").includes(classFilter)) &&
+      (!boardFilter || (r.board ?? "").toLowerCase().includes(boardFilter.toLowerCase()))
+    );
+  }, [searched, allRecords, name, classFilter, boardFilter]);
+
+  const fmt = (n: number) => `₹${(n ?? 0).toLocaleString("en-IN")}`;
+
+  const openCollect = (r: FeeDoc) => {
+    if ((r.balance ?? 0) <= 0) {
+      toast({ title: "Fully Paid", description: `${r.studentName ?? r.name} has no balance.` });
+      return;
+    }
+    setCollectRecord(r);
+    setPayAmount(String(r.balance ?? ""));
+    setPayMode("Cash");
+    setPayDate(localToday());
   };
 
-  const handleCollect = (instalmentKey: keyof FeeRecord['instalments']) => {
-    const instalment = instalments[instalmentKey];
-    if (!instalment) return;
+  const handleCollect = async () => {
+    if (!collectRecord) return;
+    const amount = parseFloat(payAmount);
+    if (!amount || amount <= 0) {
+      toast({ title: "Invalid Amount", description: "Enter a valid payment amount.", variant: "destructive" });
+      return;
+    }
+    if (amount > (collectRecord.balance ?? 0)) {
+      toast({ title: "Excess Amount", description: "Payment cannot exceed balance.", variant: "destructive" });
+      return;
+    }
 
-    const updatedInstalments = {
-        ...instalments,
-        [instalmentKey]: { ...instalment, collected: true, date: new Date().toISOString().split('T')[0] }
-    };
-    setInstalments(updatedInstalments);
-  }
+    setSaving(true);
+    try {
+      const newAmountPaid = (collectRecord.amountPaid ?? 0) + amount;
+      const newBalance = (collectRecord.totalFee ?? 0) - newAmountPaid;
+      const newStatus = newBalance <= 0 ? "Paid" : "Partially Paid";
 
-  const calculateTotals = useMemo(() => {
-      const collected = Object.values(instalments)
-        .filter(i => i?.collected)
-        .reduce((sum, i) => sum + (i?.amount || 0), 0);
-      const balance = totalFee - collected;
-      return { collected, balance };
-  }, [totalFee, instalments]);
+      await updateDocument("fees", collectRecord.id, {
+        amountPaid: newAmountPaid,
+        balance: newBalance,
+        status: newStatus,
+        paymentDate: payDate,
+        mode: payMode,
+      });
 
-  const handleSaveFee = () => {
-    if (!selectedStudent) return;
-
-    const newBillNo = `BA-${new Date().getFullYear()}-${String(mockFeeRecords.length + 1).padStart(4, '0')}`;
-    const newFeeRecord: FeeRecord = {
-      id: `FEE${Date.now()}`,
-      billNo: newBillNo,
-      studentId: selectedStudent.id,
-      studentName: selectedStudent.name,
-      class: selectedStudent.class,
-      board: selectedStudent.board,
-      subjects: selectedStudent.subjects,
-      feeType: "Standard", // or OneToOne based on some logic
-      totalFee,
-      instalments,
-      collected: calculateTotals.collected,
-      balance: calculateTotals.balance,
-      nextPaymentDate: Object.values(instalments).find(i => !i?.collected)?.date,
-      notes,
-      branchId: selectedStudent.branchId as any,
-    };
-
-    // In a real app, this would be an API call
-    mockFeeRecords.push(newFeeRecord);
-    setBillNo(newBillNo);
+      toast({
+        title: "Payment Collected",
+        description: `${fmt(amount)} collected from ${collectRecord.studentName ?? collectRecord.name} via ${payMode}.`,
+      });
+      setCollectRecord(null);
+    } catch {
+      toast({ title: "Error", description: "Could not save payment.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
-  
-  const InstalmentInput = ({ iKey, label }: { iKey: keyof FeeRecord['instalments'], label: string }) => {
-    const isCollected = instalments[iKey]?.collected ?? false;
-    const isPreviousCollected = iKey === 'i1' || instalments[iKey === 'i2' ? 'i1' : 'i2']?.collected;
 
-    return (
-        <div className={cn("grid grid-cols-5 gap-2 items-center p-2 rounded-md", isCollected && "bg-green-50")}>
-            <label className="font-medium">{label}</label>
-            <Input
-                type="number"
-                placeholder="Amount"
-                disabled={isCollected || !isPreviousCollected}
-                value={instalments[iKey]?.amount || ''}
-                onChange={(e) => setInstalments({...instalments, [iKey]: {...(instalments[iKey] || {}), amount: Number(e.target.value)} })}
-            />
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant={"outline"} disabled={isCollected || !isPreviousCollected} className="w-full justify-start text-left font-normal">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {instalments[iKey]?.date ? new Date(instalments[iKey]!.date).toLocaleDateString() : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar mode="single" selected={instalments[iKey]?.date ? new Date(instalments[iKey]!.date) : undefined} onSelect={(d) => setInstalments({...instalments, [iKey]: {...(instalments[iKey] || {}), date: d?.toISOString().split('T')[0]}})} initialFocus />
-              </PopoverContent>
-            </Popover>
-             <Select 
-                disabled={isCollected || !isPreviousCollected}
-                onValueChange={(v) => setInstalments({...instalments, [iKey]: {...(instalments[iKey] || {}), mode: v as PaymentMode}})}
-                value={instalments[iKey]?.mode}
-             >
-              <SelectTrigger><SelectValue placeholder="Mode" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Cash">Cash</SelectItem>
-                <SelectItem value="UPI">UPI</SelectItem>
-                <SelectItem value="Cheque">Cheque</SelectItem>
-                <SelectItem value="NEFT">NEFT</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button size="sm" disabled={isCollected || !instalments[iKey]?.amount} onClick={() => handleCollect(iKey)}>{isCollected ? 'Collected' : 'Collect'}</Button>
-        </div>
-    )
-  }
+  const handleSearch = () => setSearched(true);
+  const handleClear = () => {
+    setSearched(false);
+    setName(""); setClassFilter(""); setBoardFilter("");
+  };
 
-  if (billNo) {
-      return (
-          <Card className="max-w-2xl mx-auto">
-              <CardHeader className="text-center">
-                <Check className="mx-auto h-16 w-16 text-green-500 bg-green-100 rounded-full p-2"/>
-                  <CardTitle>Fee Collected Successfully!</CardTitle>
-                  <CardDescription>Bill No: <span className="font-mono font-bold">{billNo}</span></CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center space-y-4">
-                  <Button onClick={() => window.print()}><Printer className="mr-2 h-4 w-4"/> Print Receipt</Button>
-                  <Button variant="secondary" onClick={() => { setBillNo(""); setSelectedStudentId(null) }}>Collect Another Fee</Button>
-              </CardContent>
-          </Card>
-      )
-  }
+  const STATUS_COLORS: Record<string, string> = {
+    "Paid":           "bg-green-100 text-green-700",
+    "Partially Paid": "bg-amber-100 text-amber-700",
+    "Unpaid":         "bg-red-100 text-red-700",
+  };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Step 1: Find Student</CardTitle>
-          <CardDescription>Search for the student by name or application number.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <Popover open={open} onOpenChange={setOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" aria-expanded={open} className="w-full md:w-[400px] justify-between">
-                  {selectedStudent ? (
-                    <>{selectedStudent.name} ({selectedStudent.appNo})</>
-                  ) : (
-                    "Select student..."
+    <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
+      <SharedHeader title="Collect Fees" />
+      <main className="p-4 md:p-6 lg:p-8 space-y-6 animate-in fade-in duration-500 overflow-x-hidden">
+
+        <div className="flex items-center text-xs text-muted-foreground gap-2">
+          <Link href="/admin" className="hover:text-[#0D7C8F]">Dashboard</Link>
+          <ChevronRight className="h-3 w-3" />
+          <Link href="/admin/fees" className="hover:text-[#0D7C8F]">Fees</Link>
+          <ChevronRight className="h-3 w-3" />
+          <span className="font-medium text-foreground">Collect Fees</span>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-[#1E2A4A]">Collect Fees</h2>
+          <Link href="/admin/fees/add">
+            <Button className="bg-[#1E2A4A] hover:bg-[#0D7C8F] gap-2">
+              <PlusCircle className="h-4 w-4" /> Add Fee Record
+            </Button>
+          </Link>
+        </div>
+
+        {/* Filter bar */}
+        <Card className="border-none shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex flex-wrap gap-3 items-end">
+              <div className="space-y-1">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Student Name</p>
+                <Input className="w-48" placeholder="Search name..." value={name}
+                  onChange={e => setName(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleSearch()} />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Class</p>
+                <Input className="w-24" placeholder="e.g. 10" value={classFilter}
+                  onChange={e => setClassFilter(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleSearch()} />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Board</p>
+                <Input className="w-28" placeholder="e.g. CBSE" value={boardFilter}
+                  onChange={e => setBoardFilter(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleSearch()} />
+              </div>
+              <Button className="bg-[#1E2A4A] hover:bg-[#0D7C8F] gap-2" onClick={handleSearch}>
+                <Search className="h-4 w-4" /> Search
+              </Button>
+              {searched && (
+                <Button variant="outline" onClick={handleClear}>Clear</Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Results */}
+        {searched && (
+          <Card className="border-none shadow-sm overflow-hidden">
+            <CardHeader className="bg-slate-50 border-b py-3 px-6">
+              <CardTitle className="text-base flex items-center gap-2">
+                <IndianRupee className="h-4 w-4 text-[#0D7C8F]" />
+                {records.length} Record{records.length !== 1 ? "s" : ""}
+              </CardTitle>
+            </CardHeader>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-slate-50">
+                  <TableRow>
+                    <TableHead>Student</TableHead>
+                    <TableHead>Class</TableHead>
+                    <TableHead>Bill No</TableHead>
+                    <TableHead className="text-right">Total Fee</TableHead>
+                    <TableHead className="text-right">Paid</TableHead>
+                    <TableHead className="text-right">Balance</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {records.length > 0 ? records.map(r => (
+                    <TableRow key={r.id} className="hover:bg-slate-50/50">
+                      <TableCell className="font-semibold text-sm text-[#1E2A4A]">
+                        {r.studentName ?? r.name ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {r.class ? `Class ${r.class}` : "—"}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {r.billNo ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-right font-medium">{fmt(r.totalFee)}</TableCell>
+                      <TableCell className="text-right font-semibold text-green-600">
+                        {fmt(r.amountPaid)}
+                      </TableCell>
+                      <TableCell className={`text-right font-bold ${(r.balance ?? 0) > 0 ? "text-red-600" : "text-green-600"}`}>
+                        {fmt(r.balance)}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{r.dueDate ?? "—"}</TableCell>
+                      <TableCell>
+                        <Badge className={`text-xs ${STATUS_COLORS[r.status] ?? "bg-slate-100 text-slate-700"}`}>
+                          {r.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {(r.balance ?? 0) > 0 ? (
+                          <Button
+                            size="sm"
+                            className="h-8 text-xs bg-[#0D7C8F] hover:bg-[#0a6275] gap-1"
+                            onClick={() => openCollect(r)}
+                          >
+                            <CreditCard className="h-3 w-3" /> Collect
+                          </Button>
+                        ) : (
+                          <Badge className="bg-green-100 text-green-700 text-xs gap-1">
+                            <Check className="h-3 w-3" /> Paid
+                          </Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )) : (
+                    <TableRow>
+                      <TableCell colSpan={9} className="h-32 text-center text-muted-foreground">
+                        <div className="flex flex-col items-center gap-2">
+                          <IndianRupee className="h-8 w-8 opacity-20" />
+                          <p>No fee records found.</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
                   )}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full md:w-[400px] p-0">
-                <Command>
-                  <CommandInput placeholder="Search student..." />
-                  <CommandList>
-                    <CommandEmpty>No student found.</CommandEmpty>
-                    <CommandGroup>
-                      {students.map((student) => (
-                        <CommandItem key={student.id} value={student.name} onSelect={() => handleStudentSelect(student.id)}>
-                          <Check className={cn("mr-2 h-4 w-4", selectedStudentId === student.id ? "opacity-100" : "opacity-0")}/>
-                          {student.name} ({student.appNo})
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-        </CardContent>
-      </Card>
-
-      {selectedStudent && (
-          <Card>
-              <CardHeader>
-                  <CardTitle>Step 2: Fee Entry Form</CardTitle>
-                  <div className="flex justify-between items-center">
-                    <CardDescription>
-                      Collecting fees for <span className="font-bold">{selectedStudent.name}</span>
-                    </CardDescription>
-                    <div className="text-sm text-muted-foreground font-mono">Bill No: {`BA-${new Date().getFullYear()}-XXXX`}</div>
-                  </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-3 gap-4">
-                    <Input value={selectedStudent.name} disabled placeholder="Student Name" />
-                    <Input value={selectedStudent.class} disabled placeholder="Class" />
-                    <Input value={selectedStudent.board} disabled placeholder="Board" />
-                </div>
-                <Input value={selectedStudent.subjects.join(', ')} disabled placeholder="Subjects"/>
-                <div className="border rounded-md p-4 space-y-2">
-                    <div className="grid grid-cols-2 gap-4">
-                        <Input type="number" placeholder="Total Fee Amount" value={totalFee || ''} onChange={e => setTotalFee(Number(e.target.value))} />
-                    </div>
-                    
-                    <InstalmentInput iKey="i1" label="Instalment I" />
-                    <InstalmentInput iKey="i2" label="Instalment II" />
-                    <InstalmentInput iKey="i3" label="Instalment III" />
-
-                </div>
-
-                <div className="flex justify-between items-center font-bold text-lg p-4 bg-muted rounded-md">
-                    <span>Collected: <span className="text-green-600">{calculateTotals.collected.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span></span>
-                    <span>Balance: <span className="text-red-600">{calculateTotals.balance.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span></span>
-                </div>
-
-                <Input placeholder="Notes (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} />
-                
-                <Button onClick={handleSaveFee} className="w-full">Save & Generate Receipt</Button>
-              </CardContent>
+                </TableBody>
+              </Table>
+            </div>
           </Card>
-      )}
+        )}
+
+        {/* Collect Payment Dialog */}
+        <Dialog open={!!collectRecord} onOpenChange={open => { if (!open) setCollectRecord(null); }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-[#0D7C8F]" /> Collect Payment
+              </DialogTitle>
+            </DialogHeader>
+
+            {collectRecord && (
+              <div className="space-y-4 py-1">
+                <div className="bg-slate-50 rounded-lg p-3 space-y-1">
+                  <p className="font-semibold text-[#1E2A4A]">
+                    {collectRecord.studentName ?? collectRecord.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {collectRecord.billNo && <span>Bill: <span className="font-mono">{collectRecord.billNo}</span> · </span>}
+                    Balance: <span className="text-red-600 font-semibold">{fmt(collectRecord.balance)}</span>
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Payment Amount *</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">₹</span>
+                    <Input
+                      className="pl-7"
+                      type="number"
+                      value={payAmount}
+                      onChange={e => setPayAmount(e.target.value)}
+                      max={collectRecord.balance}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Max: {fmt(collectRecord.balance)}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Payment Mode</Label>
+                  <Select value={payMode} onValueChange={v => setPayMode(v as PaymentMode)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(["Cash", "UPI", "Cheque", "NEFT"] as PaymentMode[]).map(m => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Payment Date</Label>
+                  <Input
+                    type="date"
+                    value={payDate}
+                    max={localToday()}
+                    onChange={e => setPayDate(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCollectRecord(null)}>Cancel</Button>
+              <Button
+                className="bg-[#0D7C8F] hover:bg-[#0a6275]"
+                onClick={handleCollect}
+                disabled={saving}
+              >
+                {saving ? "Saving…" : "Confirm Payment"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </main>
     </div>
   );
-};
-
-export default CollectFeePage;
+}
