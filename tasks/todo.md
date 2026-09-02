@@ -219,3 +219,93 @@ The duplication is the real root cause and affects any overlapping Radix layers,
 not just menus. Deduping via a `package.json` `overrides` entry pinning a single
 `@radix-ui/react-dismissable-layer` would remove the whole class of bug — but it
 rewrites the lockfile, so it was not done unasked.
+
+---
+
+# Task: Vercel build fails with `auth/invalid-api-key` (second occurrence)
+
+## Finding
+Not a code problem. A production build of the **same commit** (016aaab) with the
+real `.env` values present succeeds: `EXIT=0`, `✓ Generating static pages (129/129)`.
+So the Firebase env vars are still not reaching Vercel's build.
+
+Most likely cause: Vercel prompts "Remove the public framework prefix to keep
+this value private" when it sees `NEXT_PUBLIC_`. Accepting that renames the
+variable, and `process.env.NEXT_PUBLIC_FIREBASE_API_KEY` then reads `undefined` —
+producing exactly this error. The prefix is mandatory here: the Firebase client
+SDK runs in the browser, so the values must be inlined at build time.
+
+## Change made
+- [x] `src/config/firebase.ts` — fail fast with a message that *names* the
+      missing variables, instead of letting `getAuth()` throw
+      `auth/invalid-api-key` while prerendering `/_not-found` (a page unrelated
+      to Firebase; it only pulls this file in via the root layout's AuthProvider).
+      The build still fails — deliberately. Masking a missing config would
+      deploy a green build with no auth and no data, which is far worse.
+- [x] Made `console.log("Firebase connected")` browser-only. It was printing
+      immediately before the failure in the build log, implying success.
+
+## Verification (isolated build copy, so the running dev server was untouched)
+- Vars stripped, reproducing the Vercel state → `EXIT=1` and:
+  `Firebase config missing: NEXT_PUBLIC_FIREBASE_API_KEY, NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN, NEXT_PUBLIC_FIREBASE_PROJECT_ID.`
+- Real `.env` present → `EXIT=0`, `✓ Generating static pages (129/129)`.
+- `tsc` clean.
+
+## Note
+The guard only reaches Vercel once it is committed and pushed; the failing
+deployments are building 016aaab, which predates it.
+
+---
+
+# Task: Update the favicon
+
+## Finding
+The new icon was added at `public/favicon.ico`, but the repo **already had**
+`src/app/favicon.ico` — the App Router convention file, which Next serves at
+`/favicon.ico` automatically. Two files claiming the same route: `/favicon.ico`
+was returning **HTTP 500**, so the site had no working favicon at all.
+
+## Change
+- [x] Copied the new icon into `src/app/favicon.ico` (the App Router location,
+      which wins over `public/` and gets the cache-busting link tag for free).
+- [x] Deleted the duplicate `public/favicon.ico` that caused the collision.
+- [x] No metadata change needed — Next injects the link tag from the convention
+      file. The old icon remains recoverable from git.
+
+## Verification (clean production build in the isolated copy)
+- `EXIT=0`, no favicon/conflict warnings.
+- `.next/server/app/favicon.ico.body` md5 matches the new icon byte-for-byte.
+- Route metadata: `{"status":200, "content-type":"image/x-icon"}` — was 500.
+- Built HTML carries `<link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="32x32"/>`.
+
+## Note
+The running dev server still returns 500 for `/favicon.ico` — it cached the route
+while both files existed. Restart it (`Ctrl+C`, then `npm run dev`) to clear that.
+
+## Follow-up: whole site returned Internal Server Error
+
+Every route (`/`, `/login`, `/admin/*`, `/student/*`, `/favicon.ico`) returned
+HTTP 500 after the favicon change.
+
+- **Not a code fault.** A second dev server started on port 9003 from the same
+  source served every one of those routes with HTTP 200. The running server on
+  9002 had cached the `/favicon.ico` route while `src/app/favicon.ico` and
+  `public/favicon.ico` both existed, and Turbopack does not recover from that
+  collision on its own — the poisoned entry took the whole module graph down.
+- [x] Stopped both dev servers (the stale one on 9002 and the diagnostic one on
+      9003 — two servers sharing a single `.next` risks further corruption).
+- [x] Deleted `.next`.
+- [x] Restarted `npm run dev` on 9002.
+
+## Verification
+All green on the restarted server, no errors in its log:
+
+| Route | Status |
+|---|---|
+| `/` | 200 |
+| `/login` | 200 |
+| `/admin/dashboard` | 200 |
+| `/admin/students` | 200 |
+| `/admin/leads` | 200 |
+| `/student/dashboard` | 200 |
+| `/favicon.ico` | 200, bytes match the new icon |
