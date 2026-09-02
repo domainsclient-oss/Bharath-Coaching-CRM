@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/table";
 import { useBranch } from "@/context/BranchContext";
 import { useFirestoreCollection } from "@/hooks/useFirestoreCollection";
+import { getSessionStatus } from "@/lib/sessionStatus";
+import { useNow } from "@/hooks/use-now";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -78,6 +80,7 @@ export default function OnlineClassAttendancePage() {
   const { currentBranch } = useBranch();
 
   const { data: allSessions } = useFirestoreCollection<OnlineClassDoc>("onlineClasses", currentBranch);
+  const now = useNow(30_000);
   const { data: allStudents } = useFirestoreCollection<StudentDoc>("students", currentBranch);
 
   const sessions = useMemo(() => allSessions, [allSessions]);
@@ -187,7 +190,7 @@ export default function OnlineClassAttendancePage() {
                   variant="outline"
                   className="gap-2 h-11"
                   onClick={() => window.open(selectedSession.meetLink, "_blank")}
-                  disabled={selectedSession.status === "Ended" || !selectedSession.meetLink}
+                  disabled={getSessionStatus(selectedSession, now) === "Ended" || !selectedSession.meetLink}
                 >
                   <ExternalLink className="h-4 w-4" /> Open Meet Link
                 </Button>
@@ -221,7 +224,7 @@ export default function OnlineClassAttendancePage() {
                       </div>
                     </div>
                   </div>
-                  <StatusBadge status={selectedSession.status} />
+                  <StatusBadge status={getSessionStatus(selectedSession, now)} />
                 </div>
               </CardContent>
             </Card>

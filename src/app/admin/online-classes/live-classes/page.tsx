@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/table";
 import { useBranch } from "@/context/BranchContext";
 import { useFirestoreCollection } from "@/hooks/useFirestoreCollection";
+import { withSessionStatus } from "@/lib/sessionStatus";
+import { useNow } from "@/hooks/use-now";
 import { updateDocument } from "@/services/firestoreService";
 import { toast } from "@/hooks/use-toast";
 
@@ -47,7 +49,12 @@ export default function LiveClassesPage() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [classFilter, setClassFilter]   = useState("All");
 
-  const { data: sessions } = useFirestoreCollection<OnlineClassDoc>("onlineClasses", currentBranch);
+  const { data: rawSessions } = useFirestoreCollection<OnlineClassDoc>("onlineClasses", currentBranch);
+
+  // Same clock-derived status as /admin/online-classes, so the two pages can
+  // never disagree about whether a session is live.
+  const now = useNow(30_000);
+  const sessions = useMemo(() => withSessionStatus(rawSessions, now), [rawSessions, now]);
 
   // Unique class names for filter dropdown
   const classOptions = useMemo(() =>

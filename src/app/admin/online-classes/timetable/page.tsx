@@ -17,6 +17,8 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
 import { useBranch } from "@/context/BranchContext";
 import { useFirestoreCollection } from "@/hooks/useFirestoreCollection";
+import { getSessionStatus } from "@/lib/sessionStatus";
+import { useNow } from "@/hooks/use-now";
 import { cn } from "@/lib/utils";
 
 interface ClassDoc { id: string; name: string; board?: string; branchId: string; }
@@ -62,6 +64,7 @@ export default function OnlineTimetablePage() {
 
   const { data: classes }       = useFirestoreCollection<ClassDoc>("classes", currentBranch);
   const { data: onlineClasses } = useFirestoreCollection<OnlineClassDoc>("onlineClasses", currentBranch);
+  const now = useNow(30_000);
 
   const [selectedClassId, setSelectedClassId] = useState<string>("all");
   const [weekOffset, setWeekOffset] = useState(0);
@@ -266,8 +269,9 @@ export default function OnlineTimetablePage() {
                       </div>
                     ) : (
                       sessions.map(oc => {
-                        const isPast = oc.status === "Ended";
-                        const isLive = oc.status === "Live";
+                        const derived = getSessionStatus(oc, now);
+                        const isPast = derived === "Ended";
+                        const isLive = derived === "Live";
                         return (
                           <div
                             key={oc.id}

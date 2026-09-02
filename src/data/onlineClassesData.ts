@@ -10,7 +10,12 @@ export interface OnlineClass {
   time: string;
   duration: number; // in minutes
   meetLink: string;
-  status: "Scheduled" | "Live" | "Ended";
+  /**
+   * @deprecated Legacy stored field. Status is derived from date/time/duration
+   * at render time — see `getSessionStatus` in src/lib/sessionStatus.ts. Nothing
+   * reads this any more; new sessions do not write it.
+   */
+  status?: "Scheduled" | "Live" | "Ended";
   description?: string;
   branchId: string;
 }

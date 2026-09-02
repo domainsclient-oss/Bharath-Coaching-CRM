@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   Plus, Search, ChevronRight, Video, ExternalLink, Trash2, Edit,
-  ClipboardCheck, Calendar, Clock, Filter, Link as LinkIcon, Radio,
+  Calendar, Clock, Filter, Link as LinkIcon,
 } from "lucide-react";
 import { SharedHeader } from "@/components/layout/shared-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,6 +23,8 @@ import { useBranch } from "@/context/BranchContext";
 import { useFirestoreCollection } from "@/hooks/useFirestoreCollection";
 import { addDocument, updateDocument, deleteDocument } from "@/services/firestoreService";
 import { toast } from "@/hooks/use-toast";
+import { withSessionStatus, getSessionStart } from "@/lib/sessionStatus";
+import { useNow } from "@/hooks/use-now";
 
 interface ClassDoc   { id: string; name: string; board?: string; branchId: string; }
 interface SubjectDoc { id: string; name: string; branchId: string; }
@@ -48,44 +50,36 @@ export default function OnlineClassesPage() {
   const [deleteId,    setDeleteId]    = useState<string | null>(null);
   const [saving,      setSaving]      = useState(false);
 
+  // ── Derived status ─────────────────────────────────────────────────────────
+  // Status is computed from the clock, never read from the stored field, so a
+  // session that has already finished can never present itself as live.
+  const now = useNow(30_000);
+  const sessions = useMemo(
+    () => withSessionStatus(branchClasses, now),
+    [branchClasses, now]
+  );
+
   // ── Counts ─────────────────────────────────────────────────────────────────
-  const liveCount      = branchClasses.filter(c => c.status === "Live").length;
-  const scheduledCount = branchClasses.filter(c => c.status === "Scheduled").length;
-  const endedCount     = branchClasses.filter(c => c.status === "Ended").length;
+  const liveCount      = sessions.filter(c => c.status === "Live").length;
+  const scheduledCount = sessions.filter(c => c.status === "Scheduled").length;
+  const endedCount     = sessions.filter(c => c.status === "Ended").length;
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
-  const parseSessionDate = (dateStr: string, timeStr: string) => {
-    const base = new Date(dateStr);
-    const ampm = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
-    if (ampm) {
-      let h = parseInt(ampm[1]);
-      const m = parseInt(ampm[2]);
-      if (ampm[3].toUpperCase() === "PM" && h !== 12) h += 12;
-      if (ampm[3].toUpperCase() === "AM" && h === 12) h = 0;
-      base.setHours(h, m, 0, 0);
-    } else {
-      const [h, m] = timeStr.split(":").map(Number);
-      base.setHours(h || 0, m || 0, 0, 0);
-    }
-    return base;
-  };
-
+  // ── Next upcoming session ──────────────────────────────────────────────────
   const nextSession = useMemo(() => {
-    const now = new Date();
-    return branchClasses
-      .filter(oc => oc.status === "Scheduled" && oc.date && oc.time)
-      .map(oc => ({ ...oc, dt: parseSessionDate(oc.date, oc.time) }))
-      .filter(oc => oc.dt > now)
+    return sessions
+      .filter(oc => oc.status === "Scheduled")
+      .map(oc => ({ ...oc, dt: getSessionStart(oc) }))
+      .filter((oc): oc is typeof oc & { dt: Date } => oc.dt !== null && oc.dt > now)
       .sort((a, b) => a.dt.getTime() - b.dt.getTime())[0] ?? null;
-  }, [branchClasses]);
+  }, [sessions, now]);
 
   const nextSessionLabel = useMemo(() => {
     if (!nextSession) return null;
-    const diff = Math.round((nextSession.dt.getTime() - Date.now()) / 60000);
+    const diff = Math.round((nextSession.dt.getTime() - now.getTime()) / 60000);
     if (diff < 60) return `Starts in ${diff} min${diff !== 1 ? "s" : ""}`;
     const hrs = Math.floor(diff / 60), mins = diff % 60;
     return `Starts in ${hrs}h${mins > 0 ? ` ${mins}m` : ""}`;
-  }, [nextSession]);
+  }, [nextSession, now]);
 
   const weekStats = useMemo(() => {
     const now = new Date();
@@ -104,7 +98,7 @@ export default function OnlineClassesPage() {
   }, [branchClasses]);
 
   const filteredByStatus = (status: string) =>
-    branchClasses.filter(oc =>
+    sessions.filter(oc =>
       (status === "All" || oc.status === status) &&
       (oc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
        oc.subject.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -186,7 +180,7 @@ export default function OnlineClassesPage() {
         await updateDocument("onlineClasses", editingId, payload);
         toast({ title: "Session Updated" });
       } else {
-        await addDocument("onlineClasses", { ...payload, status: "Scheduled" });
+        await addDocument("onlineClasses", payload);
         toast({ title: "Class Scheduled", description: "New session created." });
       }
       setModalOpen(false);
@@ -210,16 +204,6 @@ export default function OnlineClassesPage() {
       toast({ title: "Error", description: "Failed to delete.", variant: "destructive" });
     } finally {
       setDeleteId(null);
-    }
-  };
-
-  // ── Mark Live / Ended ──────────────────────────────────────────────────────
-  const handleStatusChange = async (oc: OnlineClass, status: "Live" | "Ended" | "Scheduled") => {
-    try {
-      await updateDocument("onlineClasses", oc.id, { status });
-      toast({ title: `Marked as ${status}` });
-    } catch {
-      toast({ title: "Error", description: "Could not update status.", variant: "destructive" });
     }
   };
 
@@ -287,34 +271,7 @@ export default function OnlineClassesPage() {
                 >
                   <ExternalLink className="h-4 w-4" />
                 </Button>
-                {/* Mark Live / End */}
-                {oc.status === "Scheduled" && (
-                  <Button
-                    variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
-                    onClick={() => handleStatusChange(oc, "Live")}
-                    title="Mark as Live"
-                  >
-                    <Radio className="h-4 w-4" />
-                  </Button>
-                )}
-                {oc.status === "Live" && (
-                  <Button
-                    variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-                    onClick={() => handleStatusChange(oc, "Ended")}
-                    title="End Session"
-                  >
-                    <ClipboardCheck className="h-4 w-4" />
-                  </Button>
-                )}
-                {oc.status === "Ended" && (
-                  <Button
-                    variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:bg-blue-50 hover:text-blue-700"
-                    onClick={() => handleStatusChange(oc, "Scheduled")}
-                    title="Reschedule"
-                  >
-                    <Calendar className="h-4 w-4" />
-                  </Button>
-                )}
+                {/* Status is clock-derived — reschedule via Edit, not a manual override. */}
                 {/* Edit */}
                 <Button
                   variant="ghost" size="icon" className="h-8 w-8 text-amber-600 hover:bg-amber-50 hover:text-amber-700"

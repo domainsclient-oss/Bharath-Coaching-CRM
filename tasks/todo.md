@@ -309,3 +309,60 @@ All green on the restarted server, no errors in its log:
 | `/admin/leads` | 200 |
 | `/student/dashboard` | 200 |
 | `/favicon.ico` | 200, bytes match the new icon |
+
+---
+
+# Task: Live-class status must be derived from the clock
+
+## Cause
+`status` was a **stored Firestore field**, set only by the "Mark as Live" /
+"End Session" / "Reschedule" buttons. Nothing recomputed it, so it never
+reflected the passage of time: a session scheduled for last week sat in the
+database with `status: "Live"` and rendered LIVE NOW forever, and the buttons let
+anyone mark a finished session live.
+
+## Approach
+Stop storing status; compute it. `src/lib/sessionStatus.ts` derives it from
+`date + time + duration` versus the current time:
+
+    now <  start            -> Scheduled
+    start <= now <  end     -> Live
+    now >= start + duration -> Ended
+
+There is no writable status left to get out of sync, and the illegal state the
+report describes is now unrepresentable rather than merely discouraged.
+
+## Changes
+- [x] `src/lib/sessionStatus.ts` (new) — pure derivation. Parses both stored time
+      formats ("14:30" from the form, "2:30 PM" from older records) and both date
+      shapes (string / Date / Firestore Timestamp). Builds dates from components,
+      never `new Date("YYYY-MM-DD")`, which reads as UTC midnight and lands on the
+      previous day west of Greenwich.
+- [x] `src/hooks/use-now.ts` (new) — a Date that ticks every 30s, so a session
+      flips Scheduled -> Live -> Ended on screen without a refresh.
+- [x] `online-classes/page.tsx` — counts, All/Live/Scheduled/Ended tab filters,
+      "next session" banner and row badges all read the derived status. Removed
+      `handleStatusChange` and the three manual override buttons. Creating a
+      session no longer writes a status field. Deleted the local duplicate of the
+      date parser in favour of the shared one.
+- [x] `live-classes/page.tsx` — counts, status filter and badges derived.
+- [x] `timetable/page.tsx` — `isPast` / `isLive` derived.
+- [x] `attendance/page.tsx` — badge and the "Open Meet Link" gate derived.
+- [x] `meeting-link/page.tsx` — no longer writes a status field.
+- [x] `src/data/onlineClassesData.ts` — `status` marked `@deprecated` and
+      optional; kept so existing documents still typecheck.
+
+## Verification
+- 26 assertions against the extracted, transpiled logic with a frozen "now"
+  (2 Sep 2026 10:30) so they cannot go stale: the three rules; the reported bug
+  (a 2020 session reads Ended, not Live); exact boundaries (start inclusive, end
+  exclusive); both time formats incl. 12 AM/12 PM; missing/garbage date, time and
+  duration all falling back to Scheduled and never Live; zero duration not
+  collapsing to instant-Ended; and no UTC off-by-one, incl. a session crossing
+  midnight. All passed.
+- `tsc --noEmit` clean across all five pages.
+- All five routes return HTTP 200 with no compile errors.
+
+## Note
+Rescheduling is now done through Edit (which requires a future date/time), since
+the manual "Reschedule" button would have been a status override.

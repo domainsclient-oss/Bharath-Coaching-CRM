@@ -124,7 +124,6 @@ export default function MeetingLinkPage() {
         duration:    Number(form.duration),
         meetLink:    form.meetLink,
         description: form.description,
-        status:      "Scheduled",
         branchId:    currentBranch,
       });
 
