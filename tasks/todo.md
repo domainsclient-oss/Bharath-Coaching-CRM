@@ -617,3 +617,65 @@ errors. It now asserts `string[]` after the `filter(Boolean)`.
 Verified: the helper returns a valid year or the placeholder for empty, missing,
 null, partial and Timestamp inputs, never "". Both pages return 200 with a clean
 dev log, and typecheck is down to three pre-existing errors from four.
+
+## Follow-up: Branch ID removed from the Add User form
+
+Settings › Users asked for a Branch ID on every new user, with the hint
+"e.g. Trichy (leave blank for all)". With one branch there is nothing to
+choose, so the input is hidden behind `!onlyBranchId` and reappears once a
+second branch exists — the same rule the header switcher uses.
+
+New users are now tagged with the only branch automatically rather than left
+blank. Blank means "all branches" in the users table, and while the two are
+equivalent today, an explicit tag keeps audit-log entries specific and keeps the
+records correct if a second branch is ever added.
+
+Editing an existing user does not rewrite their branch. A super_admin
+deliberately left blank stays blank, since blank is a real setting and not a
+missing value.
+
+Nothing else reads a user's `branchId` for access control — pages scope by
+`currentBranch` from `BranchProvider`, and the field only feeds audit logging in
+`auth-context.tsx` and `authService.ts`.
+
+## New page: Students Detail (offline / online)
+
+Added `/admin/students/offline` and a "Students Detail" item under Students
+Records, between Online Admissions and Discontinued.
+
+Layout follows the requested spec:
+
+- Heading "Students Detail" with a mode dropdown, defaulting to offline. The
+  same page serves online students, so there is no second screen to maintain.
+- Required Class, Board and Subject selects, each marked with a red asterisk.
+  Search stays disabled until all three are chosen.
+- Columns: Application No, Student Name, Class, Board, School Name, Subject.
+
+Design decisions worth recording:
+
+- Nothing is listed until Search is pressed. `applied` holds the criteria of the
+  last search that actually ran, so the table cannot show the whole roll before
+  anything is asked for.
+- Mode is filtered client-side, not passed to `useFirestoreCollection` as a
+  condition. That hook keeps its conditions in a ref and does not re-subscribe
+  when they change, so a mode switch through the query would have returned stale
+  rows. Client-side filtering also avoids needing a composite Firestore index.
+- Subject options are derived from the students on record rather than the
+  subjects master collection, so every subject offered has at least one student
+  behind it and a search can never come back empty because of a naming mismatch.
+- A record with no `mode` counts as Offline, matching the student form, which
+  defaults new admissions to Offline.
+- Switching mode clears the chosen subject and the results, since the subject
+  list is mode-specific.
+- Student Name links to the student record. No extra actions column was added,
+  to keep the six columns as specified.
+
+Verified: typecheck reports nothing for the new file, the route returns 200, and
+the search predicate was tested against a sample roll covering mode mismatch,
+board mismatch, class mismatch, subject mismatch, padded subject strings, a
+missing mode field and a missing subjects array. All cases behaved correctly.
+
+Note on verification limits: every admin page in this app renders client-side
+only, so an unauthenticated HTTP request returns an empty shell. The 200 proves
+the route compiles and serves, not that the UI looks right. Confirm the layout
+in the browser while signed in.

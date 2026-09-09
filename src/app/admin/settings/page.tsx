@@ -20,6 +20,7 @@ import { doc, setDoc, collection, addDoc, updateDoc, deleteDoc, serverTimestamp,
 import { registerUser } from "@/services/authService";
 import { useFirestoreCollection } from "@/hooks/useFirestoreCollection";
 import { useSettings } from "@/context/SettingsContext";
+import { useBranch } from "@/context/BranchContext";
 import { toast } from "@/hooks/use-toast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -308,6 +309,12 @@ const saveErrorMessage = (err: any, isStudent: boolean): string => {
 
 const UserManagement = () => {
   const { data: users, loading } = useFirestoreCollection<UserDoc>("users", null, { filterByBranch: false });
+  const { branches } = useBranch();
+
+  // With a single branch there is nothing to choose, so the field is hidden and
+  // new users are tagged with that branch automatically. Add a second branch
+  // and the input comes back.
+  const onlyBranchId = branches.length === 1 ? branches[0].id : null;
 
   const [open,    setOpen]    = useState(false);
   const [editing, setEditing] = useState<UserDoc | null>(null);
@@ -316,7 +323,12 @@ const UserManagement = () => {
   const [delId,   setDelId]   = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  const openAdd  = () => { setEditing(null); setForm(USER_EMPTY); setShowPassword(false); setOpen(true); };
+  const openAdd  = () => {
+    setEditing(null);
+    setForm({ ...USER_EMPTY, branchId: onlyBranchId ?? "" });
+    setShowPassword(false);
+    setOpen(true);
+  };
   const openEdit = (u: UserDoc) => {
     setEditing(u);
     setShowPassword(false);
@@ -490,7 +502,9 @@ const UserManagement = () => {
                 </div>
               </div>
             )}
-            <div className="space-y-1"><Label className="text-xs">Branch ID</Label><Input placeholder="e.g. Trichy (leave blank for all)" value={form.branchId} onChange={e => setForm(p => ({ ...p, branchId: e.target.value }))} /></div>
+            {!onlyBranchId && (
+              <div className="space-y-1"><Label className="text-xs">Branch ID</Label><Input placeholder="e.g. Trichy (leave blank for all)" value={form.branchId} onChange={e => setForm(p => ({ ...p, branchId: e.target.value }))} /></div>
+            )}
             <div className="space-y-1">
               <Label className="text-xs">Status</Label>
               <Select value={form.status} onValueChange={v => setForm(p => ({ ...p, status: v }))}>

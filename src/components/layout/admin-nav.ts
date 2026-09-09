@@ -57,6 +57,7 @@ export const navSections: NavSection[] = [
       { href: '/admin/students/add', label: 'Add Student', roles: ['super_admin', 'admin'] },
       { href: '/admin/students/application', label: 'Application Form', roles: ['super_admin', 'admin'] },
       { href: '/admin/students/online', label: 'Online Admissions', roles: ['super_admin', 'admin'] },
+      { href: '/admin/students/offline', label: 'Students Detail', roles: ['super_admin', 'admin'] },
       { href: '/admin/students/discontinued', label: 'Discontinued', roles: ['super_admin', 'admin'] },
     ],
   },
@@ -86,9 +87,9 @@ export const navSections: NavSection[] = [
     ],
   },
   {
-    // Single home for every online-session screen. The G Meet Classes page was
-    // a second view of the same `onlineClasses` collection; its filters, copy
-    // and link-generate actions now live on the Live Classes list itself.
+    // One home for every online-session screen. The G Meet pages used to sit in
+    // a section of their own, but they read and write the same `onlineClasses`
+    // collection, so they are submenus here rather than a parallel menu.
     label: 'Online Classes',
     icon: Video,
     roles: ['super_admin', 'admin', 'teacher'],
@@ -96,6 +97,7 @@ export const navSections: NavSection[] = [
       { href: '/admin/online-classes', label: 'Live Classes' },
       { href: '/admin/online-classes/attendance', label: 'Students Attendance' },
       { href: '/admin/online-classes/timetable', label: 'Online Timetable' },
+      { href: '/admin/online-classes/live-classes', label: 'G Meet Classes' },
       { href: '/admin/online-classes/meeting-link', label: 'Live Meeting Link' },
     ],
   },

@@ -96,7 +96,7 @@ export default function LiveClassesPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
-      <SharedHeader title="Live Classes" />
+      <SharedHeader title="G Meet Classes" />
       <main className="p-4 md:p-6 lg:p-8 space-y-6 animate-in fade-in duration-500 overflow-x-hidden">
 
         {/* Breadcrumb */}
@@ -105,7 +105,7 @@ export default function LiveClassesPage() {
           <ChevronRight className="h-3 w-3" />
           <Link href="/admin/online-classes" className="hover:text-[#0D7C8F]">Online Classes</Link>
           <ChevronRight className="h-3 w-3" />
-          <span className="font-medium text-foreground">Live Classes</span>
+          <span className="font-medium text-foreground">G Meet Classes</span>
         </div>
 
         <div className="flex items-center justify-between flex-wrap gap-3">
