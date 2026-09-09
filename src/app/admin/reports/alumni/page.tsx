@@ -16,6 +16,7 @@ import { useBranch } from "@/context/BranchContext";
 import { useFirestoreCollection } from "@/hooks/useFirestoreCollection";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { batchYear, UNKNOWN_BATCH } from "@/lib/alumni";
 
 interface Student {
   id: string;
@@ -44,10 +45,6 @@ function initials(name: string) {
   return name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
 }
 
-function batchYear(s: Student) {
-  return s.discontinuedDate?.slice(0, 4) ?? s.admissionDate?.slice(0, 4) ?? "—";
-}
-
 export default function AlumniReportPage() {
   const { currentBranch } = useBranch();
   const { data: allStudents, loading } = useFirestoreCollection<Student>("students", currentBranch);
@@ -59,8 +56,8 @@ export default function AlumniReportPage() {
   const [boardF,  setBoardF]  = useState("All");
   const [batchF,  setBatchF]  = useState("All");
 
-  const classes = useMemo(() => ["All", ...Array.from(new Set(alumni.map(a => a.class).filter(Boolean))).sort()], [alumni]);
-  const batches = useMemo(() => ["All", ...Array.from(new Set(alumni.map(batchYear))).filter(y => y !== "—").sort().reverse()], [alumni]);
+  const classes = useMemo(() => ["All", ...Array.from(new Set(alumni.map(a => a.class).filter(Boolean) as string[])).sort()], [alumni]);
+  const batches = useMemo(() => ["All", ...Array.from(new Set(alumni.map(batchYear))).filter(y => y !== UNKNOWN_BATCH).sort().reverse()], [alumni]);
 
   const filtered = useMemo(() =>
     alumni.filter(a =>

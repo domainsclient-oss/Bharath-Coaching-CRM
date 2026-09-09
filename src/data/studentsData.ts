@@ -86,7 +86,7 @@ export const mockStudents: Student[] = [
     parentName: "Venkat R",
     mode: "Offline",
     status: "Active",
-    branchId: "Chennai",
+    branchId: "Trichy",
     admissionDate: "2025-01-15",
     rollNo: "ROLL003"
   },
@@ -103,7 +103,7 @@ export const mockStudents: Student[] = [
     parentName: "Alok Gupta",
     mode: "Online",
     status: "Active",
-    branchId: "Chennai",
+    branchId: "Trichy",
     admissionDate: "2025-01-18",
     rollNo: "ROLL004"
   },
@@ -183,7 +183,7 @@ export const mockStudents: Student[] = [
     parentName: "Chandran M",
     mode: "Offline",
     status: "Active",
-    branchId: "Coimbatore",
+    branchId: "Trichy",
     admissionDate: "2025-02-10",
     rollNo: "ROLL007"
   },
@@ -200,7 +200,7 @@ export const mockStudents: Student[] = [
     parentName: "Thiyagarajan",
     mode: "Online",
     status: "Active",
-    branchId: "Chennai",
+    branchId: "Trichy",
     admissionDate: "2025-02-12",
     rollNo: "ROLL008"
   },
@@ -234,7 +234,7 @@ export const mockStudents: Student[] = [
     parentName: "Murali Krishna",
     mode: "Online",
     status: "Active",
-    branchId: "Madurai",
+    branchId: "Trichy",
     admissionDate: "2025-02-18",
     rollNo: "ROLL010"
   },
@@ -268,7 +268,7 @@ export const mockStudents: Student[] = [
     parentName: "Ghoshal P",
     mode: "Online",
     status: "Active",
-    branchId: "Chennai",
+    branchId: "Trichy",
     admissionDate: "2025-02-22",
     rollNo: "ROLL012"
   },
@@ -302,7 +302,7 @@ export const mockStudents: Student[] = [
     parentName: "Venkatesh",
     mode: "Online",
     status: "Active",
-    branchId: "Coimbatore",
+    branchId: "Trichy",
     admissionDate: "2025-03-01",
     rollNo: "ROLL014"
   },
@@ -319,7 +319,7 @@ export const mockStudents: Student[] = [
     parentName: "Prabhu D",
     mode: "Offline",
     status: "Alumni",
-    branchId: "Madurai",
+    branchId: "Trichy",
     admissionDate: "2024-06-01",
     rollNo: "ROLL015",
     joinDate: "2024-06-01",
@@ -426,7 +426,7 @@ export const mockStudents: Student[] = [
     parentName: "Menon K",
     mode: "Offline",
     status: "Alumni",
-    branchId: "Chennai",
+    branchId: "Trichy",
     admissionDate: "2022-06-10",
     rollNo: "ROLL022",
     joinDate: "2022-06-10",

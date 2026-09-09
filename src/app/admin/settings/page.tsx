@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Save, PlusCircle, Edit, Trash2, AlertTriangle, Building2, Users, Settings } from "lucide-react";
+import { Save, PlusCircle, Edit, Trash2, AlertTriangle, Building2, Users, Settings, Eye, EyeOff } from "lucide-react";
 import { SharedHeader } from "@/components/layout/shared-header";
 import { db } from "@/config/firebase";
 import { doc, setDoc, collection, addDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch } from "firebase/firestore";
@@ -49,6 +49,7 @@ interface UserDoc {
   role: string;
   branchId?: string;
   status: string;
+  rollNo?: string;
 }
 
 const ROLES = ["super_admin", "admin", "teacher", "student"];
@@ -122,10 +123,7 @@ const GeneralSettings = () => {
 const BRANCH_EMPTY = { name: "", city: "", address: "", phone: "", headmaster: "", status: "active" };
 
 const DEFAULT_BRANCHES = [
-  { name: "Trichy",     city: "Trichy",     address: "Srirangam, Trichy",   status: "active" },
-  { name: "Chennai",    city: "Chennai",    address: "Anna Nagar, Chennai",  status: "active" },
-  { name: "Coimbatore", city: "Coimbatore", address: "RS Puram, Coimbatore", status: "active" },
-  { name: "Madurai",    city: "Madurai",    address: "K.K. Nagar, Madurai",  status: "active" },
+  { name: "Trichy", city: "Trichy", address: "Srirangam, Trichy", status: "active" },
 ];
 
 const BranchManagement = () => {
@@ -282,7 +280,31 @@ const BranchManagement = () => {
 
 // ─── User Management ──────────────────────────────────────────────────────────
 
-const USER_EMPTY = { name: "", email: "", password: "", role: "admin", branchId: "", status: "active" };
+const USER_EMPTY = { name: "", email: "", rollNo: "", password: "", role: "admin", branchId: "", status: "active" };
+
+/** Turns a Firebase error into something an office admin can act on. */
+const saveErrorMessage = (err: any, isStudent: boolean): string => {
+  switch (err?.code) {
+    case "auth/email-already-in-use":
+      return isStudent
+        ? "A login already exists for this roll number."
+        : "A login already exists for this email address.";
+    case "auth/weak-password":
+      return "Password must be at least 6 characters.";
+    case "auth/invalid-email":
+      return isStudent
+        ? "That roll number cannot be used. Use letters and numbers only."
+        : "That email address is not valid.";
+    case "auth/operation-not-allowed":
+      return "Email/Password sign-in is switched off. Enable it in Firebase Console under Authentication, Sign-in method.";
+    case "auth/network-request-failed":
+      return "Could not reach Firebase. Check the internet connection and try again.";
+    case "permission-denied":
+      return "Firestore rules rejected the write. Deploy the latest rules with: firebase deploy --only firestore:rules";
+    default:
+      return err?.message ?? "Failed to save user.";
+  }
+};
 
 const UserManagement = () => {
   const { data: users, loading } = useFirestoreCollection<UserDoc>("users", null, { filterByBranch: false });
@@ -292,31 +314,67 @@ const UserManagement = () => {
   const [form,    setForm]    = useState(USER_EMPTY);
   const [saving,  setSaving]  = useState(false);
   const [delId,   setDelId]   = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const openAdd  = () => { setEditing(null); setForm(USER_EMPTY); setOpen(true); };
+  const openAdd  = () => { setEditing(null); setForm(USER_EMPTY); setShowPassword(false); setOpen(true); };
   const openEdit = (u: UserDoc) => {
     setEditing(u);
-    setForm({ name: u.name, email: u.email, password: "", role: u.role, branchId: u.branchId ?? "", status: u.status });
+    setShowPassword(false);
+    setForm({ name: u.name, email: u.email, rollNo: u.rollNo ?? "", password: "", role: u.role, branchId: u.branchId ?? "", status: u.status });
     setOpen(true);
   };
 
+  const isStudent = form.role === "student";
+  // Students sign in at /student-login with a roll number; staff use an email.
+  const loginId = isStudent ? form.rollNo : form.email;
+
   const handleSave = async () => {
-    if (!form.name.trim() || !form.email.trim()) return;
+    const name = form.name.trim();
+    const login = loginId.trim();
+
+    if (!name) {
+      toast({ title: "Name is required", variant: "destructive" });
+      return;
+    }
+    if (!login) {
+      toast({
+        title: isStudent ? "Roll number is required" : "Email is required",
+        description: isStudent
+          ? "Enter the roll number exactly as it appears on the student's record."
+          : undefined,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!editing && form.password.trim().length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Firebase requires at least 6 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       if (editing) {
         await updateDoc(doc(db, "users", editing.id), {
-          name: form.name, role: form.role, branchId: form.branchId, status: form.status, updatedAt: serverTimestamp(),
+          name, role: form.role, branchId: form.branchId, status: form.status, updatedAt: serverTimestamp(),
         });
         toast({ title: "User Updated" });
       } else {
-        if (!form.password.trim()) { toast({ title: "Password required", variant: "destructive" }); setSaving(false); return; }
-        await registerUser(form.email, form.password, { name: form.name, role: form.role, branchId: form.branchId || undefined, status: form.status } as any);
-        toast({ title: "User Created", description: `${form.name} can now log in.` });
+        await registerUser(login, form.password, { name, role: form.role, branchId: form.branchId.trim(), status: form.status } as any);
+        toast({
+          title: "User Created",
+          description: isStudent
+            ? `${name} can sign in at /student-login with roll number ${login}.`
+            : `${name} can now log in.`,
+        });
       }
       setOpen(false);
     } catch (err: any) {
-      toast({ title: "Error", description: err?.message ?? "Failed to save user.", variant: "destructive" });
+      console.error("Failed to save user:", err?.code, err);
+      toast({ title: "Error", description: saveErrorMessage(err, isStudent), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -346,7 +404,7 @@ const UserManagement = () => {
         <TableHeader className="bg-slate-50">
           <TableRow>
             <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
+            <TableHead>Email / Roll No</TableHead>
             <TableHead>Role</TableHead>
             <TableHead>Branch</TableHead>
             <TableHead>Status</TableHead>
@@ -363,7 +421,8 @@ const UserManagement = () => {
           ) : users.map(u => (
             <TableRow key={u.id} className="hover:bg-slate-50/50">
               <TableCell className="font-semibold text-sm text-[#1E2A4A]">{u.name}</TableCell>
-              <TableCell className="text-xs text-muted-foreground">{u.email}</TableCell>
+              {/* Students have no real address — their login is the roll number. */}
+              <TableCell className="text-xs text-muted-foreground">{u.rollNo ? u.rollNo.toUpperCase() : u.email}</TableCell>
               <TableCell><Badge className={`text-[10px] ${ROLE_COLOR[u.role] ?? "bg-slate-100 text-slate-700"}`}>{u.role}</Badge></TableCell>
               <TableCell className="text-xs text-muted-foreground">{u.branchId || "All"}</TableCell>
               <TableCell>
@@ -384,10 +443,6 @@ const UserManagement = () => {
           <DialogHeader><DialogTitle>{editing ? "Edit User" : "Add User"}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1"><Label className="text-xs">Name *</Label><Input placeholder="Full name" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} /></div>
-            <div className="space-y-1"><Label className="text-xs">Email *</Label><Input type="email" placeholder="user@example.com" value={form.email} disabled={!!editing} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} /></div>
-            {!editing && (
-              <div className="space-y-1"><Label className="text-xs">Password *</Label><Input type="password" placeholder="Min 6 characters" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} /></div>
-            )}
             <div className="space-y-1">
               <Label className="text-xs">Role</Label>
               <Select value={form.role} onValueChange={v => setForm(p => ({ ...p, role: v }))}>
@@ -395,6 +450,46 @@ const UserManagement = () => {
                 <SelectContent>{ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            {isStudent ? (
+              <div className="space-y-1">
+                <Label className="text-xs">Student Roll No *</Label>
+                <Input
+                  placeholder="e.g. ROLL001"
+                  value={form.rollNo}
+                  disabled={!!editing}
+                  onChange={e => setForm(p => ({ ...p, rollNo: e.target.value }))}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  This is what the student types at the student login. It must match
+                  the roll number on their student record.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-1"><Label className="text-xs">Email *</Label><Input type="email" placeholder="user@example.com" value={form.email} disabled={!!editing} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} /></div>
+            )}
+            {!editing && (
+              <div className="space-y-1">
+                <Label className="text-xs">Password *</Label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Min 6 characters"
+                    value={form.password}
+                    onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="space-y-1"><Label className="text-xs">Branch ID</Label><Input placeholder="e.g. Trichy (leave blank for all)" value={form.branchId} onChange={e => setForm(p => ({ ...p, branchId: e.target.value }))} /></div>
             <div className="space-y-1">
               <Label className="text-xs">Status</Label>

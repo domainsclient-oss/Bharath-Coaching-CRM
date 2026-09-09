@@ -25,6 +25,7 @@ import { useBranch } from "@/context/BranchContext";
 import { useFirestoreCollection } from "@/hooks/useFirestoreCollection";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
+import { batchYear, UNKNOWN_BATCH } from "@/lib/alumni";
 
 // ── Template definitions ──────────────────────────────────────────────────────
 
@@ -76,10 +77,6 @@ function initials(name: string) {
   return name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
 }
 
-function batchYear(s: AlumniDoc) {
-  return s.discontinuedDate?.slice(0, 4) ?? s.admissionDate?.slice(0, 4) ?? "—";
-}
-
 export default function WhatsAppAlumniPage() {
   const { currentBranch } = useBranch();
 
@@ -97,7 +94,7 @@ export default function WhatsAppAlumniPage() {
   }, [alumni]);
 
   const batchYears = useMemo(() => {
-    const set = new Set(alumni.map(s => batchYear(s)).filter(y => y !== "—"));
+    const set = new Set(alumni.map(batchYear).filter(y => y !== UNKNOWN_BATCH));
     return ["All", ...Array.from(set).sort((a, b) => Number(b) - Number(a))];
   }, [alumni]);
 

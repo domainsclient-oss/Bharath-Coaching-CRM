@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useReducer, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { examService, testAttemptService } from '../../../../../services/firestoreService'; 
-import { useAuth } from '../../../../../lib/auth-context';
+import { getDocument, testAttemptService } from '../../../../../services/firestoreService';
+import { useStudentRecord } from '@/hooks/useStudentRecord';
 import { useBranchData } from '../../../../../context/BranchContext';
 import type { Exam } from '../../../../../models/exam';
 import type { TestAttempt } from '../../../../../models/testAttempt';
@@ -68,11 +68,9 @@ export default function TakeTestPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const params = useParams();
-  const { user } = useAuth();
+  const { studentId } = useStudentRecord();
   const { branchId } = useBranchData();
   const examId = params.id as string;
-  const studentId = user?.uid;
-
   const attemptId = examId && studentId ? `${examId}_${studentId}` : null;
 
   // Load exam and any saved progress
@@ -81,7 +79,7 @@ export default function TakeTestPage() {
       if (!examId || !studentId || !branchId) return;
       setLoading(true);
       try {
-        const examData = await examService.getById(examId);
+        const examData = await getDocument<any>('onlineExams', examId);
         if (!examData) throw new Error('Exam not found.');
         setExam(examData as Exam);
 
@@ -89,7 +87,7 @@ export default function TakeTestPage() {
         if (savedAttempt) {
           dispatch({ type: 'SET_STATE', payload: { answers: savedAttempt.answers, markedForReview: savedAttempt.markedForReview, timeLeft: savedAttempt.timeLeft } });
         } else {
-          dispatch({ type: 'SET_STATE', payload: { timeLeft: (examData.totalMarks || 120) * 60 } }); // Default to 120 minutes if not set
+          dispatch({ type: 'SET_STATE', payload: { timeLeft: ((examData as any).durationMins || 120) * 60 } }); // Default to 120 minutes if not set
         }
       } catch (error) {
         console.error("Error loading test:", error);

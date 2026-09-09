@@ -27,7 +27,7 @@ export default function Header() {
 
             <div className="flex items-center gap-4">
 
-                {user?.role === 'super_admin' && (
+                {user?.role === 'super_admin' && branches.length > 1 && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline">{currentBranchName}</Button>

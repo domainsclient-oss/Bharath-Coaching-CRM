@@ -1,21 +1,21 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
 import { releaseUiLock } from '../../lib/release-ui-lock';
-import { resetPassword } from '../../services/authService';
+import { normalizeRollNo, rollNoToEmail } from '../../lib/studentAuth';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
 import { useSettings } from '../../context/SettingsContext';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
-import Image from 'next/image';
-import Link from 'next/link';
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('');
+export default function StudentLoginPage() {
+  const [rollNo, setRollNo] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -23,9 +23,8 @@ export default function LoginPage() {
   const { toast } = useToast();
   const { settings } = useSettings();
 
-  // Any body lock still set once this page mounts was leaked by a modal layer
-  // on the page we came from (e.g. the logout confirm dialog) and would leave
-  // these inputs unfocusable. Clear it so the form is usable without a refresh.
+  // Same reason as /login: clear any body lock leaked by a modal on the page we
+  // came from, otherwise these inputs are unfocusable until a refresh.
   useEffect(() => {
     releaseUiLock();
   }, []);
@@ -35,9 +34,12 @@ export default function LoginPage() {
       case 'auth/user-not-found':
       case 'auth/wrong-password':
       case 'auth/invalid-credential':
-        return 'Invalid email or password. Please try again.';
+      case 'auth/invalid-email':
+        return 'Invalid roll number or password. Please try again.';
       case 'auth/too-many-requests':
-        return 'Too many login attempts. Please reset your password or try again later.';
+        return 'Too many login attempts. Please try again later or ask your branch office to reset your password.';
+      case 'auth/user-disabled':
+        return 'This account has been disabled. Please contact your branch office.';
       default:
         return 'An unexpected error occurred. Please try again.';
     }
@@ -45,55 +47,30 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!normalizeRollNo(rollNo) || !password) {
       toast({
         title: 'Missing Information',
-        description: 'Please enter both email and password.',
+        description: 'Please enter both your roll number and password.',
         variant: 'destructive',
       });
       return;
     }
     setIsLoading(true);
     try {
-      await login(email, password);
+      await login(rollNoToEmail(rollNo), password);
       toast({
         title: 'Login Successful',
-        description: `Welcome back to ${settings.appName}! Redirecting...`,
+        description: `Welcome to the ${settings.appName} student portal. Redirecting...`,
       });
     } catch (error: any) {
-      console.error('Login failed:', error);
+      console.error('Student login failed:', error);
       toast({
         title: 'Login Failed',
-        description: getAuthErrorMessage(error.code),
+        description: getAuthErrorMessage(error?.code),
         variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleForgotPassword = async () => {
-    if (!email) {
-      toast({
-        title: 'Email Required',
-        description: 'Please enter your email address to reset your password.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    try {
-      await resetPassword(email);
-      toast({
-        title: 'Password Reset Email Sent',
-        description: 'If an account exists for that email, a reset link has been sent to your inbox.',
-      });
-    } catch (error: any) {
-      console.error('Password reset failed:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to send password reset email. Please try again.',
-        variant: 'destructive',
-      });
     }
   };
 
@@ -111,19 +88,22 @@ export default function LoginPage() {
               priority
             />
           </div>
-          <CardTitle className="text-2xl font-bold">Welcome to {settings.appName}</CardTitle>
-          <CardDescription>Enter your credentials to access your portal</CardDescription>
+          <CardTitle className="text-2xl font-bold">Student Login</CardTitle>
+          <CardDescription>Enter your roll number and password to access your portal</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="rollNo">Student Roll No</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="admin@bharathacademy.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="rollNo"
+                type="text"
+                inputMode="text"
+                autoCapitalize="characters"
+                autoComplete="username"
+                placeholder="ROLL001"
+                value={rollNo}
+                onChange={(e) => setRollNo(e.target.value)}
                 required
                 disabled={isLoading}
               />
@@ -135,6 +115,7 @@ export default function LoginPage() {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -153,20 +134,19 @@ export default function LoginPage() {
             </div>
             <Button type="submit" className="w-full bg-[#1E2A4A] hover:bg-[#0D7C8F]" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isLoading ? 'Signing In...' : 'Sign In'}
+              {isLoading ? 'Signing In...' : 'Login'}
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex justify-center gap-2">
-          <Button variant="link" size="sm" onClick={handleForgotPassword} disabled={isLoading}>
-            Forgot Password?
-          </Button>
+        <CardFooter className="flex flex-col items-center gap-1">
+          <p className="text-xs text-muted-foreground text-center">
+            Forgot your password? Please contact your branch office.
+          </p>
           <Button variant="link" size="sm" asChild>
-            <Link href="/student-login">Student Login</Link>
+            <Link href="/login">Staff Login</Link>
           </Button>
         </CardFooter>
       </Card>
-
     </div>
   );
 }

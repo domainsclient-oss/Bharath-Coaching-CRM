@@ -58,22 +58,29 @@ export function SharedHeader({ title }: HeaderProps) {
           <SidebarTrigger className="md:hidden" />
           <div className="flex flex-col md:flex-row md:items-center md:gap-4">
             <h1 className="text-xl font-semibold text-primary md:text-2xl">{title}</h1>
-            <div className="hidden h-6 w-[1px] bg-border md:block" />
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-secondary" />
-              <Select value={currentBranch} onValueChange={setBranch}>
-                <SelectTrigger className="h-8 border-none bg-transparent p-0 text-sm font-medium focus:ring-0">
-                  <SelectValue placeholder="Select Branch" />
-                </SelectTrigger>
-                <SelectContent>
-                  {branches.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      {b.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* The branch switcher only earns header space when there is a
+                choice to make. With one branch the divider, pin and name go too;
+                add a second branch and the picker comes back on its own. */}
+            {branches.length > 1 && (
+              <>
+                <div className="hidden h-6 w-[1px] bg-border md:block" />
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-secondary" />
+                  <Select value={currentBranch} onValueChange={setBranch}>
+                    <SelectTrigger className="h-8 border-none bg-transparent p-0 text-sm font-medium focus:ring-0">
+                      <SelectValue placeholder="Select Branch" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {branches.map((b) => (
+                        <SelectItem key={b.id} value={b.id}>
+                          {b.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

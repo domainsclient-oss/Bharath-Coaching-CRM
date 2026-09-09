@@ -155,8 +155,6 @@ export default function MeetingLinkPage() {
           <ChevronRight className="h-3 w-3" />
           <Link href="/admin/online-classes" className="hover:text-[#0D7C8F]">Online Classes</Link>
           <ChevronRight className="h-3 w-3" />
-          <Link href="/admin/online-classes/live-classes" className="hover:text-[#0D7C8F]">Live Classes</Link>
-          <ChevronRight className="h-3 w-3" />
           <span className="font-medium text-foreground">Live Meeting Link</span>
         </div>
 

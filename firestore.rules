@@ -1,15 +1,162 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Allow public read access to the connection test collection
+
+    // ─── Identity helpers ────────────────────────────────────────────────────
+
+    // Reserved login domain for the student portal. Roll number ROLL001 signs
+    // in as roll001@students.bharathacademy.local.
+    //
+    // KEEP IN SYNC with NEXT_PUBLIC_STUDENT_LOGIN_DOMAIN and
+    // src/lib/studentAuth.ts. If that env var changes, change the regex below.
+    function studentEmailPattern() {
+      return '.*@students\\.bharathacademy\\.local';
+    }
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function userData() {
+      return exists(userPath()) ? get(userPath()).data : {};
+    }
+
+    function authEmail() {
+      return request.auth.token.email is string ? request.auth.token.email.lower() : '';
+    }
+
+    // The roll number is the local part of the reserved address, so it is known
+    // from the token alone — no document read required.
+    function myRollNo() {
+      return authEmail().split('@')[0];
+    }
+
+    // Student id written onto the user document by staff when the portal login
+    // is created. Empty string when the account was never linked to a record.
+    function myStudentId() {
+      return userData().get('studentId', '');
+    }
+
+    // An account is a student if it signs in from the reserved domain, or if
+    // its user document says so. The domain test is the load-bearing one: it
+    // holds even when the user document is missing, stale or tampered with, so
+    // a student can never fall through to the staff branch below.
+    function isStudent() {
+      return signedIn() &&
+             (authEmail().matches(studentEmailPattern()) || userData().get('role', '') == 'student');
+    }
+
+    // Everyone else who is signed in is staff. This deliberately keeps the
+    // previous behaviour for admins and teachers, including the first-run setup
+    // wizard, which seeds Firestore before any user document exists.
+    function isStaff() {
+      return signedIn() && !isStudent();
+    }
+
+    // A student may only touch rows that belong to them.
+    function isMine() {
+      return isStudent() && myStudentId() != '' && resource.data.studentId == myStudentId();
+    }
+
+    function willBeMine() {
+      return isStudent() && myStudentId() != '' && request.resource.data.studentId == myStudentId();
+    }
+
+    // ─── Public ──────────────────────────────────────────────────────────────
+
+    // Connection probe used by the app's health check.
     match /_connection_test/{document} {
       allow read: if true;
     }
-    
-    // Default rule for all other documents requires authentication
+
+    // ─── Staff ───────────────────────────────────────────────────────────────
+
+    // Unchanged: full read/write across the CRM.
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isStaff();
+    }
+
+    // ─── Students ────────────────────────────────────────────────────────────
+    //
+    // Everything below is additive. Anything a student is not granted here is
+    // denied, so the CRM's operational data — staff, payroll, expenses, leads,
+    // enquiries, reports, audit logs, other students — is invisible and
+    // unwritable from a student session, whatever the UI happens to show.
+
+    // Their own user document, and only their portal preferences within it.
+    // Role, status, branch, email, roll number and the student link are all
+    // written by staff and are untouchable from a student session — which is
+    // what stops a student from promoting themselves or pointing their account
+    // at somebody else's records.
+    match /users/{userId} {
+      allow read: if isStudent() && request.auth.uid == userId;
+
+      allow update: if isStudent()
+                    && request.auth.uid == userId
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['settings', 'lastLogin', 'updatedAt']);
+    }
+
+    // Their own student record, reachable by id or by a rollNo query.
+    match /students/{studentId} {
+      allow read: if isStudent()
+                  && (studentId == myStudentId() || resource.data.rollNo.lower() == myRollNo());
+    }
+
+    // Their own money and attendance. Read only — these are staff records.
+    match /fees/{id}              { allow read: if isMine(); }
+    match /payments/{id}          { allow read: if isMine(); }
+    match /attendance/{id}        { allow read: if isMine(); }
+    match /studentAttendance/{id} { allow read: if isMine(); }
+    match /certificates/{id}      { allow read: if isMine(); }
+    match /marks/{id}             { allow read: if isMine(); }
+
+    // Which homework a student has ticked off is theirs alone, and the document
+    // is keyed by their student id rather than carrying it as a field.
+    match /studentHomework/{docId} {
+      allow read, write: if isStudent() && myStudentId() != '' && docId == myStudentId();
+    }
+
+    // Shared academic information the portal displays. Read only.
+    match /exams/{id}         { allow read: if isStudent(); }
+    match /onlineExams/{id}   { allow read: if isStudent(); }
+    match /questions/{id}     { allow read: if isStudent(); }
+    match /homework/{id}      { allow read: if isStudent(); }
+    match /timetable/{id}     { allow read: if isStudent(); }
+    match /classes/{id}       { allow read: if isStudent(); }
+    match /subjects/{id}      { allow read: if isStudent(); }
+    match /batches/{id}       { allow read: if isStudent(); }
+    match /schedules/{id}     { allow read: if isStudent(); }
+    match /onlineClasses/{id} { allow read: if isStudent(); }
+    match /notifications/{id} { allow read: if isStudent(); }
+    match /config/{id}        { allow read: if isStudent(); }
+
+    // Announcements are the published news items from the admin Website section.
+    match /websiteNews/{id}   { allow read: if isStudent(); }
+
+    // The only rows a student may create or change: their own test attempts and
+    // their own video history. Ownership is fixed at creation and cannot be
+    // reassigned to another student on update.
+    match /testAttempts/{id} {
+      allow read, delete: if isMine();
+      allow create:       if willBeMine();
+      allow update:       if isMine() && willBeMine();
+    }
+
+    match /studentVideoHistory/{id} {
+      allow read, delete: if isMine();
+      allow create:       if willBeMine();
+      allow update:       if isMine() && willBeMine();
+    }
+
+    match /studentVideoBookmarks/{id} {
+      allow read, delete: if isMine();
+      allow create:       if willBeMine();
+      allow update:       if isMine() && willBeMine();
     }
   }
 }

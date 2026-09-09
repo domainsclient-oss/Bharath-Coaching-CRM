@@ -86,6 +86,9 @@ export const navSections: NavSection[] = [
     ],
   },
   {
+    // Single home for every online-session screen. The G Meet Classes page was
+    // a second view of the same `onlineClasses` collection; its filters, copy
+    // and link-generate actions now live on the Live Classes list itself.
     label: 'Online Classes',
     icon: Video,
     roles: ['super_admin', 'admin', 'teacher'],
@@ -93,14 +96,6 @@ export const navSections: NavSection[] = [
       { href: '/admin/online-classes', label: 'Live Classes' },
       { href: '/admin/online-classes/attendance', label: 'Students Attendance' },
       { href: '/admin/online-classes/timetable', label: 'Online Timetable' },
-    ],
-  },
-  {
-    label: 'G Meet Classes',
-    icon: Video,
-    roles: ['super_admin', 'admin', 'teacher'],
-    items: [
-      { href: '/admin/online-classes/live-classes', label: 'Live Classes' },
       { href: '/admin/online-classes/meeting-link', label: 'Live Meeting Link' },
     ],
   },

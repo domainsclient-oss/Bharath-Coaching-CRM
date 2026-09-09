@@ -366,3 +366,254 @@ report describes is now unrepresentable rather than merely discouraged.
 ## Note
 Rescheduling is now done through Edit (which requires a future date/time), since
 the manual "Reschedule" button would have been a status override.
+
+---
+
+# Task: Student portal login (Roll No + Password)
+
+## Problem
+The student portal at `/student/*` existed but had no way in. Everyone signed in
+through `/login` with an email address, and `firestore.rules` granted **any**
+authenticated user read/write on **every** collection — so a student account
+would have had full CRM access from the browser console regardless of what the
+UI showed.
+
+## Approach
+Roll numbers are mapped onto a reserved Firebase Auth domain:
+
+    ROLL001  ->  roll001@students.bharathacademy.local
+
+The mapping is pure (`src/lib/studentAuth.ts`), so the login screen never reads
+Firestore before authenticating and the database never has to be opened to
+unauthenticated reads. That domain is also the single source of truth for the
+student role — in the app *and* in `firestore.rules` — so a student cannot be
+promoted by editing a document, and a student whose user document goes missing
+can no longer fall through the old `super_admin` bootstrap.
+
+## Plan
+- [x] `src/lib/studentAuth.ts` — roll number <-> address mapping, domain test.
+- [x] `src/app/student-login/page.tsx` — Logo / Roll No / Password / Login,
+      built from the same shadcn card as `/login`. Existing screens untouched
+      apart from one "Student Login" link in the `/login` footer.
+- [x] `authService.registerUser` — accepts a roll number in place of an email
+      when the role is `student`, always forces the reserved domain, and
+      resolves the matching `students` record so the portal never has to query
+      for itself.
+- [x] Admin settings Add User form — a real "Student Roll No" field replaces
+      "Email" once the role is `student`, and the Role selector moved above it
+      so the form reads in the order it is filled in. The users table column is
+      now "Email / Roll No" and shows the roll number for students rather than
+      the generated address, which is not a real mailbox.
+- [x] `config/firebase.ts` — `getProvisioningAuth()`, an isolated Firebase app
+      for account creation. Also fixes a pre-existing bug: adding a user used to
+      sign the admin out and run the follow-up write as the new account.
+- [x] `auth-context` — role pinned by login domain, students redirected out of
+      `/admin/*`, logout and session-expiry return students to `/student-login`.
+- [x] `firestore.rules` — students are read-only on their own rows and can write
+      only their own test attempts, video history and portal preferences. Staff
+      access is unchanged, including the first-run setup wizard.
+
+## Verification
+- 39 rules tests run against the Firestore emulator, all passing: staff keep
+  full access; students can read their own fees, attendance, record and the exam
+  schedule; students are denied writes to fees, marks, attendance and exams,
+  denied all reads of staff, expenses and enquiries, denied any access to
+  another student's rows, denied self-promotion and denied relinking their
+  account to another student record.
+- `npx tsc --noEmit` clean for every touched file (4 unrelated pre-existing
+  errors remain in `admin/academics/subjects`, `admin/hr/report/yearly`,
+  `admin/reports/alumni`, `admin/website/enquiries`).
+- `npm run build` succeeds; `/student-login` is prerendered.
+
+## Deploy note
+`firebase deploy --only firestore:rules` is required — the restrictions do
+nothing until the new rules are live. If `NEXT_PUBLIC_STUDENT_LOGIN_DOMAIN` is
+ever changed, the regex in `firestore.rules` must change with it.
+
+## Follow-up applied
+The first cut reused the existing Email field for roll numbers to avoid touching
+the UI. That was confusing in practice, so the form now has a labelled roll
+number field. Behaviour is unchanged underneath.
+
+## Known gap
+An admin who creates a portal login before the student's record exists gets a
+user document with no `studentId`. The login works, but the dashboard has no
+record to read. Recreate the login after adding the student.
+
+---
+
+# Task: Wire the student portal menu to live data
+
+## Problem
+Only three of the eight sidebar items read Firestore, and two of those read
+collections the admin never writes to, so they were permanently empty:
+
+| Menu item     | Was reading            | Admin actually writes |
+|---------------|------------------------|-----------------------|
+| My Attendance | `attendance`           | `studentAttendance`   |
+| Homework      | `studentHomework` only | `homework` per class  |
+| My Timetable  | mock data              | `timetable` per slot  |
+| Tests & Exams | mock data              | `onlineExams`         |
+| My Profile    | mock data              | `students`            |
+| Announcements | mock data, 404 link    | `websiteNews`         |
+
+Announcements also pointed at `/student/communication`, a route that has never
+existed, so the menu item 404'd.
+
+## Approach
+`src/hooks/useStudentRecord.ts` resolves the signed-in student once and every
+page reads from it: the `students` document id, the record, and the matching
+`classes` document id. The class link needs translating — student records store
+`class` as "10" while `classes` documents are named "Class 10" — so the hook
+applies the same normalisation the admin attendance screen already uses.
+
+Class-scoped queries filter by branch in Firestore and match the class in
+memory, because admins type it both ways depending on the screen. Sorting is
+also done in memory so none of this needs a composite index.
+
+## Plan
+- [x] `useStudentRecord` hook — student id, record, class id, branch.
+- [x] Profile, Attendance, Homework, Fees, Timetable, Tests, Announcements all
+      read live data, each with a loading skeleton, an empty state, and a clear
+      message when the login has no student record behind it.
+- [x] Sidebar Announcements now points at `/student/notices`.
+- [x] Test-taking page reads `onlineExams` rather than `exams`, and its
+      countdown uses `durationMins` instead of `totalMarks`.
+- [x] `firestore.rules` grants students read access to the collections the
+      portal now uses, and write access only to their own homework ticks.
+
+## Verification
+- 23 rules tests against the Firestore emulator, all passing: every menu item's
+  read succeeds; students are denied another student's attendance, records,
+  fees and homework ticks, denied edits to homework, timetable, online exams and
+  website news, and denied all reads of staff and expenses. Staff access
+  unchanged.
+- `npx tsc --noEmit` clean for every touched file.
+- All eight menu routes serve 200.
+
+## Not done
+The test submit flow still deletes the attempt on submit and redirects to
+`/student/results/{id}`, a route that does not exist, and the result page still
+reads mock data. Scores therefore never persist, so a completed test will not
+appear under the Completed tab.
+
+## Follow-up: student dashboard restyled to match admin
+
+The dashboard now uses the admin design language — `#F5F7FA` page ground, the
+teal context banner, left-accent KPI cards in the `#0D7C8F` / `#1E2A4A` /
+`#E8A020` / `#059669` palette, `border-none shadow-sm` section cards with
+`text-lg font-bold text-[#1E2A4A]` titles, bordered list rows, and the same
+quick-action tile grid.
+
+`SharedHeader` was deliberately NOT reused: it carries the branch switcher and
+global CRM search, neither of which a student may have.
+
+Three latent crashes were fixed along the way. The old page called `.toDate()`
+on exam and homework dates that are plain strings, and read `subject`,
+`teacher` and `time` from timetable slots whose fields are `subjectName`,
+`teacherName` and `timeSlot`. `studentDashboardService` was rewritten to read
+the same collections the detail pages use, so the summary and the detail agree,
+and each section fails independently rather than blanking the page.
+
+The dashboard also no longer depends on the admin branch switcher — it uses the
+branch on the student's own record.
+
+## Follow-up: removed the duplicate G Meet Classes screen
+
+The sidebar carried two sections for one feature. Both read and wrote the single
+`onlineClasses` collection and both had a submenu labelled "Live Classes", so
+the menu implied two kinds of class where only one exists.
+
+`/admin/online-classes/live-classes` was a second, read-mostly view of the same
+rows. Everything it offered except three things already existed on the main list,
+so those three moved to `/admin/online-classes` and the page was deleted:
+
+- a class filter select beside the search box
+- a copy-to-clipboard button on each session's meet link
+- a one-click "Generate link" for a session that has none
+
+Search on the main list now also matches faculty name, which the removed page
+did and the main list did not.
+
+Nav is one "Online Classes" group with four submenus: Live Classes, Students
+Attendance, Online Timetable, Live Meeting Link. The meeting-link breadcrumb
+that pointed at the deleted route now points at the list.
+
+Nothing was lost from the data layer. No collection, field, or write path
+changed, and `/admin/online-classes/meeting-link` still creates sessions.
+
+Verified with `npm run build`: it succeeds and emits four online-classes routes,
+with the live-classes route gone. `npm run typecheck` reports the same four
+pre-existing errors in unrelated pages (academics/subjects, hr/report/yearly,
+reports/alumni, website/enquiries) and none in the touched files.
+
+Worth flagging separately: both link generators build a random string shaped
+like a Meet URL. No Google API is called, so generated links do not open a real
+meeting. That was true before this change and is still true.
+
+## Follow-up: single-branch (Trichy only)
+
+The academy runs from Trichy alone, so Chennai, Coimbatore and Madurai were
+removed from every list that defines which branches exist:
+
+- `src/context/BranchContext.tsx` — `FALLBACK_BRANCHES`, used when Firestore
+  has no `branches` documents. This is what feeds the header switcher.
+- `src/app/admin/settings/page.tsx` — `DEFAULT_BRANCHES`, which Settings ›
+  Branches writes to Firestore whenever the collection is empty. This was the
+  real source of the four branches.
+- `src/lib/seedFirestore.ts` — the demo seeder now generates Trichy data only.
+- `src/data/branchData.ts` and `src/data/settingsData.ts` — unused fixtures,
+  trimmed so the branches cannot creep back in.
+- `src/data/studentsData.ts`, `hrData.ts`, `academicsData.ts` — unused demo
+  rows retargeted from other branches to Trichy.
+
+Multi-branch support itself is untouched. Every page still filters by
+`currentBranch`, `BranchProvider` still reads the `branches` collection, and
+Settings › Branches can still add a branch. Only the defaults changed.
+
+The header shows nothing about branch while there is only one. In
+`shared-header.tsx` the divider, map pin and branch name are all inside a
+`branches.length > 1` guard, so a single-branch academy gets a clean header and
+the picker reappears by itself the moment a second branch is added. The legacy
+`header.tsx` dropdown hides on the same condition.
+
+IMPORTANT — one manual step remains. `BranchProvider` prefers Firestore over the
+fallback, so if the `branches` collection already holds the four seeded
+documents the switcher will keep showing them. Delete Chennai, Coimbatore and
+Madurai in Settings › Branches. Leaving Trichy in place stops the auto-seeder
+from firing, since it only runs when the collection is empty.
+
+Records already written under another `branchId` stay in Firestore but become
+unreachable in the UI, which is expected for a branch that no longer exists.
+
+Verified: typecheck clean apart from the same four pre-existing errors, and
+`/`, `/login`, `/admin/dashboard`, `/admin/settings`, `/admin/students` and
+`/admin/online-classes` all return 200 with no dev-server errors.
+
+## Fix: alumni WhatsApp page crashed on an empty Select option
+
+Opening Alumni › WhatsApp threw "A <Select.Item /> must have a value prop that
+is not an empty string" from the Batch filter.
+
+Root cause was in the batch-year helper:
+
+    s.discontinuedDate?.slice(0, 4) ?? s.admissionDate?.slice(0, 4) ?? "—"
+
+Optional chaining only guards null and undefined. A student row whose
+`discontinuedDate` is an empty string takes the first branch, because
+`""?.slice(0, 4)` is "" and `??` does not fall through on an empty string. That
+"" was not equal to the "—" placeholder, so it survived the filter and reached
+`<SelectItem value="">`, which Radix rejects at render time.
+
+The same helper was duplicated verbatim in `/admin/reports/alumni`, which had
+the identical latent crash. Both now import one implementation from
+`src/lib/alumni.ts`, which returns a four-digit year or `UNKNOWN_BATCH` and
+handles empty strings, missing fields, partial dates and Firestore Timestamps.
+
+Also fixed while there: the class filter on the alumni report typed its options
+as `(string | undefined)[]`, which was one of the four standing typecheck
+errors. It now asserts `string[]` after the `filter(Boolean)`.
+
+Verified: the helper returns a valid year or the placeholder for empty, missing,
+null, partial and Timestamp inputs, never "". Both pages return 200 with a clean
+dev log, and typecheck is down to three pre-existing errors from four.

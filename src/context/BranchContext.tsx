@@ -17,11 +17,10 @@ export interface Branch {
   status?: string;
 }
 
+// The academy operates from Trichy only. Extra branches can still be added in
+// Settings › Branches — this list is just the fallback when Firestore has none.
 const FALLBACK_BRANCHES: Branch[] = [
-  { id: 'Trichy',     name: 'Trichy',     city: 'Trichy' },
-  { id: 'Chennai',    name: 'Chennai',    city: 'Chennai' },
-  { id: 'Coimbatore', name: 'Coimbatore', city: 'Coimbatore' },
-  { id: 'Madurai',    name: 'Madurai',    city: 'Madurai' },
+  { id: 'Trichy', name: 'Trichy', city: 'Trichy' },
 ];
 
 function isTrichy(b: Branch) {

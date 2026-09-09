@@ -60,7 +60,7 @@ export const mockClasses: Class[] = [
   { id: "C005", name: "Class 10", board: "CBSE",  mode: "Offline", studentCount: 42, branchId: "Trichy" },
   { id: "C006", name: "Class 11", board: "State", mode: "Both",    studentCount: 20, branchId: "Trichy" },
   { id: "C007", name: "Class 12", board: "State", mode: "Both",    studentCount: 18, branchId: "Trichy" },
-  { id: "C008", name: "Class 11", board: "CBSE",  mode: "Online",  studentCount: 15, branchId: "Chennai" },
+  { id: "C008", name: "Class 11", board: "CBSE",  mode: "Online",  studentCount: 15, branchId: "Trichy" },
 ];
 
 // ── Subjects ───────────────────────────────────────────────────────────────────

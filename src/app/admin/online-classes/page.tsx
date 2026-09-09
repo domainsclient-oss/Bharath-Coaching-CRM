@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   Plus, Search, ChevronRight, Video, ExternalLink, Trash2, Edit,
-  Calendar, Clock, Filter, Link as LinkIcon,
+  Calendar, Clock, Copy, RefreshCw, Link as LinkIcon,
 } from "lucide-react";
 import { SharedHeader } from "@/components/layout/shared-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,6 +36,7 @@ export default function OnlineClassesPage() {
   useAuth();
   const { currentBranch } = useBranch();
   const [searchTerm, setSearchTerm] = useState("");
+  const [classFilter, setClassFilter] = useState("All");
 
   const { data: classes }       = useFirestoreCollection<ClassDoc>("classes",       currentBranch);
   const { data: subjects }      = useFirestoreCollection<SubjectDoc>("subjects",    currentBranch);
@@ -97,12 +98,22 @@ export default function OnlineClassesPage() {
     return { sessions: thisWeek.length, totalHrs: (totalMins / 60).toFixed(1), diffHrs: (Math.abs(diff) / 60).toFixed(1), up: diff >= 0 };
   }, [branchClasses]);
 
-  const filteredByStatus = (status: string) =>
-    sessions.filter(oc =>
+  // Class names present in the current branch's sessions, for the filter select.
+  const classOptions = useMemo(
+    () => ["All", ...Array.from(new Set(sessions.map(oc => oc.class).filter(Boolean))).sort()],
+    [sessions]
+  );
+
+  const filteredByStatus = (status: string) => {
+    const q = searchTerm.toLowerCase();
+    return sessions.filter(oc =>
       (status === "All" || oc.status === status) &&
-      (oc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       oc.subject.toLowerCase().includes(searchTerm.toLowerCase()))
+      (classFilter === "All" || oc.class === classFilter) &&
+      (oc.title.toLowerCase().includes(q) ||
+       oc.subject.toLowerCase().includes(q) ||
+       (oc.teacherName ?? "").toLowerCase().includes(q))
     );
+  };
 
   // ── Open add / edit modal ──────────────────────────────────────────────────
   const openAdd = () => {
@@ -207,6 +218,23 @@ export default function OnlineClassesPage() {
     }
   };
 
+  // Row-level link actions, folded in from the retired G Meet Classes page.
+  const handleCopyLink = (link: string) => {
+    navigator.clipboard.writeText(link);
+    toast({ title: "Copied", description: "Meet link copied to clipboard." });
+  };
+
+  const handleRowGenerateLink = async (oc: OnlineClass) => {
+    const r = () => Math.random().toString(36).substring(2, 5);
+    const link = `https://meet.google.com/${r()}-${r()}${r()}-${r()}`;
+    try {
+      await updateDocument("onlineClasses", oc.id, { meetLink: link });
+      toast({ title: "Link Generated", description: link });
+    } catch {
+      toast({ title: "Error", description: "Could not save link.", variant: "destructive" });
+    }
+  };
+
   const handleGenerateLink = () => {
     const r = () => Math.random().toString(36).substring(2, 5 + Math.floor(Math.random() * 2));
     setMeetLink(`https://meet.google.com/${r()}-${r()}-${r()}`);
@@ -232,7 +260,35 @@ export default function OnlineClassesPage() {
             <TableCell>
               <div className="flex flex-col">
                 <span className="font-bold text-[#1E2A4A]">{oc.title}</span>
-                <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{oc.meetLink || "—"}</span>
+                {oc.meetLink ? (
+                  <div className="flex items-center gap-1">
+                    <a
+                      href={oc.meetLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[10px] font-mono text-[#0D7C8F] hover:underline truncate max-w-[160px]"
+                    >
+                      {oc.meetLink.replace("https://", "")}
+                    </a>
+                    <Button
+                      variant="ghost" size="icon"
+                      className="h-5 w-5 flex-shrink-0 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                      onClick={() => handleCopyLink(oc.meetLink!)}
+                      title="Copy link"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="ghost" size="sm"
+                    className="h-5 px-1 -ml-1 w-fit text-[10px] gap-1 text-[#0D7C8F] hover:bg-teal-50 hover:text-[#0D7C8F]"
+                    onClick={() => handleRowGenerateLink(oc)}
+                    title="Generate meeting link"
+                  >
+                    <RefreshCw className="h-2.5 w-2.5" /> Generate link
+                  </Button>
+                )}
               </div>
             </TableCell>
             <TableCell>
@@ -338,9 +394,21 @@ export default function OnlineClassesPage() {
                   </TabsTrigger>
                 ))}
               </TabsList>
-              <div className="relative w-full md:w-72">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search by topic or subject..." className="pl-9 h-9" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+                <Select value={classFilter} onValueChange={setClassFilter}>
+                  <SelectTrigger className="h-9 w-full sm:w-40">
+                    <SelectValue placeholder="All Classes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classOptions.map(c => (
+                      <SelectItem key={c} value={c}>{c === "All" ? "All Classes" : c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="relative w-full md:w-72">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="Search by topic, subject or faculty..." className="pl-9 h-9" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                </div>
               </div>
             </div>
             <div className="p-0">

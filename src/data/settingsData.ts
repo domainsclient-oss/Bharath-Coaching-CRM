@@ -44,9 +44,6 @@ export const mockCenterSettings = initialSettings;
 
 export const mockBranches: Branch[] = [
   { id: "BR001", name: "Trichy Branch", city: "Trichy", status: "active" },
-  { id: "BR002", name: "Chennai Branch", city: "Chennai", status: "active" },
-  { id: "BR003", name: "Coimbatore Branch", city: "Coimbatore", status: "active" },
-  { id: "BR004", name: "Madurai Branch", city: "Madurai", status: "active" },
 ];
 
 export const sampleUsers: User[] = [

@@ -9,7 +9,7 @@
 import { db } from "@/config/firebase";
 import { doc, writeBatch, Timestamp, collection, getDocs, query, where, limit } from "firebase/firestore";
 
-const BRANCHES = ["Trichy", "Chennai", "Coimbatore", "Madurai"];
+const BRANCHES = ["Trichy"];
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 

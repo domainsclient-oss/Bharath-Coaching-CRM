@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { feeService, paymentService } from '../../../services/firestoreService';
-import { useAuth } from '../../../context/AuthContext';
+import { useStudentRecord } from '@/hooks/useStudentRecord';
 import type { Fee } from '../../../models/fee';
 import type { Payment } from '../../../models/payment';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
@@ -16,13 +16,13 @@ export default function StudentFeesPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
-  const studentId = user?.id;
+  const { studentId, loading: recordLoading, unlinked } = useStudentRecord();
 
   useEffect(() => {
-    if (!studentId) {
+    if (recordLoading) return;
+
+    if (unlinked || !studentId) {
         setLoading(false);
-        setError("Please log in to view your fee details.");
         return;
     }
 
@@ -32,16 +32,17 @@ export default function StudentFeesPage() {
         setError(null);
         
         // Fetch both fees and payments for the student
-        const feeList = await feeService.query([
-          { field: 'studentId', operator: '==', value: studentId }
-        ], { field: 'dueDate', direction: 'desc' });
-        
-        const paymentList = await paymentService.query([
-            { field: 'studentId', operator: '==', value: studentId }
-        ], { field: 'paymentDate', direction: 'desc' });
+        const [feeList, paymentList] = await Promise.all([
+          feeService.query([{ field: 'studentId', operator: '==', value: studentId }]),
+          paymentService.query([{ field: 'studentId', operator: '==', value: studentId }]),
+        ]);
 
-        setFees(feeList as Fee[]);
-        setPayments(paymentList as Payment[]);
+        // Sorted here rather than in the query so no composite index is needed.
+        const newestFirst = (field: string) => (a: any, b: any) =>
+          String(b?.[field] ?? '').localeCompare(String(a?.[field] ?? ''));
+
+        setFees([...feeList].sort(newestFirst('dueDate')) as Fee[]);
+        setPayments([...paymentList].sort(newestFirst('paymentDate')) as Payment[]);
 
       } catch (err) {
         console.error("Failed to load fee data:", err);
@@ -52,7 +53,7 @@ export default function StudentFeesPage() {
     };
 
     fetchData();
-  }, [studentId]);
+  }, [studentId, recordLoading, unlinked]);
 
   const getStatusBadge = (status: Fee['status']) => {
     switch (status) {
@@ -69,12 +70,24 @@ export default function StudentFeesPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">My Fees & Payments</h1>
-      {error && <p className="text-red-500 bg-red-100 p-4 rounded-md mb-6">{error}</p>}
+    <div className="space-y-6 p-4 md:p-6 lg:p-8">
+      <div>
+        <h1 className="text-2xl font-bold text-[#1E2A4A]">My Fees &amp; Payments</h1>
+        <p className="text-muted-foreground">What is owed, and what has been paid.</p>
+      </div>
 
-      <Card className="mb-8">
-        <CardHeader><CardTitle>My Fee Dues</CardTitle></CardHeader>
+      {unlinked && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm p-4 rounded-xl">
+          Your login is not linked to a student record yet. Please contact your branch office.
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-4 rounded-xl">{error}</div>
+      )}
+
+      <Card className="border-none shadow-sm">
+        <CardHeader><CardTitle className="text-lg font-bold text-[#1E2A4A]">My Fee Dues</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -108,8 +121,8 @@ export default function StudentFeesPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle>My Payment History</CardTitle></CardHeader>
+      <Card className="border-none shadow-sm">
+        <CardHeader><CardTitle className="text-lg font-bold text-[#1E2A4A]">My Payment History</CardTitle></CardHeader>
         <CardContent>
         <Table>
             <TableHeader>

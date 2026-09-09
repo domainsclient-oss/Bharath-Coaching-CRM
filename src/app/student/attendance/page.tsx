@@ -1,58 +1,67 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
-import { attendanceService } from '../../../services/firestoreService';
-import { useAuth } from '../../../context/AuthContext';
-import { useBranchData } from '../../../context/BranchContext';
-import type { DailyAttendance, AttendanceStatus } from '../../../models/attendance';
+import { queryDocuments } from '../../../services/firestoreService';
+import { useStudentRecord } from '@/hooks/useStudentRecord';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { Badge } from '../../../components/ui/badge';
 
-// A basic calendar grid component (could be replaced with a library like react-day-picker)
-const CalendarGrid = ({ data, loading }: { data: Record<string, AttendanceStatus>, loading: boolean }) => {
-    if (loading) {
-        return <div className="grid grid-cols-7 gap-2">{[...Array(35)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}</div>;
-    }
-
-    // This is a simplified example. A real implementation would handle months, days of week, etc.
-    const getBadge = (status?: AttendanceStatus) => {
-        if (!status) return <Badge variant="secondary">No Record</Badge>;
-        switch (status) {
-          case 'Present': return <Badge variant="default">Present</Badge>;
-          case 'Absent': return <Badge variant="destructive">Absent</Badge>;
-          case 'Late': return <Badge variant="secondary">Late</Badge>;
-          case 'Excused': return <Badge>Excused</Badge>;
-          default: return null;
-        }
-    }
-
-    return (
-        <div className="grid grid-cols-7 gap-2">
-            {Object.entries(data).map(([date, status]) => (
-                <div key={date} className="p-2 border rounded-md flex flex-col items-center justify-center h-24 bg-gray-50 dark:bg-gray-800">
-                    <p className="text-sm font-medium">{new Date(date).getDate()}</p>
-                    {getBadge(status)}
-                </div>
-            ))}
-             {Object.keys(data).length === 0 && <p>No attendance records found for this month.</p>}
-        </div>
-    )
+/**
+ * Attendance is written by the admin screen one document per student per day,
+ * into `studentAttendance` with a plain "YYYY-MM-DD" date string.
+ */
+interface AttendanceRow {
+  id: string;
+  date: string;
+  status: string;
+  className?: string;
+  notes?: string;
 }
 
+const getBadge = (status?: string) => {
+  switch (status) {
+    case 'Present': return <Badge variant="default">Present</Badge>;
+    case 'Absent': return <Badge variant="destructive">Absent</Badge>;
+    case 'Late': return <Badge variant="secondary">Late</Badge>;
+    case 'Excused': return <Badge>Excused</Badge>;
+    case 'Holiday': return <Badge variant="outline">Holiday</Badge>;
+    default: return <Badge variant="secondary">{status || 'No Record'}</Badge>;
+  }
+};
+
+const CalendarGrid = ({ rows, loading }: { rows: AttendanceRow[], loading: boolean }) => {
+  if (loading) {
+    return <div className="grid grid-cols-7 gap-2">{[...Array(35)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}</div>;
+  }
+
+  if (rows.length === 0) {
+    return <p className="text-muted-foreground">No attendance has been marked for you yet.</p>;
+  }
+
+  return (
+    <div className="grid grid-cols-7 gap-2">
+      {rows.map(row => (
+        <div key={row.id} className="p-2 border border-border rounded-lg flex flex-col items-center justify-center gap-1 h-24 bg-muted/40">
+          <p className="text-sm font-bold text-[#1E2A4A]">{new Date(row.date).getDate() || row.date}</p>
+          {getBadge(row.status)}
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export default function StudentAttendancePage() {
-  const [attendanceData, setAttendanceData] = useState<Record<string, AttendanceStatus>>({});
+  const { studentId, loading: recordLoading, unlinked } = useStudentRecord();
+  const [rows, setRows] = useState<AttendanceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
-  const { branchId } = useBranchData();
-  const studentId = user?.id;
 
   useEffect(() => {
-    if (!studentId || !branchId) {
+    if (recordLoading) return;
+
+    if (unlinked || !studentId) {
       setLoading(false);
-      setError("Log in and select a branch to view attendance.");
       return;
     }
 
@@ -60,48 +69,56 @@ export default function StudentAttendancePage() {
       setLoading(true);
       setError(null);
       try {
-        // Fetch all attendance documents for the branch
-        const dailyRecords = await attendanceService.query([
-          { field: 'branchId', operator: '==', value: branchId },
-        ]) as DailyAttendance[];
-
-        // Process the records to extract the student's specific status
-        const studentHistory: Record<string, AttendanceStatus> = {};
-        dailyRecords.forEach(doc => {
-            const dateVal = doc.date;
-            const dateStr = (dateVal && typeof dateVal === 'object' && 'toDate' in dateVal)
-              ? (dateVal as any).toDate().toISOString().split('T')[0]
-              : new Date(dateVal as string | Date).toISOString().split('T')[0];
-            if (doc.records && doc.records[studentId]) {
-                studentHistory[dateStr] = doc.records[studentId];
-            }
-        });
-        
-        setAttendanceData(studentHistory);
-
+        const records = await queryDocuments<AttendanceRow>(
+          'studentAttendance',
+          [{ field: 'studentId', operator: '==', value: studentId }],
+        );
+        // Sorted here rather than in the query so no composite index is needed.
+        const sorted = [...records].sort((a, b) => String(a.date).localeCompare(String(b.date)));
+        setRows(sorted as AttendanceRow[]);
       } catch (err) {
-        console.error("Failed to load attendance:", err);
-        setError("Could not load your attendance history.");
+        console.error('Failed to load attendance:', err);
+        setError('Could not load your attendance history.');
       } finally {
         setLoading(false);
       }
     };
 
     fetchAttendance();
-  }, [studentId, branchId]);
+  }, [studentId, recordLoading, unlinked]);
+
+  const marked = rows.filter(r => r.status !== 'Holiday');
+  const present = marked.filter(r => r.status === 'Present' || r.status === 'Late').length;
+  const percentage = marked.length > 0 ? Math.round((present / marked.length) * 100) : null;
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">My Attendance</h1>
-      {error && <p className="text-red-500 bg-red-100 p-4 rounded-md mb-4">{error}</p>}
+    <div className="space-y-6 p-4 md:p-6 lg:p-8">
+      <div>
+        <h1 className="text-2xl font-bold text-[#1E2A4A]">My Attendance</h1>
+        <p className="text-muted-foreground">Every day your branch has marked for you.</p>
+      </div>
 
-      <Card>
+      {unlinked && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm p-4 rounded-xl">
+          Your login is not linked to a student record yet. Please contact your branch office.
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-4 rounded-xl">{error}</div>
+      )}
+
+      <Card className="border-none shadow-sm">
         <CardHeader>
-          <CardTitle>Current Month Overview</CardTitle>
-          {/* Add month navigation here */}
+          <CardTitle className="text-lg font-bold text-[#1E2A4A]">Attendance Record</CardTitle>
+          {!loading && percentage !== null && (
+            <p className="text-sm text-muted-foreground">
+              Present on {present} of {marked.length} marked days ({percentage}%).
+            </p>
+          )}
         </CardHeader>
         <CardContent>
-          <CalendarGrid data={attendanceData} loading={loading} />
+          <CalendarGrid rows={rows} loading={loading || recordLoading} />
         </CardContent>
       </Card>
     </div>

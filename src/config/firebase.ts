@@ -62,5 +62,22 @@ export const db = (() => {
   }
 })();
 export const auth = getAuth(app);
+
+const PROVISIONING_APP = 'provisioning';
+
+/**
+ * A second, isolated Firebase app used only to provision accounts.
+ *
+ * createUserWithEmailAndPassword signs the caller in as the account it just
+ * created, which would drop an admin out of their own session halfway through
+ * adding a user — and, worse, run the follow-up Firestore write with the new
+ * account's (possibly student) permissions. Creating the account on a separate
+ * app instance leaves the primary session untouched.
+ */
+export const getProvisioningAuth = () => {
+  const existing = getApps().find(a => a.name === PROVISIONING_APP);
+  return getAuth(existing ?? initializeApp(firebaseConfig, PROVISIONING_APP));
+};
+
 export const storage = getStorage(app);
 export default app;
