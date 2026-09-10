@@ -44,7 +44,7 @@ const COLORS = ["#0D7C8F", "#1E2A4A", "#E8A020", "#059669", "#6B7280"];
 
 export default function AdminDashboard() {
   const { user } = useAuth();
-  const { currentBranch } = useBranch();
+  const { currentBranch, branches } = useBranch();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -161,19 +161,27 @@ export default function AdminDashboard() {
       <SharedHeader title="Dashboard" />
 
       <main className="p-4 md:p-6 lg:p-8 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <div className="flex items-center gap-3 bg-[#0D7C8F]/10 border border-[#0D7C8F]/20 p-4 rounded-xl">
-          <MapPin className="text-[#0D7C8F] h-5 w-5" />
-          <p className="text-sm font-medium text-[#1E2A4A]">
-            Viewing:{" "}
-            <span className="font-bold">{currentBranch} Branch</span> — Data as
-            of{" "}
-            {new Date().toLocaleDateString("en-IN", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
-          </p>
-        </div>
+        {/* Naming the branch is only information when there is more than one
+            branch to be looking at. The academy runs from Trichy alone, so the
+            banner stays out of the way until a second branch exists. The label
+            is the branch's name, never its Firestore document id. */}
+        {branches.length > 1 && (
+          <div className="flex items-center gap-3 bg-[#0D7C8F]/10 border border-[#0D7C8F]/20 p-4 rounded-xl">
+            <MapPin className="text-[#0D7C8F] h-5 w-5" />
+            <p className="text-sm font-medium text-[#1E2A4A]">
+              Viewing:{" "}
+              <span className="font-bold">
+                {branches.find((b) => b.id === currentBranch)?.name ?? currentBranch} Branch
+              </span>{" "}
+              — Data as of{" "}
+              {new Date().toLocaleDateString("en-IN", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+            </p>
+          </div>
+        )}
 
         {/* KPI Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

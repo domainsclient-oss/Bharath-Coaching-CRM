@@ -763,3 +763,47 @@ still lands on that form.
 
 Not verified: the signed-in cases in a real browser, which need student and
 staff credentials.
+
+---
+
+## Single-branch cleanup: dashboard banner and Add Branch
+
+The academy operates from Trichy only, so a branch label and a way to add
+branches are both noise. The banner was also printing the raw Firestore
+document id (`KMOPE9HcgCHkOfXdVfAr`) rather than the branch name.
+
+- [x] Hide the "Viewing: … Branch" banner while only one branch exists
+- [x] Show the branch name, not the document id, if a second branch appears
+- [x] Remove the Add Branch option from Settings › Branches
+
+### Changes
+
+- `src/app/admin/dashboard/page.tsx` — the banner renders only when
+  `branches.length > 1`, and resolves the id to a name through the branch list,
+  the same lookup the header already uses. Nothing is deleted, so the banner
+  returns correctly the day a second branch is opened.
+- `src/app/admin/settings/page.tsx` — dropped the Add Branch button and its
+  `openAdd` handler; `handleSave` is now an edit-only path guarded on
+  `editing`; the dialog title is fixed to "Edit Branch"; the tab description
+  and the empty-state row no longer promise an add that is gone.
+
+### Why conditional rather than deleted
+
+The whole data layer keys off `branchId` and every service call is
+branch-scoped, so the multi-branch model stays. Only the UI that presumes more
+than one branch is hidden. This follows the pattern already in the settings
+page, where the branch field on the user form hides itself when there is a
+single branch.
+
+### Open item
+
+Settings › Branches still has a Delete button on the only branch. Deleting it
+re-seeds a fresh "Trichy" document, but every record already tagged with the
+old branch id would be orphaned, and Add is no longer there to undo it. Worth
+hiding Delete for the last remaining branch.
+
+### Verification
+
+Production build compiles. Typecheck reports nothing for either touched file.
+Both /admin/dashboard and /admin/settings return 200 from the dev server. The
+rendered result needs a signed-in browser check.

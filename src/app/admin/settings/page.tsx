@@ -147,22 +147,14 @@ const BranchManagement = () => {
   const [saving,  setSaving]  = useState(false);
   const [delId,   setDelId]   = useState<string | null>(null);
 
-  const openAdd  = () => { setEditing(null); setForm(BRANCH_EMPTY); setOpen(true); };
   const openEdit = (b: BranchDoc) => { setEditing(b); setForm({ name: b.name, city: b.city, address: b.address ?? "", phone: b.phone ?? "", headmaster: b.headmaster ?? "", status: b.status }); setOpen(true); };
 
   const handleSave = async () => {
-    if (!form.name.trim()) return;
+    if (!editing || !form.name.trim()) return;
     setSaving(true);
     try {
-      if (editing) {
-        await updateDoc(doc(db, "branches", editing.id), { ...form, updatedAt: serverTimestamp() });
-        toast({ title: "Branch Updated" });
-      } else {
-        // Use branch name as doc ID so it matches branchId stored on all other docs
-        const branchId = form.name.trim();
-        await setDoc(doc(db, "branches", branchId), { ...form, createdAt: serverTimestamp() }, { merge: true });
-        toast({ title: "Branch Added", description: `"${branchId}" is now available in the branch switcher.` });
-      }
+      await updateDoc(doc(db, "branches", editing.id), { ...form, updatedAt: serverTimestamp() });
+      toast({ title: "Branch Updated" });
       setOpen(false);
     } catch {
       toast({ title: "Error", description: "Failed to save branch.", variant: "destructive" });
@@ -185,12 +177,6 @@ const BranchManagement = () => {
 
   return (
     <>
-      <div className="flex justify-end mb-3">
-        <Button size="sm" className="bg-[#1E2A4A] hover:bg-[#0D7C8F] gap-1.5" onClick={openAdd}>
-          <PlusCircle className="h-4 w-4" /> Add Branch
-        </Button>
-      </div>
-
       <Table>
         <TableHeader className="bg-slate-50">
           <TableRow>
@@ -208,7 +194,7 @@ const BranchManagement = () => {
               <TableRow key={i}>{[...Array(6)].map((__, j) => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>
             ))
           ) : branches.length === 0 ? (
-            <TableRow><TableCell colSpan={6} className="h-20 text-center text-muted-foreground">No branches added yet.</TableCell></TableRow>
+            <TableRow><TableCell colSpan={6} className="h-20 text-center text-muted-foreground">Setting up your branch…</TableCell></TableRow>
           ) : branches.map(b => (
             <TableRow key={b.id} className="hover:bg-slate-50/50">
               <TableCell className="font-semibold text-sm text-[#1E2A4A]">{b.name}</TableCell>
@@ -220,17 +206,23 @@ const BranchManagement = () => {
               </TableCell>
               <TableCell className="space-x-1">
                 <Button variant="ghost" size="icon" onClick={() => openEdit(b)}><Edit className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDelId(b.id)}><Trash2 className="h-4 w-4" /></Button>
+                {/* Deleting the last branch would orphan every student, fee and
+                    attendance record tagged with its id, and branches can no
+                    longer be added back from here. Offer it only once there is
+                    a second branch to fall back to. */}
+                {branches.length > 1 && (
+                  <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDelId(b.id)}><Trash2 className="h-4 w-4" /></Button>
+                )}
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
 
-      {/* Add/Edit dialog */}
+      {/* Edit dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{editing ? "Edit Branch" : "Add Branch"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Edit Branch</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             {[
               { label: "Branch Name *", key: "name",       placeholder: "e.g. Trichy Branch" },
@@ -604,7 +596,7 @@ export default function SettingsPage() {
             <Card className="border-none shadow-sm">
               <CardHeader className="border-b py-3 px-6">
                 <CardTitle className="text-sm font-bold text-[#1E2A4A]">Branch Management</CardTitle>
-                <CardDescription>Add, edit, or remove academy branches.</CardDescription>
+                <CardDescription>Your academy branch and its contact details.</CardDescription>
               </CardHeader>
               <CardContent className="p-6"><BranchManagement /></CardContent>
             </Card>
