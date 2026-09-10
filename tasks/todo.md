@@ -679,3 +679,43 @@ Note on verification limits: every admin page in this app renders client-side
 only, so an unauthenticated HTTP request returns an empty shell. The 200 proves
 the route compiles and serves, not that the UI looks right. Confirm the layout
 in the browser while signed in.
+
+---
+
+## Student portal auth gate + logout
+
+Reported: /student/dashboard rendered for a visitor who had not logged in, and
+the student portal had no way to log out.
+
+- [x] Gate every /student route behind an authenticated student session
+- [x] Add a logout control to the student sidebar
+
+### Changes
+
+- `src/components/auth/require-student.tsx` (new) — renders a spinner instead of
+  the page until the session is known to belong to a student. Signed-out
+  visitors are sent to /student-login, staff to /admin/dashboard, both with
+  `router.replace` so the back button cannot restore the portal.
+- `src/app/student/layout.tsx` — wraps the whole portal (sidebar included) in
+  that guard, so all 17 student routes are covered by one change.
+- `src/components/layout/student-sidebar.tsx` — footer showing the signed-in
+  student's name and roll number, with a confirm dialog before logout. Mirrors
+  the admin sidebar footer and reuses the same `logout` from the auth context,
+  which already routes students to /student-login.
+
+### Why the layout and not the pages
+
+The auth provider's redirect effect runs after the tree paints, so the portal
+was already on screen when the redirect fired. Gating at the layout stops the
+render itself rather than racing it, and covers every current and future
+student route.
+
+### Verification
+
+Production build succeeds. Typecheck reports nothing for the three touched
+files; the pre-existing admin errors are unrelated. A headless browser load of
+/student/dashboard with no session ends on the student login form with no
+dashboard content in the DOM.
+
+Not verified: the sidebar footer while signed in, which needs real student
+credentials. Confirm in the browser.
