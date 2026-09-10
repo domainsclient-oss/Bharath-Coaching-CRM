@@ -719,3 +719,47 @@ dashboard content in the DOM.
 
 Not verified: the sidebar footer while signed in, which needs real student
 credentials. Confirm in the browser.
+
+---
+
+## Student login bounced to the admin dashboard
+
+Reported: opening /student-login landed on the admin dashboard instead of the
+student login form.
+
+- [x] Let /student-login be reachable while another session is open
+- [x] Confirm a successful student login lands on /student/dashboard
+
+### Cause
+
+The auth provider sent *any* signed-in user away from *any* login page, to
+whichever dashboard their own role implied. With a staff session open, opening
+the student door therefore jumped straight to the CRM, and no student could be
+signed in without logging the admin out first.
+
+### Changes
+
+- `src/lib/auth-routes.ts` (new) — the routing rule as one pure function,
+  `resolveAuthRedirect(pathname, session)`, plus the four route constants. A
+  signed-in user now skips a login screen only at their own door; at the other
+  door the form is shown, and signing in replaces the session.
+- `src/lib/auth-context.tsx` — the redirect effect is now a single call to that
+  function. It uses `router.replace`, so a redirect nobody asked for no longer
+  lands in the browser history.
+- `src/lib/auth-context.tsx` — a session counts as a student if either the
+  address is on the reserved student domain *or* the role resolved upstream
+  from the real Firebase Auth address says so. Previously only the first was
+  checked, against the Firestore document's address, which an admin can edit
+  off the domain — a student read as staff would be handed the CRM on login.
+
+### Verification
+
+17 routing cases exercised directly against the pure function, covering visitor,
+student, teacher, admin and roleless sessions at both doors, both dashboards and
+the setup wizard. All pass. Production build succeeds and typecheck reports
+nothing for the touched files. In a headless browser, /student-login shows the
+roll-number form instead of redirecting, and /student/dashboard with no session
+still lands on that form.
+
+Not verified: the signed-in cases in a real browser, which need student and
+staff credentials.

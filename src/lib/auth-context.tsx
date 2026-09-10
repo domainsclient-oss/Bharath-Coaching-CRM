@@ -9,6 +9,7 @@ import { db } from '../config/firebase';
 import { setAuditUser, logAudit } from './auditLogger';
 import { releaseUiLock } from './release-ui-lock';
 import { isStudentEmail, rollNoFromEmail } from './studentAuth';
+import { resolveAuthRedirect, STAFF_LOGIN, STUDENT_LOGIN } from './auth-routes';
 
 interface AuthContextType {
   user: AppUser | null;
@@ -32,8 +33,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // An account on the reserved student domain is a student, full stop.
           // Its Firestore document can never promote it, and a missing document
           // can never fall through to the super_admin bootstrap below.
-          const isStudent = isStudentEmail(authUser.email);
-          const rollNo = rollNoFromEmail(authUser.email);
+          //
+          // Two signals, because either can be missing. `email` here is the
+          // Firestore document's address once one exists, which an admin can
+          // edit off the student domain; `role` was resolved upstream from the
+          // real Firebase Auth address, so it survives that edit. A student read
+          // as staff would be handed the admin dashboard on login.
+          const isStudent = isStudentEmail(authUser.email) || authUser.role === 'student';
+          const rollNo = rollNoFromEmail(authUser.email) ?? (authUser as { rollNo?: string }).rollNo ?? null;
 
           const userDoc = await getDoc(doc(db, 'users', authUser.uid));
           if (userDoc.exists()) {
@@ -92,33 +99,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (snap) {
       logAudit({ user: snap.name ?? snap.email, role: snap.role, action: "Logout", module: "Auth", details: `Signed out: ${snap.email}`, severity: "Info", branchId: (snap as any).branchId ?? "" });
     }
-    router.push(snap?.role === 'student' ? '/student-login' : '/login');
+    router.push(snap?.role === 'student' ? STUDENT_LOGIN : STAFF_LOGIN);
     // Logout is triggered from inside a Radix confirm dialog / dropdown, which
     // this navigation unmounts before Radix can undo its body lock. Release it
     // after the unmount settles so /login is interactive immediately.
     requestAnimationFrame(releaseUiLock);
   };
 
-  // Handle redirection logic
-   useEffect(() => {
-    if (loading) return; // Don't redirect while loading
+  // Keep every session on a page it is entitled to. `replace`, not `push`:
+  // a redirect the user never asked for has no business in their history.
+  useEffect(() => {
+    if (loading) return; // Don't redirect while the session is still resolving
 
-    const isAuthRoute = pathname === '/login' || pathname === '/student-login' || pathname === '/register' || pathname === '/setup' || pathname.startsWith('/setup/');
-
-    if (user && isAuthRoute) {
-      // If user is logged in, redirect from auth routes to the correct dashboard
-      const targetDashboard = user.role === 'student' ? '/student/dashboard' : '/admin/dashboard';
-      router.push(targetDashboard);
-    } else if (user && user.role === 'student' && pathname.startsWith('/admin')) {
-      // The CRM is staff-only. Students who type an /admin URL, follow a stale
-      // link or restore a tab get sent back to their own portal. Firestore
-      // rules deny the underlying reads and writes regardless.
-      router.replace('/student/dashboard');
-    } else if (!user && !isAuthRoute) {
-      // If user is not logged in and not on an auth route, redirect to login
-      router.push(pathname.startsWith('/student') ? '/student-login' : '/login');
-    }
-
+    const destination = resolveAuthRedirect(pathname, user);
+    if (destination && destination !== pathname) router.replace(destination);
   }, [user, loading, pathname, router]);
 
 
