@@ -532,25 +532,6 @@ const UserManagement = () => {
   );
 };
 
-// ─── System Info ──────────────────────────────────────────────────────────────
-
-const SystemInfo = () => (
-  <div className="space-y-3 text-sm">
-    {[
-      { label: "App Version",  value: "1.0.0" },
-      { label: "Framework",    value: "Next.js 15 (App Router)" },
-      { label: "Database",     value: "Firebase Firestore" },
-      { label: "Auth",         value: "Firebase Authentication" },
-      { label: "Last Checked", value: new Date().toLocaleString("en-IN") },
-    ].map(r => (
-      <div key={r.label} className="flex items-center gap-3 py-2 border-b last:border-0">
-        <span className="text-muted-foreground w-32 flex-shrink-0">{r.label}</span>
-        <span className="font-medium text-[#1E2A4A]">{r.value}</span>
-      </div>
-    ))}
-  </div>
-);
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -575,11 +556,10 @@ export default function SettingsPage() {
       <main className="p-4 md:p-6 lg:p-8 space-y-6 animate-in fade-in duration-500">
 
         <Tabs defaultValue="general">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="general" className="gap-1.5"><Settings className="h-4 w-4" /> General</TabsTrigger>
             <TabsTrigger value="branches" className="gap-1.5"><Building2 className="h-4 w-4" /> Branches</TabsTrigger>
             <TabsTrigger value="users" className="gap-1.5"><Users className="h-4 w-4" /> Users</TabsTrigger>
-            <TabsTrigger value="info">System Info</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general">
@@ -609,16 +589,6 @@ export default function SettingsPage() {
                 <CardDescription>Manage user accounts and roles.</CardDescription>
               </CardHeader>
               <CardContent className="p-6"><UserManagement /></CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="info">
-            <Card className="border-none shadow-sm">
-              <CardHeader className="border-b py-3 px-6">
-                <CardTitle className="text-sm font-bold text-[#1E2A4A]">System Information</CardTitle>
-                <CardDescription>Application environment details.</CardDescription>
-              </CardHeader>
-              <CardContent className="p-6"><SystemInfo /></CardContent>
             </Card>
           </TabsContent>
         </Tabs>

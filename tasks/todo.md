@@ -918,3 +918,67 @@ and /student/profile returns 200.
 The student sidebar is a fixed 256px column with no responsive collapse, so on
 a phone it takes most of the screen on every student page. That is pre-existing
 and untouched here.
+
+---
+
+## Pickable day and time on /admin/academics/class-timetable
+
+Adding a slot meant hovering the exact grid cell; the day and the time were
+whatever that cell was, with no way to choose them and no way to use a time
+outside the six seeded slots.
+
+- [x] Day chosen from a dropdown, spelled out
+- [x] Start and end picked to the minute
+- [x] Grid keeps its shape when a slot falls outside the presets
+- [x] Refuse an impossible range or a slot that is already taken
+
+### Decision: weekday, not a calendar date
+
+The page is a weekly recurring schedule — the grid is Mon to Sat and an entry
+carries `day`, not a date. Keeping the weekday means one entry stands for every
+week. A real calendar date would mean re-entering the whole timetable each week
+and rebuilding the grid around a week selector, for a schedule that does not
+change week to week. Put to the user as a choice; they asked for the
+recommendation, and this is it.
+
+### Changes
+
+- `src/lib/timeSlot.ts` (new) — the one place the slot label format is written
+  and read. `parseSlot` turns "10:00-11:00 AM" into two 24-hour times for the
+  inputs, `formatSlot` turns them back, and `slotStartMinutes` orders the rows.
+  The meridiem written once at the end belongs to the closing time, which is
+  how "11:00-12:00 PM" is read as late morning rather than late evening.
+- `src/app/admin/academics/class-timetable/page.tsx`
+  - The form now carries `slotDay`, `slotStart` and `slotEnd`. Clicking a cell
+    seeds them; an "Add Slot" button in the header opens the same form without
+    hunting for a cell.
+  - Day is a dropdown of full weekday names. From and To are native time
+    inputs, so hours and minutes are both pickable.
+  - The dialog subtitle echoes the choice back as it changes, e.g.
+    "Monday, 10:00-11:00 AM".
+  - Save refuses an end at or before the start, and refuses a day and time
+    already holding an entry, naming the subject that has it.
+  - Grid rows are the seeded slots plus any this class actually uses, in clock
+    order. Without that, a slot picked outside the presets would save and then
+    have no row to appear in.
+
+### Why the label format matters
+
+Rows group by the exact slot string, so a hand-picked time had to produce a
+string identical to the seeded ones or the same hour would split into two rows.
+All six seeded labels round-trip through parse and format unchanged.
+
+### Verification
+
+Compiled `timeSlot.ts` with esbuild and exercised it in node: all six existing
+labels survive a round trip, the ambiguous "11:00-12:00 PM" reads as morning, a
+label carrying a meridiem at both ends is taken literally, hand-picked times
+produce preset-identical labels, impossible ranges are refused rather than
+saved, and rows sort chronologically with unparseable labels last. Rendered
+both the grid and the open form through temporary routes with fixture data and
+screenshotted them: a custom 8:15-9:45 AM slot took its own row in clock order
+with the preset rows intact, and the form fits its dialog with nothing clipped.
+Temporary routes deleted. Production build compiles and typecheck is clean.
+
+No test runner is configured, so the slot-label checks were run as a scratch
+script rather than committed as a suite.

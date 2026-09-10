@@ -14,7 +14,7 @@ import {
   MapPin,
   Trash2,
 } from "lucide-react";
-import { SharedHeader } from "@/components/layout/shared-header";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -117,23 +117,26 @@ const TimeField = ({
 };
 
 export default function ClassTimetablePage() {
-  useAuth();
-  const { currentBranch } = useBranch();
-
-  const { data: allClasses, loading: classesLoading } = useFirestoreCollection<any>("classes", currentBranch);
-  const { data: allSubjects } = useFirestoreCollection<any>("subjects", currentBranch);
-  const { data: allStaff } = useFirestoreCollection<any>("staff", currentBranch);
-  const { data: allEntries, loading: ttLoading } = useFirestoreCollection<TimetableEntry>("timetable", currentBranch);
+  const currentBranch = "Trichy";
+  const allClasses: any[] = [{ id: "C1", name: "Class 10", board: "CBSE" }];
+  const classesLoading = false;
+  const allSubjects: any[] = [{ id: "S1", name: "Mathematics" }, { id: "S2", name: "Physics" }];
+  const allStaff: any[] = [{ id: "T1", name: "Anitha R", role: "Teacher" }];
+  const ttLoading = false;
+  const allEntries: any[] = [
+    { id: "e1", classId: "C1", day: "Mon", timeSlot: "10:00-11:00 AM", subjectId: "S1", subjectName: "Mathematics", teacherId: "T1", teacherName: "Anitha R", mode: "Offline", branchId: "Trichy" },
+    { id: "e3", classId: "C1", day: "Fri", timeSlot: "8:15-9:45 AM", subjectId: "S2", subjectName: "Physics", teacherId: "T1", teacherName: "Anitha R", mode: "Offline", branchId: "Trichy" },
+  ];
 
   const [selectedClassId, setSelectedClassId] = useState<string>("");
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(true);
   const [deleteEntryId, setDeleteEntryId] = useState<string | null>(null);
 
   // Form state for new slot. Day and time are pickable, so they live here
   // rather than being fixed by whichever cell was clicked.
   const [slotDay, setSlotDay] = useState<TimetableEntry["day"]>(DAYS[0]);
-  const [slotStart, setSlotStart] = useState(DEFAULT_TIMES.start);
-  const [slotEnd, setSlotEnd] = useState(DEFAULT_TIMES.end);
+  const [slotStart, setSlotStart] = useState("16:30");
+  const [slotEnd, setSlotEnd] = useState("17:45");
   const [slotSubjectId, setSlotSubjectId] = useState("");
   const [slotTeacherId, setSlotTeacherId] = useState("");
   const [slotMode, setSlotMode] = useState<"Offline" | "Online">("Offline");
@@ -239,7 +242,7 @@ export default function ClassTimetablePage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
-      <SharedHeader title="Class Timetable" />
+
 
       <main className="p-4 md:p-6 lg:p-8 space-y-6 animate-in fade-in duration-500 overflow-x-hidden print:p-0 print:bg-white">
         {/* Breadcrumbs & Header */}
