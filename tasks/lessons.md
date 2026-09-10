@@ -119,3 +119,35 @@ So the menu locks the body, the dialog then mounts and records `'none'` as the
   version, then `npm install`) — that is a lockfile change, so ask first.
 - `releaseUiLock()` remains the escape hatch for the navigation case; it does not
   help here, because the stale lock is re-applied by the dialog's own cleanup.
+
+---
+
+## A guard must send people to the door they knocked on
+
+**What happened:** The `RequireStudent` guard bounced any signed-in non-student
+off /student/* to `/admin/dashboard`. With a staff session open — which is the
+normal state while working on the CRM — opening /student/dashboard landed on
+the admin dashboard. It looked like the student portal was broken. It shipped
+to production before the behaviour was noticed.
+
+**Why it was wrong:** I invented a destination instead of asking what the
+request meant. Someone opening the student portal is asking for the student
+portal. The right answer is the student sign-in form, whatever session happens
+to be open in that browser. Redirecting to a *different portal's* home turns a
+sign-in prompt into a silent teleport, and the user cannot tell a routing bug
+from a broken page.
+
+**How to apply:**
+- A guard answers "who may render this subtree" and, when the answer is no,
+  sends the visitor to the login for *that* subtree — never to another area's
+  home page.
+- Redirect rules live in `src/lib/auth-routes.ts` as the pure
+  `resolveAuthRedirect`. Guards must import from it and agree with it. Two
+  components each holding their own opinion is how redirect ping-pong starts.
+- Before shipping a redirect change, run every combination of {signed out,
+  student, staff} × {student page, admin page, both login pages} through the
+  real function and check each one *settles* rather than looping. `esbuild`
+  compiles the module and plain node exercises it — no Firebase needed. This
+  takes two minutes and would have caught it.
+- "Verification Before Done" covers redirects too. A route returning 200 proves
+  nothing about where the browser ends up.

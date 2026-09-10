@@ -807,3 +807,37 @@ hiding Delete for the last remaining branch.
 Production build compiles. Typecheck reports nothing for either touched file.
 Both /admin/dashboard and /admin/settings return 200 from the dev server. The
 rendered result needs a signed-in browser check.
+
+---
+
+## Fix: /student/dashboard sent staff to the admin dashboard
+
+Reported from the deployed site. Opening /student/dashboard landed on the
+admin dashboard instead of the student portal or the student login.
+
+- [x] Send every non-student who opens /student/* to the student login
+- [x] Confirm no redirect loop against the shared routing policy
+
+### Cause
+
+The `RequireStudent` guard I added earlier redirected a signed-in non-student
+to `/admin/dashboard`. Testing happened with an admin session open, so the
+guard fired every time. Signed-out visitors were always routed correctly; the
+wrong destination only showed up with a staff session in the browser.
+
+### Change
+
+`src/components/auth/require-student.tsx` now redirects to `STUDENT_LOGIN` for
+anyone who is not a student, importing the constant from `src/lib/auth-routes.ts`
+rather than hardcoding a path. `resolveAuthRedirect` already leaves a staff
+session alone at the student door, so the guard and the provider agree and
+nothing bounces back.
+
+### Verification
+
+Compiled `auth-routes.ts` with esbuild and ran all twelve combinations of
+{signed out, student, staff} against the student pages, the admin pages and
+both login screens, following each redirect chain to a fixed point. All twelve
+settle on the expected path with no loop. Production build compiles, typecheck
+is clean, and a headless load of /student/dashboard with no session ends on the
+roll-number login form with no admin or student dashboard content in the DOM.
