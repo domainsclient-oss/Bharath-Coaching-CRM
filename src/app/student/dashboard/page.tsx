@@ -124,7 +124,6 @@ const StudentDashboardPage = () => {
               </p>
               <p className="text-sm text-[#1E2A4A]/70">
                 {className ? `Class ${className}` : 'Your portal'}
-                {branchId ? ` · ${branchId} Branch` : ''}
                 {' · '}
                 {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
               </p>

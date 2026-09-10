@@ -841,3 +841,80 @@ both login screens, following each redirect chain to a fixed point. All twelve
 settle on the expected path with no loop. Production build compiles, typecheck
 is clean, and a headless load of /student/dashboard with no session ends on the
 roll-number login form with no admin or student dashboard content in the DOM.
+
+---
+
+## Remove the branch id from student-facing labels
+
+The student greeting showed the branch's Firestore document id
+(`KMOPE9HcgCHkOfXdVfAr Branch`) next to the class and date.
+
+- [x] Drop the branch segment from the dashboard welcome line
+- [x] Drop the matching Branch badge from the student profile
+
+### Changes
+
+- `src/app/student/dashboard/page.tsx` — the welcome line is now class and
+  date. `branchId` is still read from `useStudentRecord`, because the dashboard
+  query is branch-scoped; only the label is gone.
+- `src/app/student/profile/page.tsx` — removed the `Branch:` badge beside
+  `Class:`, and the now-unused `branchId` from the destructure.
+
+A student attends the one branch there is, so neither label carried
+information. The admin dashboard banner was handled separately: it is hidden
+below two branches and resolves the id to a name above them.
+
+### Verification
+
+Production build compiles, typecheck is clean on both files, both routes
+return 200, and no "Branch" text remains in either page.
+
+---
+
+## Redesign of /student/profile
+
+The record read as an unaligned dump: labels started at different x positions,
+dates showed as raw ISO strings, and the Address section repeated its own
+heading as the only row label.
+
+- [x] Align every label and value on a shared grid
+- [x] Give every value a distinct label
+- [x] Format stored dates for reading
+- [x] Group the fields into titled sections
+
+### Changes (all in `src/app/student/profile/page.tsx`)
+
+- **Alignment.** The old `InfoRow` took an `icon` prop that most callers filled
+  with an empty fragment, so rows with an icon were indented and rows without
+  were not. Replaced by a `Field` row on a `sm:grid-cols-[11rem_1fr]` grid:
+  labels share one column, values share another, and rows stack label-over-value
+  below the `sm` breakpoint.
+- **Sections.** Four cards — Personal Details, Contact & Address, Guardian
+  Details, Academic Background — each with an icon chip and title, matching the
+  card style of the fees and attendance pages. The grid uses `items-start` so a
+  short card no longer stretches to match a tall neighbour.
+- **No repeated headings.** Contact and address share one card, so no card
+  restates its own title as a row label. An address stored as an object gets a
+  labelled row per part (Street, City, State, Pincode).
+- **Dates.** `2010-09-11` now reads `11 September 2010`. The parser handles ISO
+  strings, Firestore Timestamps and Dates, and reads a plain `YYYY-MM-DD` as a
+  local date so it cannot slip a day west of Greenwich. Unparseable values are
+  shown as stored rather than dropped.
+- **Empty values.** A muted "Not on record" replaces the bare `-`.
+- **Identity band.** Avatar, name, class, roll number and status across the top,
+  instead of an avatar column vertically centred against a long detail list.
+
+### Verification
+
+Rendered the page with the reported record through a temporary route carrying
+fixture data, screenshotted at desktop and narrow widths, then deleted the
+route. Labels and values line up in both. A DOM probe measured viewport width,
+document scroll width and the right edge of every element at 500px each, so the
+page has no horizontal overflow. Production build compiles, typecheck is clean,
+and /student/profile returns 200.
+
+### Note
+
+The student sidebar is a fixed 256px column with no responsive collapse, so on
+a phone it takes most of the screen on every student page. That is pre-existing
+and untouched here.
