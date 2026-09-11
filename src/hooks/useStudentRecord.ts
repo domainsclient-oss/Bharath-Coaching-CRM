@@ -23,9 +23,19 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { studentService, classService } from '@/services/firestoreService';
 
-/** "Class 10" and "class  10" both reduce to "10". */
-export const normalizeClassName = (value?: string): string =>
-  (value ?? '').replace(/class\s*/i, '').trim();
+/**
+ * Reduce a class label to the key both sides of the CRM can agree on.
+ *
+ * A student record stores a bare number ("9"), while `classes` documents are
+ * named by hand and have arrived as "Class 9", "9th", "Class 9 A" and
+ * "Std 9 CBSE". The number is the only part every spelling shares, so that is
+ * the key. A class whose name carries no number keeps its cleaned-up text.
+ */
+export const normalizeClassName = (value?: string): string => {
+  const text = (value ?? '').replace(/\b(?:class|std|standard|grade)\b\.?/gi, ' ').trim();
+  const number = /\b(\d{1,2})(?:st|nd|rd|th)?\b/i.exec(text);
+  return number ? number[1] : text.replace(/\s+/g, ' ');
+};
 
 export interface StudentRecord {
   /** The `students` document id, or null when the login has no record behind it. */
@@ -74,14 +84,29 @@ export function useStudentRecord(): StudentRecord {
         const className = normalizeClassName((student as any).class);
         const branchId = (student as any).branchId ?? '';
 
-        // Match the class by name. A missing `classes` document is not fatal —
-        // only the timetable needs the id, and it degrades to "not published".
+        // Match the class by name. The same class number exists once per board
+        // and once per branch — a Class 9 CBSE and a Class 9 State both sit in
+        // the collection — so narrow by branch and then by board before
+        // settling for the first name match. A missing `classes` document is
+        // not fatal: only the timetable needs the id, and it degrades to
+        // "not published".
         let classId: string | null = null;
         if (className) {
           const classes = await classService.getAll().catch(() => []);
-          const match = classes.find(
+          const board = String((student as any).board ?? '').trim().toLowerCase();
+
+          const sameName = classes.filter(
             (c: any) => normalizeClassName(c.name) === className
           );
+          const inBranch = branchId
+            ? sameName.filter((c: any) => !(c as any).branchId || (c as any).branchId === branchId)
+            : sameName;
+          const pool = inBranch.length > 0 ? inBranch : sameName;
+          const match =
+            (board
+              ? pool.find((c: any) => String(c.board ?? '').trim().toLowerCase() === board)
+              : undefined) ?? pool[0];
+
           classId = match ? (match as any).id : null;
         }
 

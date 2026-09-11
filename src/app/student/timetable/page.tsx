@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { queryDocuments } from "@/services/firestoreService";
 import { useStudentRecord } from "@/hooks/useStudentRecord";
+import { DAY_KEYS, DAY_LABELS, dayKey } from "@/lib/timetableDay";
+import { slotStartMinutes } from "@/lib/timeSlot";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,11 +23,15 @@ interface TimetableSlot {
   mode?: string;
 }
 
-const DAY_ORDER = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-
-/** Sorts "09:00 - 10:00" style slots by their start time. */
+/**
+ * Sorts slots by the hour they actually start.
+ *
+ * The stored label is a display string ("4:00-5:00 PM"), so comparing the text
+ * would file the afternoon before the morning. `slotStartMinutes` reads the
+ * label back into a real time first.
+ */
 const byStartTime = (a: TimetableSlot, b: TimetableSlot) =>
-  String(a.timeSlot ?? "").localeCompare(String(b.timeSlot ?? ""));
+  slotStartMinutes(String(a.timeSlot ?? "")) - slotStartMinutes(String(b.timeSlot ?? ""));
 
 const TimetablePage = () => {
   const { classId, className, loading: recordLoading, unlinked } = useStudentRecord();
@@ -59,8 +65,15 @@ const TimetablePage = () => {
     load();
   }, [classId, recordLoading]);
 
-  const days = DAY_ORDER
-    .map(day => ({ day, schedule: slots.filter(s => s.day === day).sort(byStartTime) }))
+  // The admin screen writes the day short ("Mon") while the heading here spells
+  // it out, so both sides go through the shared key. Comparing the two
+  // spellings directly is what used to hide a published timetable.
+  const days = DAY_KEYS
+    .map(key => ({
+      key,
+      day: DAY_LABELS[key],
+      schedule: slots.filter(s => dayKey(s.day) === key).sort(byStartTime),
+    }))
     .filter(d => d.schedule.length > 0);
 
   const busy = loading || recordLoading;
@@ -121,7 +134,7 @@ const TimetablePage = () => {
         </CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {days.map(d => <DayCard key={d.day} day={d.day} schedule={d.schedule} />)}
+          {days.map(d => <DayCard key={d.key} day={d.day} schedule={d.schedule} />)}
         </div>
       )}
     </div>

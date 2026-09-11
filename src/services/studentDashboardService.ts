@@ -1,5 +1,7 @@
 import { queryDocuments } from './firestoreService';
 import { normalizeClassName } from '@/hooks/useStudentRecord';
+import { dayKey } from '@/lib/timetableDay';
+import { slotStartMinutes } from '@/lib/timeSlot';
 
 /**
  * Dashboard figures for one student, assembled from the same collections the
@@ -49,7 +51,8 @@ const getStudentDashboardData = async ({
   // A login with no student record behind it still has to render.
   if (!studentId) return EMPTY_DASHBOARD;
 
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+  // The locale gives "Monday"; the timetable stores "Mon". Compare the keys.
+  const today = dayKey(new Date().toLocaleDateString('en-US', { weekday: 'long' }));
   const byBranch = branchId ? [{ field: 'branchId', operator: '==' as const, value: branchId }] : [];
 
   // Each read is independent, so failing one section should not blank the page.
@@ -92,8 +95,8 @@ const getStudentDashboardData = async ({
     .map(h => ({ id: h.id, title: h.title, subject: h.subject, dueDate: h.dueDate }));
 
   const todayClasses = slotRows
-    .filter(s => s.day === today)
-    .sort((a, b) => String(a.timeSlot ?? '').localeCompare(String(b.timeSlot ?? '')));
+    .filter(s => dayKey(s.day) === today)
+    .sort((a, b) => slotStartMinutes(String(a.timeSlot ?? '')) - slotStartMinutes(String(b.timeSlot ?? '')));
 
   return {
     attendance: { percentage, present, total: marked.length },

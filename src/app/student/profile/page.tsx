@@ -6,40 +6,40 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useStudentRecord } from "@/hooks/useStudentRecord";
 import { User, MapPin, Users, GraduationCap, type LucideIcon } from "lucide-react";
+import { formatDate as formatFirestoreDate } from "@/lib/firestoreDate";
 
 const getInitials = (name: string = '') =>
   name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
-/** Firestore stores dates as ISO strings, Timestamps or Dates depending on age. */
-const toDate = (value: any): Date | null => {
-  if (!value) return null;
-  if (typeof value?.toDate === 'function') return value.toDate();
-  if (value instanceof Date) return value;
-  const raw = String(value);
-  // Read a plain "YYYY-MM-DD" as a local date. Letting Date parse it treats it
-  // as UTC midnight, which shows the previous day west of Greenwich.
-  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
-  const parsed = iso ? new Date(+iso[1], +iso[2] - 1, +iso[3]) : new Date(raw);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-};
-
-const formatDate = (value: any): string | undefined => {
-  const date = toDate(value);
-  if (date) return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
-  return value ? String(value) : undefined;
-};
+/** Undefined for a missing date, so the row reads "Not on record" like any other. */
+const formatDate = (value: any): string | undefined =>
+  value ? formatFirestoreDate(value, '') || undefined : undefined;
 
 /**
- * An address is a plain string on older records and an object on newer ones.
- * An object earns a labelled row per part; a string is one row of its own.
+ * The address, however the record happens to hold it.
+ *
+ * The admissions form writes `address` as one line of street text with `city`
+ * and `pincode` beside it as their own fields, while older records nest the
+ * whole thing in an object. Reading only the object left the city and pincode
+ * of every current record invisible, so both layouts are handled here.
  */
-const addressFields = (address: any): { label: string; value?: string }[] => {
-  if (typeof address === 'string' || !address) return [{ label: 'Address', value: address || undefined }];
+const addressFields = (student: any): { label: string; value?: string }[] => {
+  const address = student?.address;
+
+  if (address && typeof address === 'object') {
+    return [
+      { label: 'Street', value: address.street },
+      { label: 'City', value: address.city ?? student.city },
+      { label: 'State', value: address.state ?? student.state },
+      { label: 'Pincode', value: address.pincode ?? student.pincode },
+    ];
+  }
+
   return [
-    { label: 'Street', value: address.street },
-    { label: 'City', value: address.city },
-    { label: 'State', value: address.state },
-    { label: 'Pincode', value: address.pincode },
+    { label: 'Address', value: address ? String(address) : undefined },
+    { label: 'City', value: student?.city },
+    { label: 'State', value: student?.state },
+    { label: 'Pincode', value: student?.pincode },
   ];
 };
 
@@ -151,6 +151,7 @@ const StudentProfilePage = () => {
 
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <Section icon={User} title="Personal Details">
+          <Field label="Application No" value={student.appNo} />
           <Field label="Date of Birth" value={formatDate(student.dob)} />
           <Field label="Gender" value={student.gender} />
         </Section>
@@ -158,26 +159,43 @@ const StudentProfilePage = () => {
         <Section icon={MapPin} title="Contact & Address">
           <Field label="Email" value={student.email} />
           <Field label="Phone" value={student.phone} />
-          {addressFields(student.address).map(f => (
+          <Field label="WhatsApp" value={student.whatsapp} />
+          {addressFields(student).map(f => (
             <Field key={f.label} label={f.label} value={f.value} />
           ))}
         </Section>
 
+        {/*
+          The admissions form records one parent or guardian and their numbers.
+          The separate father and mother fields this card used to read are only
+          written by older records, so they are shown when they exist rather
+          than standing empty on every current one.
+        */}
         <Section icon={Users} title="Guardian Details">
-          <Field label="Father's Name" value={student.fatherName} />
-          <Field label="Father's Occupation" value={student.fatherOccupation} />
-          <Field label="Mother's Name" value={student.motherName} />
-          <Field label="Mother's Occupation" value={student.motherOccupation} />
+          <Field label="Parent / Guardian" value={student.parentName} />
+          <Field label="Contact Number" value={student.phone} />
+          {student.fatherName && <Field label="Father's Name" value={student.fatherName} />}
+          {student.fatherOccupation && <Field label="Father's Occupation" value={student.fatherOccupation} />}
+          {student.motherName && <Field label="Mother's Name" value={student.motherName} />}
+          {student.motherOccupation && <Field label="Mother's Occupation" value={student.motherOccupation} />}
         </Section>
 
         <Section icon={GraduationCap} title="Academic Background">
+          <Field label="Board" value={student.board} />
+          <Field label="Medium" value={student.medium} />
+          <Field label="Study Mode" value={student.mode} />
+          <Field
+            label="Subjects"
+            value={Array.isArray(student.subjects) && student.subjects.length > 0
+              ? student.subjects.join(', ')
+              : undefined}
+          />
           <Field label="Date of Joining" value={formatDate(student.joinDate ?? student.admissionDate)} />
           <Field label="School" value={student.school} />
-          <Field label="Previous School" value={student.previousSchool} />
-          <Field
-            label="Previous School Marks"
-            value={student.previousSchoolMarks != null ? `${student.previousSchoolMarks}%` : undefined}
-          />
+          {student.previousSchool && <Field label="Previous School" value={student.previousSchool} />}
+          {student.previousSchoolMarks != null && (
+            <Field label="Previous School Marks" value={`${student.previousSchoolMarks}%`} />
+          )}
         </Section>
       </div>
     </PageShell>

@@ -38,17 +38,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TIME_SLOTS, DAYS, TimetableEntry } from "@/data/academicsData";
 import { formatSlot, joinTime, parseSlot, slotStartMinutes, splitTime } from "@/lib/timeSlot";
+// Spelled out in the picker; the grid keeps the short form it is sized for.
+// Shared with the student portal so both read one day key.
+import { DAY_LABELS } from "@/lib/timetableDay";
 import { useAuth } from "@/lib/auth-context";
 import { useBranch } from "@/context/BranchContext";
 import { useFirestoreCollection } from "@/hooks/useFirestoreCollection";
 import { addDocument, deleteDocument } from "@/services/firestoreService";
 import { toast } from "@/hooks/use-toast";
-
-/** Spelled out in the picker; the grid keeps the short form it is sized for. */
-const DAY_LABELS: Record<TimetableEntry["day"], string> = {
-  Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday",
-  Thu: "Thursday", Fri: "Friday", Sat: "Saturday",
-};
 
 /** Fallback when a stored label cannot be read back into two times. */
 const DEFAULT_TIMES = { start: "10:00", end: "11:00" };
@@ -121,7 +118,7 @@ export default function ClassTimetablePage() {
   const { currentBranch } = useBranch();
 
   const { data: allClasses, loading: classesLoading } = useFirestoreCollection<any>("classes", currentBranch);
-  const { data: allSubjects } = useFirestoreCollection<any>("subjects", currentBranch);
+  const { data: allSubjects, loading: subjectsLoading } = useFirestoreCollection<any>("subjects", currentBranch);
   const { data: allStaff } = useFirestoreCollection<any>("staff", currentBranch);
   const { data: allEntries, loading: ttLoading } = useFirestoreCollection<TimetableEntry>("timetable", currentBranch);
 
@@ -155,6 +152,20 @@ export default function ClassTimetablePage() {
     () => allEntries.filter((t) => t.classId === selectedClassId),
     [allEntries, selectedClassId]
   );
+
+  /**
+   * Subjects offered for the selected class, picked up from Subject Management
+   * as they are saved. A subject that was never linked to a class would
+   * otherwise be unreachable, so when this class has no linked subjects the
+   * whole branch list is offered rather than an empty dropdown.
+   */
+  const subjectOptions = useMemo(() => {
+    const byName = (a: any, b: any) => String(a.name ?? "").localeCompare(String(b.name ?? ""));
+    const linked = allSubjects.filter((s: any) =>
+      Array.isArray(s.classIds) && s.classIds.includes(selectedClassId)
+    );
+    return (linked.length > 0 ? linked : allSubjects).slice().sort(byName);
+  }, [allSubjects, selectedClassId]);
 
   const handleAddSlot = (day: TimetableEntry["day"], slot: string) => {
     const times = parseSlot(slot) ?? DEFAULT_TIMES;
@@ -433,16 +444,30 @@ export default function ClassTimetablePage() {
               <TimeField id="slot-to" label="To *" value={slotEnd} onChange={setSlotEnd} />
               <div className="grid gap-2">
                 <Label>Subject *</Label>
-                <Select value={slotSubjectId} onValueChange={setSlotSubjectId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Subject" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allSubjects.map((s: any) => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {subjectsLoading ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : subjectOptions.length === 0 ? (
+                  <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                    No subjects yet.{" "}
+                    <Link href="/admin/academics/subjects" className="font-medium text-[#0D7C8F] hover:underline">
+                      Add subjects
+                    </Link>{" "}
+                    to fill this list.
+                  </p>
+                ) : (
+                  <Select value={slotSubjectId} onValueChange={setSlotSubjectId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Subject" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subjectOptions.map((s: any) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}{s.type && s.type !== "Theory" ? ` (${s.type})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <div className="grid gap-2">
                 <Label>Faculty *</Label>
