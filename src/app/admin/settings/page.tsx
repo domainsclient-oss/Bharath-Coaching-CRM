@@ -410,7 +410,6 @@ const UserManagement = () => {
             <TableHead>Name</TableHead>
             <TableHead>Email / Roll No</TableHead>
             <TableHead>Role</TableHead>
-            <TableHead>Branch</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
@@ -418,17 +417,16 @@ const UserManagement = () => {
         <TableBody>
           {loading ? (
             [...Array(4)].map((_, i) => (
-              <TableRow key={i}>{[...Array(6)].map((__, j) => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>
+              <TableRow key={i}>{[...Array(5)].map((__, j) => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>
             ))
           ) : users.length === 0 ? (
-            <TableRow><TableCell colSpan={6} className="h-20 text-center text-muted-foreground">No users found.</TableCell></TableRow>
+            <TableRow><TableCell colSpan={5} className="h-20 text-center text-muted-foreground">No users found.</TableCell></TableRow>
           ) : users.map(u => (
             <TableRow key={u.id} className="hover:bg-slate-50/50">
               <TableCell className="font-semibold text-sm text-[#1E2A4A]">{u.name}</TableCell>
               {/* Students have no real address — their login is the roll number. */}
               <TableCell className="text-xs text-muted-foreground">{u.rollNo ? u.rollNo.toUpperCase() : u.email}</TableCell>
               <TableCell><Badge className={`text-[10px] ${ROLE_COLOR[u.role] ?? "bg-slate-100 text-slate-700"}`}>{u.role}</Badge></TableCell>
-              <TableCell className="text-xs text-muted-foreground">{u.branchId || "All"}</TableCell>
               <TableCell>
                 <Badge className={`text-[10px] ${u.status === "active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{u.status}</Badge>
               </TableCell>

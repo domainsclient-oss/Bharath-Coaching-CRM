@@ -84,9 +84,20 @@ export default function UserLogPage() {
     : "";
   const effectiveTo = rangePreset === "custom" ? dateTo : "";
 
-  // Only Login/Logout events
+  /**
+   * Only sign-in and sign-out events, and only one row per event.
+   *
+   * Every sign-in used to be written twice: once by the auth service under the
+   * account's real name and role, and once by the auth context under its email
+   * address with the role left as "unknown". That doubled every count here and
+   * split each person into two users. The second write is gone, but the rows it
+   * already left behind are not, and they are the only sign-in events that ever
+   * carried an unknown role, so dropping those reads the history straight.
+   */
   const loginLogs = useMemo(() =>
-    allLogs.filter(l => l.action === "Login" || l.action === "Logout"),
+    allLogs.filter(l =>
+      (l.action === "Login" || l.action === "Logout") && l.role !== "unknown"
+    ),
     [allLogs]
   );
 
@@ -139,13 +150,34 @@ export default function UserLogPage() {
     return result.sort((a, b) => b.loginAt?.localeCompare(a.loginAt) ?? 0);
   }, [loginLogs]);
 
+  /**
+   * The four historical counts follow whatever the filters are showing, so
+   * narrowing to today or to one role moves them together with the table below.
+   * Signing in is a present-tense fact, so that one deliberately ignores the
+   * filters and always reads the whole log.
+   */
   const kpi = useMemo(() => {
-    const uniqueUsers  = new Set(loginLogs.map(l => l.user)).size;
-    const logins       = loginLogs.filter(l => l.action === "Login").length;
-    const logouts      = loginLogs.filter(l => l.action === "Logout").length;
-    const activeNow    = logins - logouts > 0 ? logins - logouts : 0;
-    return { total: loginLogs.length, uniqueUsers, logins, logouts, activeNow };
-  }, [loginLogs]);
+    const uniqueUsers = new Set(filtered.map(l => l.user)).size;
+    const logins      = filtered.filter(l => l.action === "Login").length;
+    const logouts     = filtered.filter(l => l.action === "Logout").length;
+
+    // Someone is signed in when the most recent thing they did was log in.
+    // Subtracting logouts from logins counted every session ever left open, so
+    // it climbed forever and could report more people than the academy has:
+    // closing a tab ends a session without writing a Logout. Counting each
+    // user once can never exceed the number of people on the system.
+    const latestByUser = new Map<string, AuditLog>();
+    loginLogs.forEach(l => {
+      const seen = latestByUser.get(l.user);
+      if (!seen || String(l.timestamp ?? "") > String(seen.timestamp ?? "")) {
+        latestByUser.set(l.user, l);
+      }
+    });
+    const activeNow = Array.from(latestByUser.values())
+      .filter(l => l.action === "Login").length;
+
+    return { total: filtered.length, uniqueUsers, logins, logouts, activeNow };
+  }, [filtered, loginLogs]);
 
   const handleExport = () => {
     const headers = ["#", "Timestamp", "User", "Role", "Action", "Details"];

@@ -6,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { loginUser as apiLogin, logoutUser as apiLogout, onAuthChange, AppUser } from '../services/authService';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { setAuditUser, logAudit } from './auditLogger';
+import { setAuditUser } from './auditLogger';
 import { releaseUiLock } from './release-ui-lock';
 import { isStudentEmail, rollNoFromEmail } from './studentAuth';
 import { resolveAuthRedirect, STAFF_LOGIN, STUDENT_LOGIN } from './auth-routes';
@@ -86,19 +86,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
+  // `loginUser` and `logoutUser` already write the audit entry, and they write a
+  // better one: the account's real name, role and branch, read from its user
+  // document. Logging again here recorded every sign-in and sign-out twice, once
+  // under the person's name and once under their email address, which doubled
+  // the counts on the user log and made one person look like two.
   const login = async (email: string, password: string) => {
     await apiLogin(email, password);
-    // Audit logged after onAuthChange resolves user — see setAuditUser above
-    // Log here with email as a fallback since user object isn't set yet
-    logAudit({ user: email, role: "unknown", action: "Login", module: "Auth", details: `Signed in: ${email}`, severity: "Info" });
   };
 
   const logout = async () => {
     const snap = user;
     await apiLogout();
-    if (snap) {
-      logAudit({ user: snap.name ?? snap.email, role: snap.role, action: "Logout", module: "Auth", details: `Signed out: ${snap.email}`, severity: "Info", branchId: (snap as any).branchId ?? "" });
-    }
     router.push(snap?.role === 'student' ? STUDENT_LOGIN : STAFF_LOGIN);
     // Logout is triggered from inside a Radix confirm dialog / dropdown, which
     // this navigation unmounts before Radix can undo its body lock. Release it

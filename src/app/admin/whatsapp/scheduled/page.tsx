@@ -35,6 +35,15 @@ interface BroadcastLog {
   branchId: string;
 }
 
+/** A saved WhatsApp contact, as the broadcast screen writes it. */
+interface Contact {
+  id: string;
+  name: string;
+  phone: string;
+  group: string;
+  branchId: string;
+}
+
 const STATUS_ICONS: Record<ScheduleStatus, React.ReactNode> = {
   Scheduled: <Clock className="h-4 w-4 text-blue-600" />,
   Sent:      <CheckCheck className="h-4 w-4 text-green-600" />,
@@ -46,13 +55,31 @@ const STATUS_COLORS: Record<ScheduleStatus, string> = {
   Cancelled: 'bg-red-100 text-red-700',
 };
 
-const GROUPS = ['All Parents', 'All Students', 'All Students & Parents', 'Staff', 'Class 9 Parents', 'Class 10 Parents', 'Class 11 Parents', 'Class 12 Parents'];
-const EMPTY = { template: '', group: '', scheduledFor: '', message: '', recipientCount: '' };
+const EMPTY = { template: '', group: '', scheduledFor: '', message: '' };
+
+/** "2026-09-11T14:30" as something a person reads. */
+const formatWhen = (value?: string): string => {
+  if (!value) return '—';
+  const when = new Date(value);
+  if (Number.isNaN(when.getTime())) return value;
+  return when.toLocaleString('en-IN', {
+    day: 'numeric', month: 'short', year: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true,
+  });
+};
+
+/** A send time that has come and gone while the message still sits waiting. */
+const isOverdue = (m: ScheduledMessage): boolean => {
+  if (m.status !== 'Scheduled' || !m.scheduledFor) return false;
+  const when = new Date(m.scheduledFor);
+  return !Number.isNaN(when.getTime()) && when.getTime() < Date.now();
+};
 
 export default function ScheduledMessagesPage() {
   const { currentBranch } = useBranch();
   const { data: messages, loading } = useFirestoreCollection<ScheduledMessage>("scheduledMessages", currentBranch);
   const { data: broadcasts, loading: logsLoading } = useFirestoreCollection<BroadcastLog>("broadcastHistory", currentBranch);
+  const { data: contacts, loading: contactsLoading } = useFirestoreCollection<Contact>("whatsappContacts", currentBranch);
 
   const [filterStatus,  setFilterStatus]  = useState('all');
   const [showDialog,    setShowDialog]    = useState(false);
@@ -69,6 +96,34 @@ export default function ScheduledMessagesPage() {
     [messages, filterStatus]
   );
 
+  /**
+   * How many people sit in each group, counted from the saved contacts rather
+   * than typed in by hand. This is the same list the broadcast screen builds,
+   * so a group offered here always has real contacts behind it and the count
+   * beside it is the number who would actually receive the message.
+   */
+  const groupSizes = useMemo(() => {
+    const sizes = new Map<string, number>();
+    contacts.forEach(c => {
+      const group = (c.group ?? '').trim() || 'General';
+      sizes.set(group, (sizes.get(group) ?? 0) + 1);
+    });
+    return sizes;
+  }, [contacts]);
+
+  const groups = useMemo(() => Array.from(groupSizes.keys()).sort(), [groupSizes]);
+
+  /**
+   * A message still waiting shows who would receive it if it went out now, so
+   * the figure keeps up as contacts are added or removed. One already sent or
+   * cancelled keeps the count recorded at the time, which is the historical
+   * fact and no longer changes.
+   */
+  const recipientsFor = (m: ScheduledMessage): number =>
+    m.status === 'Scheduled'
+      ? groupSizes.get(m.group) ?? m.recipientCount ?? 0
+      : m.recipientCount ?? 0;
+
   const stats = useMemo(() => ({
     scheduled: messages.filter(m => m.status === 'Scheduled').length,
     sent:      broadcasts.length,
@@ -78,7 +133,7 @@ export default function ScheduledMessagesPage() {
   const openNew = () => { setEditItem(null); setForm(EMPTY); setShowDialog(true); };
   const openEdit = (m: ScheduledMessage) => {
     setEditItem(m);
-    setForm({ template: m.template, group: m.group, scheduledFor: m.scheduledFor, message: m.message, recipientCount: String(m.recipientCount ?? '') });
+    setForm({ template: m.template, group: m.group, scheduledFor: m.scheduledFor, message: m.message });
     setShowDialog(true);
   };
 
@@ -89,13 +144,18 @@ export default function ScheduledMessagesPage() {
     }
     setSaving(true);
     try {
+      // Counted from the contacts in the group, never typed. What is stored is
+      // the size at the moment of scheduling; the table keeps showing the live
+      // size until the message goes out.
+      const recipientCount = groupSizes.get(form.group) ?? 0;
+
       if (editItem) {
         await updateDocument("scheduledMessages", editItem.id, {
           template: form.template.trim(),
           group: form.group,
           scheduledFor: form.scheduledFor,
           message: form.message.trim(),
-          recipientCount: Number(form.recipientCount) || 0,
+          recipientCount,
         });
         toast({ title: "Updated" });
       } else {
@@ -104,11 +164,11 @@ export default function ScheduledMessagesPage() {
           group: form.group,
           scheduledFor: form.scheduledFor,
           message: form.message.trim(),
-          recipientCount: Number(form.recipientCount) || 0,
+          recipientCount,
           status: 'Scheduled' as ScheduleStatus,
           branchId: currentBranch,
         });
-        toast({ title: "Message scheduled" });
+        toast({ title: "Message scheduled", description: `${recipientCount} recipient(s) in ${form.group}.` });
       }
       setShowDialog(false);
     } catch {
@@ -225,8 +285,13 @@ export default function ScheduledMessagesPage() {
                         <p className="text-xs text-muted-foreground truncate max-w-[200px]">{m.message.substring(0, 60)}…</p>
                       </td>
                       <td className="px-4 py-3">{m.group}</td>
-                      <td className="px-4 py-3">{m.scheduledFor}</td>
-                      <td className="px-4 py-3">{m.recipientCount || '-'}</td>
+                      <td className="px-4 py-3">
+                        {formatWhen(m.scheduledFor)}
+                        {isOverdue(m) && (
+                          <span className="block text-xs font-medium text-amber-600">Send time has passed</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">{recipientsFor(m) || '-'}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
                           {STATUS_ICONS[m.status]}
@@ -272,12 +337,25 @@ export default function ScheduledMessagesPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Recipient Group *</Label>
-                  <Select value={form.group} onValueChange={v => set('group', v)}>
-                    <SelectTrigger><SelectValue placeholder="Select group..." /></SelectTrigger>
+                  <Select value={form.group} onValueChange={v => set('group', v)} disabled={groups.length === 0}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={
+                        contactsLoading ? "Loading groups…"
+                          : groups.length === 0 ? "No contact groups yet"
+                          : "Select group..."
+                      } />
+                    </SelectTrigger>
                     <SelectContent>
-                      {GROUPS.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                      {groups.map(g => (
+                        <SelectItem key={g} value={g}>{g} ({groupSizes.get(g)})</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  {!contactsLoading && groups.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Add contacts on the WhatsApp broadcast screen first — groups are built from them.
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -285,9 +363,15 @@ export default function ScheduledMessagesPage() {
                   <Label>Scheduled Date & Time *</Label>
                   <Input type="datetime-local" value={form.scheduledFor} onChange={e => set('scheduledFor', e.target.value)} />
                 </div>
+                {/* Counted from the contacts in the chosen group, so it cannot
+                    drift away from who would actually be messaged. */}
                 <div className="space-y-1.5">
-                  <Label>Recipient Count</Label>
-                  <Input type="number" min={0} value={form.recipientCount} onChange={e => set('recipientCount', e.target.value)} placeholder="e.g. 120" />
+                  <Label>Recipients</Label>
+                  <div className="flex h-10 items-center rounded-md border border-input bg-muted/40 px-3 text-sm">
+                    {form.group
+                      ? <span className="font-semibold text-[#1E2A4A]">{groupSizes.get(form.group) ?? 0} contact(s)</span>
+                      : <span className="text-muted-foreground">Choose a group</span>}
+                  </div>
                 </div>
               </div>
               <div className="space-y-1.5">
