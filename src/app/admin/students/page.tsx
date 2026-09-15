@@ -6,6 +6,7 @@ import Link from "next/link";
 import { 
   UserPlus, 
   Download, 
+  Upload,
   Search, 
   Filter, 
   Eye, 
@@ -51,6 +52,7 @@ import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { exportToCSV } from "@/lib/exportToCSV";
+import { ImportStudentsDialog } from "@/components/students/import-students-dialog";
 
 interface Student {
   id: string;
@@ -84,6 +86,7 @@ export default function StudentListPage() {
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const itemsPerPage = 10;
 
   const filteredStudents = useMemo(() => {
@@ -164,6 +167,9 @@ export default function StudentListPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" className="hidden md:flex gap-2" onClick={() => setImportOpen(true)}>
+              <Upload className="h-4 w-4" /> Import CSV
+            </Button>
             <Button variant="outline" size="sm" className="hidden md:flex gap-2" onClick={handleExportCSV}>
               <Download className="h-4 w-4" /> Export CSV
             </Button>
@@ -407,6 +413,13 @@ export default function StudentListPage() {
         </Card>
         )}
       </main>
+
+      <ImportStudentsDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        branchId={currentBranch}
+        existing={students}
+      />
 
       <Dialog open={!!deleteTarget} onOpenChange={v => { if (!v) setDeleteTarget(null); }}>
         <DialogContent className="sm:max-w-sm">

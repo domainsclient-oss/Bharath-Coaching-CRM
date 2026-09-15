@@ -68,7 +68,7 @@ export function NotificationsPopover() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-2 text-xs text-[#0D7C8F] hover:text-[#0D7C8F]"
+              className="h-7 gap-1 px-2 text-xs text-[#0D7C8F] hover:text-white"
               onClick={markAllAsRead}
             >
               <CheckCheck className="h-3.5 w-3.5" />
@@ -140,7 +140,7 @@ export function NotificationsPopover() {
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 w-full text-xs text-[#0D7C8F] hover:text-[#0D7C8F]"
+            className="h-8 w-full text-xs text-[#0D7C8F] hover:text-white"
             onClick={() => {
               setOpen(false);
               releaseUiLock();
