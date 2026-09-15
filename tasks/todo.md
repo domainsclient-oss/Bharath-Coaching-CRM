@@ -101,3 +101,44 @@ and then been invisible on the very page that imported them. The import sets
   a missing name, a missing class and a row repeated inside the file. Two rows
   accepted, five skipped with the right reason each, exactly as intended
 - `tsc --noEmit` clean, page loads, no errors in the dev log
+
+---
+
+## Merge "Due Fees" into "Balance Fees"
+
+Two pages read the same `fees` collection for the same branch and differed only
+by a `balance > 0` filter. Balance Fees additionally showed fully paid records
+under a heading that said "Balance Dues", which duplicated Search Fees, and the
+two pages disagreed on "Students with Dues" — Balance counted distinct students,
+Due counted rows.
+
+**What the merged page keeps**
+- From Due Fees: data-driven Class and Board dropdowns, the Subjects column,
+  Bill No first, the Overdue Only pill with its count, the working WhatsApp
+  reminder, the Collect button with its icon
+- From Balance Fees: the Status dropdown, the Status badge column, the Clear
+  Filters button, the distinct-student count, the "+ Add Fee Record" empty state
+- The two scopes are now a toggle: Outstanding Only (default, `balance > 0`) and
+  All Records. Nothing either page could show is unreachable
+
+**Fixes folded in**
+- "Students with Dues" counts distinct students everywhere
+- Overdue is one string comparison on `YYYY-MM-DD` — Balance used a `Date`
+  built once at module load, so a tab left open overnight judged it wrong
+- Summary cards follow the filters and carry the branch-wide figure alongside,
+  so a narrowed list never hides the real total
+
+**Files**
+- `src/app/admin/fees/balance/page.tsx` — merged page
+- `src/app/admin/fees/due/page.tsx` — redirect to `/admin/fees/balance`, so
+  bookmarks and the notification link in `use-notifications.tsx` keep working
+- `src/components/layout/admin-nav.ts` — one entry, "Balance / Due Fees"
+
+**Verification**
+- `tsc --noEmit` clean for both files; remaining errors are pre-existing and in
+  unrelated pages
+- `npm run build` compiles; `/admin/fees/balance` builds at 5.43 kB and
+  `/admin/fees/due` at 143 B, the size of the redirect stub
+
+**Still open:** `/admin/fees/due-tracking` is not in the nav and still runs on
+`mockFeeRecords`. It is the only page with instalment-level aging buckets.
