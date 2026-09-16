@@ -1,5 +1,6 @@
 "use client";
 
+import { BOARD_FILTER_OPTIONS } from "@/config/boards";
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
@@ -70,10 +71,7 @@ export default function AlumniPage() {
     return ["All", ...Array.from(set).sort()];
   }, [allAlumni]);
 
-  const boards = useMemo(() => {
-    const set = new Set(allAlumni.map(s => s.board).filter(Boolean) as string[]);
-    return ["All", ...Array.from(set).sort()];
-  }, [allAlumni]);
+  const boards = BOARD_FILTER_OPTIONS;
 
   const passingYears = useMemo(() => {
     const set = new Set(

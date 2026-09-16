@@ -1,5 +1,6 @@
 "use client";
 
+import { BOARD_FILTER_OPTIONS } from "@/config/boards";
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ChevronRight, Download, Printer, BarChart3, IndianRupee, TrendingUp, Users } from "lucide-react";
@@ -149,7 +150,7 @@ export default function FeesReportPage() {
                 <Select value={filters.board} onValueChange={v => setFilters(f => ({ ...f, board: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {["All", "CBSE", "ICSE", "State", "Samacheer", "IB"].map(b => <SelectItem key={b} value={b}>{b === "All" ? "All Boards" : b}</SelectItem>)}
+                    {BOARD_FILTER_OPTIONS.map(b => <SelectItem key={b} value={b}>{b === "All" ? "All Boards" : b}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

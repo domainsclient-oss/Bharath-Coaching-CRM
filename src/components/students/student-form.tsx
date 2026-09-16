@@ -1,6 +1,8 @@
 
 "use client";
 
+import { CLASSES, subjectsForClass } from "@/config/academics";
+import { BOARDS } from "@/config/boards";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -66,27 +68,24 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const DEFAULT_FORM = {
     name: "", dob: "", gender: "Male",
-    parentName: "", phone: "", whatsapp: "", isWhatsappSame: true,
+    fatherName: "", fatherOccupation: "", motherName: "", motherOccupation: "",
+    fatherMobile: "", motherMobile: "", whatsapp: "", isWhatsappSame: true,
     email: "", address: "", city: "", pincode: "",
     school: "", class: "", board: "CBSE", medium: "English",
     subjects: [] as string[], mode: "Offline", batchPreference: "",
-    docs: { reportCard: false, idProof: false, photo: false } as Record<string, boolean>,
     feeType: "Standard", totalFee: "", instalmentPlan: "Full", firstDueDate: ""
   };
 
   const [formData, setFormData] = useState(() => ({
     ...DEFAULT_FORM,
     ...(initialData || {}),
-    // Always ensure docs is an object, merging any saved flags
-    docs: {
-      ...DEFAULT_FORM.docs,
-      ...(initialData?.docs ?? {}),
-    },
+    // Legacy records stored one `phone`; surface it as the father's mobile
+    fatherMobile: initialData?.fatherMobile ?? initialData?.phone ?? "",
+    motherMobile: initialData?.motherMobile ?? "",
     // Ensure subjects is always an array
     subjects: Array.isArray(initialData?.subjects) ? initialData.subjects : [],
   }));
 
-  const [subjectInput, setSubjectInput] = useState("");
 
   // ── Photo upload state ──────────────────────────────────────────────────
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -177,8 +176,8 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
         }
         break;
       case 2:
-        if (!formData.parentName || !formData.phone) {
-          toast({ variant: "destructive", title: "Missing Fields", description: "Please fill in parent name and phone number." });
+        if (!formData.fatherMobile || !formData.motherMobile) {
+          toast({ variant: "destructive", title: "Missing Fields", description: "Please fill in both the father's and mother's mobile numbers." });
           return false;
         }
         break;
@@ -192,10 +191,13 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
     return true;
   };
 
-  const addSubject = () => {
-    if (subjectInput && !formData.subjects.includes(subjectInput)) {
-      updateFormData({ subjects: [...formData.subjects, subjectInput] });
-      setSubjectInput("");
+  /** Subjects the chosen class offers, minus the ones already picked. */
+  const availableSubjects = subjectsForClass(formData.class)
+    .filter((sub) => !formData.subjects.includes(sub));
+
+  const addSubject = (subject: string) => {
+    if (subject && !formData.subjects.includes(subject)) {
+      updateFormData({ subjects: [...formData.subjects, subject] });
     }
   };
 
@@ -218,7 +220,10 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
         await updateDocument("students", initialData.id, {
           ...formData,
           branchId: currentBranch,
-          whatsapp: formData.isWhatsappSame ? formData.phone : formData.whatsapp,
+          whatsapp: formData.isWhatsappSame ? formData.fatherMobile : formData.whatsapp,
+          // Primary contact fields the rest of the CRM reads
+          phone:      formData.fatherMobile || formData.motherMobile,
+          parentName: formData.fatherName   || formData.motherName,
         });
 
         // Upload photo in background — does NOT block navigation
@@ -238,9 +243,16 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
           name:            formData.name,
           dob:             formData.dob,
           gender:          formData.gender,
-          parentName:      formData.parentName,
-          phone:           formData.phone,
-          whatsapp:        formData.isWhatsappSame ? formData.phone : formData.whatsapp,
+          fatherName:      formData.fatherName,
+          fatherOccupation: formData.fatherOccupation,
+          motherName:      formData.motherName,
+          motherOccupation: formData.motherOccupation,
+          fatherMobile:    formData.fatherMobile,
+          motherMobile:    formData.motherMobile,
+          // Primary contact fields the rest of the CRM reads
+          parentName:      formData.fatherName   || formData.motherName,
+          phone:           formData.fatherMobile || formData.motherMobile,
+          whatsapp:        formData.isWhatsappSame ? formData.fatherMobile : formData.whatsapp,
           email:           formData.email,
           address:         formData.address,
           city:            formData.city,
@@ -348,6 +360,42 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="fatherName">Father&apos;s Name</Label>
+                  <Input 
+                    id="fatherName" 
+                    value={formData.fatherName} 
+                    onChange={(e) => updateFormData({ fatherName: e.target.value })} 
+                    placeholder="Enter father&apos;s name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fatherOccupation">Father&apos;s Occupation</Label>
+                  <Input 
+                    id="fatherOccupation" 
+                    value={formData.fatherOccupation} 
+                    onChange={(e) => updateFormData({ fatherOccupation: e.target.value })} 
+                    placeholder="Enter father&apos;s occupation"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="motherName">Mother&apos;s Name</Label>
+                  <Input 
+                    id="motherName" 
+                    value={formData.motherName} 
+                    onChange={(e) => updateFormData({ motherName: e.target.value })} 
+                    placeholder="Enter mother&apos;s name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="motherOccupation">Mother&apos;s Occupation</Label>
+                  <Input 
+                    id="motherOccupation" 
+                    value={formData.motherOccupation} 
+                    onChange={(e) => updateFormData({ motherOccupation: e.target.value })} 
+                    placeholder="Enter mother&apos;s occupation"
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="dob">Date of Birth *</Label>
                   <Input 
                     id="dob" 
@@ -377,7 +425,319 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                     </div>
                   </RadioGroup>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: CONTACT */}
+          {currentStep === 2 && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+              <div className="border-b pb-4 mb-6">
+                <h3 className="text-lg font-bold text-[#1E2A4A]">Contact Information</h3>
+                <p className="text-sm text-muted-foreground">Details for communication with parents.</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
+                  <Label htmlFor="fatherMobile">Father&apos;s Mobile *</Label>
+                  <div className="relative">
+                    <Smartphone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <PhoneInput
+                      id="fatherMobile"
+                      className="pl-10"
+                      value={formData.fatherMobile}
+                      onChange={(v) => updateFormData({ fatherMobile: v })}
+                      placeholder="9876543210"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="motherMobile">Mother&apos;s Mobile *</Label>
+                  <div className="relative">
+                    <Smartphone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <PhoneInput
+                      id="motherMobile"
+                      className="pl-10"
+                      value={formData.motherMobile}
+                      onChange={(v) => updateFormData({ motherMobile: v })}
+                      placeholder="9876543210"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="whatsapp">WhatsApp Number</Label>
+                    <div className="flex items-center gap-2">
+                      <Checkbox 
+                        id="same" 
+                        checked={formData.isWhatsappSame} 
+                        onCheckedChange={(val) => updateFormData({ isWhatsappSame: !!val, whatsapp: val ? formData.fatherMobile : "" })}
+                      />
+                      <Label htmlFor="same" className="text-[10px] font-normal cursor-pointer">Same as father&apos;s mobile</Label>
+                    </div>
+                  </div>
+                  <PhoneInput
+                    id="whatsapp"
+                    value={formData.whatsapp}
+                    disabled={formData.isWhatsappSame}
+                    onChange={(v) => updateFormData({ whatsapp: v })}
+                    placeholder="WhatsApp number"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    value={formData.email} 
+                    onChange={(e) => updateFormData({ email: e.target.value })} 
+                    placeholder="parent@example.com"
+                  />
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Textarea 
+                    id="address" 
+                    value={formData.address} 
+                    onChange={(e) => updateFormData({ address: e.target.value })} 
+                    placeholder="House No, Street, Landmark"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input 
+                    id="city" 
+                    value={formData.city} 
+                    onChange={(e) => updateFormData({ city: e.target.value })} 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pincode">PIN Code</Label>
+                  <Input 
+                    id="pincode" 
+                    value={formData.pincode} 
+                    onChange={(e) => updateFormData({ pincode: e.target.value })} 
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: ACADEMIC */}
+          {currentStep === 3 && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+              <div className="border-b pb-4 mb-6">
+                <h3 className="text-lg font-bold text-[#1E2A4A]">Academic Details</h3>
+                <p className="text-sm text-muted-foreground">Current school and board information.</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="md:col-span-2 space-y-2">
+                  <Label htmlFor="school">School/College Name</Label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      id="school" 
+                      className="pl-10"
+                      value={formData.school} 
+                      onChange={(e) => updateFormData({ school: e.target.value })} 
+                      placeholder="e.g. KV Trichy"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Class *</Label>
+                  <Select
+                    value={formData.class}
+                    onValueChange={(val) => updateFormData({
+                      class: val,
+                      // Keep only the subjects the new class actually offers
+                      subjects: formData.subjects.filter((s: string) => subjectsForClass(val).includes(s)),
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CLASSES.map(cls => (
+                        <SelectItem key={cls} value={cls}>Class {cls}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Board *</Label>
+                  <Select value={formData.board} onValueChange={(val) => updateFormData({ board: val })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Board" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BOARDS.map(board => (
+                        <SelectItem key={board} value={board}>{board}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4: ENROLLMENT */}
+          {currentStep === 4 && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+              <div className="border-b pb-4 mb-6">
+                <h3 className="text-lg font-bold text-[#1E2A4A]">Enrollment Details</h3>
+                <p className="text-sm text-muted-foreground">Course selection and logistics.</p>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Subjects</Label>
+                  <Select value="all" onValueChange={addSubject} disabled={availableSubjects.length === 0}>
+                    <SelectTrigger className="mb-2">
+                      <SelectValue placeholder={
+                        !formData.class            ? "Select a class first"
+                        : availableSubjects.length === 0 ? "All subjects added"
+                        : "Select a subject to add"
+                      } />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableSubjects.map((sub) => (
+                        <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex flex-wrap gap-2 p-2 border rounded-lg min-h-[50px] bg-slate-50">
+                    {formData.subjects.length === 0 && <span className="text-xs text-muted-foreground p-2">No subjects added yet...</span>}
+                    {formData.subjects.map((sub: string) => (
+                      <Badge key={sub} className="bg-[#0D7C8F] flex items-center gap-1">
+                        {sub}
+                        <X className="h-3 w-3 cursor-pointer" onClick={() => removeSubject(sub)} />
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                  <div className="space-y-3">
+                    <Label>Study Mode</Label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <button 
+                        type="button"
+                        onClick={() => updateFormData({ mode: "Offline" })}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-4 border-2 rounded-xl transition-all",
+                          formData.mode === "Offline" ? "border-[#0D7C8F] bg-[#0D7C8F]/5 ring-2 ring-[#0D7C8F]/20" : "border-slate-100 opacity-60"
+                        )}
+                      >
+                        <Building2 className={cn("h-6 w-6 mb-2", formData.mode === "Offline" ? "text-[#0D7C8F]" : "text-slate-400")} />
+                        <span className="text-sm font-bold">Offline</span>
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => updateFormData({ mode: "Online" })}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-4 border-2 rounded-xl transition-all",
+                          formData.mode === "Online" ? "border-[#0D7C8F] bg-[#0D7C8F]/5 ring-2 ring-[#0D7C8F]/20" : "border-slate-100 opacity-60"
+                        )}
+                      >
+                        <Monitor className={cn("h-6 w-6 mb-2", formData.mode === "Online" ? "text-[#0D7C8F]" : "text-slate-400")} />
+                        <span className="text-sm font-bold">Online</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateFormData({ mode: "One to One" })}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-4 border-2 rounded-xl transition-all",
+                          formData.mode === "One to One" ? "border-[#0D7C8F] bg-[#0D7C8F]/5 ring-2 ring-[#0D7C8F]/20" : "border-slate-100 opacity-60"
+                        )}
+                      >
+                        <User className={cn("h-6 w-6 mb-2", formData.mode === "One to One" ? "text-[#0D7C8F]" : "text-slate-400")} />
+                        <span className="text-sm font-bold text-center">One to One</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="batch">Batch Preference</Label>
+                    <Input 
+                      id="batch" 
+                      value={formData.batchPreference} 
+                      onChange={(e) => updateFormData({ batchPreference: e.target.value })} 
+                      placeholder="e.g. Evening Batch"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 5: FEE PLAN */}
+          {currentStep === 5 && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+              <div className="border-b pb-4 mb-6">
+                <h3 className="text-lg font-bold text-[#1E2A4A]">Fee Plan</h3>
+                <p className="text-sm text-muted-foreground">Financial arrangements for the enrollment.</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="md:col-span-2 space-y-3">
+                  <Label>Fee Type</Label>
+                  <RadioGroup 
+                    value={formData.feeType} 
+                    onValueChange={(val) => updateFormData({ feeType: val })}
+                    className="flex gap-8"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Standard" id="std" />
+                      <Label htmlFor="std">Standard Batch</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="OneToOne" id="oto" />
+                      <Label htmlFor="oto">One-to-One Tuition</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="total">Total Fee Amount (₹) *</Label>
+                  <div className="relative">
+                    <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      id="total" 
+                      className="pl-10"
+                      type="number"
+                      value={formData.totalFee} 
+                      onChange={(e) => updateFormData({ totalFee: e.target.value })} 
+                      placeholder="e.g. 15000"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Instalment Plan</Label>
+                  <Select value={formData.instalmentPlan} onValueChange={(val) => updateFormData({ instalmentPlan: val })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Plan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Full">Full Payment</SelectItem>
+                      <SelectItem value="1 Part">1 Instalment</SelectItem>
+                      <SelectItem value="2 Parts">2 Instalments</SelectItem>
+                      <SelectItem value="3 Parts">3 Instalments</SelectItem>
+                      <SelectItem value="4 Parts">4 Instalments</SelectItem>
+                      <SelectItem value="5 Parts">5 Instalments</SelectItem>
+                      <SelectItem value="6 Parts">6 Instalments</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dueDate">First Instalment Due Date</Label>
+                  <div className="relative">
+                    <CalendarIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      id="dueDate" 
+                      className="pl-10"
+                      type="date"
+                      value={formData.firstDueDate} 
+                      onChange={(e) => updateFormData({ firstDueDate: e.target.value })} 
+                    />
+                  </div>
+                </div>
+                <div className="md:col-span-2 space-y-2 border-t pt-6">
                   <Label>Photo Upload</Label>
 
                   {/* Hidden native file input */}
@@ -443,312 +803,6 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                       <p className="text-[10px] text-[#0D7C8F] text-center">Uploading… {uploadProgress}%</p>
                     </div>
                   )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2: CONTACT */}
-          {currentStep === 2 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-              <div className="border-b pb-4 mb-6">
-                <h3 className="text-lg font-bold text-[#1E2A4A]">Contact Information</h3>
-                <p className="text-sm text-muted-foreground">Details for communication with parents.</p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="parentName">Parent/Guardian Name *</Label>
-                  <Input 
-                    id="parentName" 
-                    value={formData.parentName} 
-                    onChange={(e) => updateFormData({ parentName: e.target.value })} 
-                    placeholder="Enter parent name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    value={formData.email} 
-                    onChange={(e) => updateFormData({ email: e.target.value })} 
-                    placeholder="parent@example.com"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number *</Label>
-                  <div className="relative">
-                    <Smartphone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <PhoneInput
-                      id="phone"
-                      className="pl-10"
-                      value={formData.phone}
-                      onChange={(v) => updateFormData({ phone: v })}
-                      placeholder="9876543210"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="whatsapp">WhatsApp Number</Label>
-                    <div className="flex items-center gap-2">
-                      <Checkbox 
-                        id="same" 
-                        checked={formData.isWhatsappSame} 
-                        onCheckedChange={(val) => updateFormData({ isWhatsappSame: !!val, whatsapp: val ? formData.phone : "" })}
-                      />
-                      <Label htmlFor="same" className="text-[10px] font-normal cursor-pointer">Same as phone</Label>
-                    </div>
-                  </div>
-                  <PhoneInput
-                    id="whatsapp"
-                    value={formData.whatsapp}
-                    disabled={formData.isWhatsappSame}
-                    onChange={(v) => updateFormData({ whatsapp: v })}
-                    placeholder="WhatsApp number"
-                  />
-                </div>
-                <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Textarea 
-                    id="address" 
-                    value={formData.address} 
-                    onChange={(e) => updateFormData({ address: e.target.value })} 
-                    placeholder="House No, Street, Landmark"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input 
-                    id="city" 
-                    value={formData.city} 
-                    onChange={(e) => updateFormData({ city: e.target.value })} 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pincode">PIN Code</Label>
-                  <Input 
-                    id="pincode" 
-                    value={formData.pincode} 
-                    onChange={(e) => updateFormData({ pincode: e.target.value })} 
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 3: ACADEMIC */}
-          {currentStep === 3 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-              <div className="border-b pb-4 mb-6">
-                <h3 className="text-lg font-bold text-[#1E2A4A]">Academic Details</h3>
-                <p className="text-sm text-muted-foreground">Current school and board information.</p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="school">School/College Name</Label>
-                  <div className="relative">
-                    <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      id="school" 
-                      className="pl-10"
-                      value={formData.school} 
-                      onChange={(e) => updateFormData({ school: e.target.value })} 
-                      placeholder="e.g. KV Trichy"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Class *</Label>
-                  <Select value={formData.class} onValueChange={(val) => updateFormData({ class: val })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Class" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["8", "9", "10", "11", "12"].map(cls => (
-                        <SelectItem key={cls} value={cls}>Class {cls}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Board *</Label>
-                  <Select value={formData.board} onValueChange={(val) => updateFormData({ board: val })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Board" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["CBSE", "ICSE", "State", "Samacheer", "IB"].map(board => (
-                        <SelectItem key={board} value={board}>{board}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Medium</Label>
-                  <Select value={formData.medium} onValueChange={(val) => updateFormData({ medium: val })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Medium" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="English">English</SelectItem>
-                      <SelectItem value="Tamil">Tamil</SelectItem>
-                      <SelectItem value="Hindi">Hindi</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 4: ENROLLMENT */}
-          {currentStep === 4 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-              <div className="border-b pb-4 mb-6">
-                <h3 className="text-lg font-bold text-[#1E2A4A]">Enrollment Details</h3>
-                <p className="text-sm text-muted-foreground">Course selection and logistics.</p>
-              </div>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Subjects</Label>
-                  <div className="flex gap-2 mb-2">
-                    <Input 
-                      value={subjectInput} 
-                      onChange={(e) => setSubjectInput(e.target.value)} 
-                      placeholder="Type subject (e.g. Math) and press Add" 
-                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSubject())}
-                    />
-                    <Button type="button" onClick={addSubject} variant="secondary">Add</Button>
-                  </div>
-                  <div className="flex flex-wrap gap-2 p-2 border rounded-lg min-h-[50px] bg-slate-50">
-                    {formData.subjects.length === 0 && <span className="text-xs text-muted-foreground p-2">No subjects added yet...</span>}
-                    {formData.subjects.map((sub: string) => (
-                      <Badge key={sub} className="bg-[#0D7C8F] flex items-center gap-1">
-                        {sub}
-                        <X className="h-3 w-3 cursor-pointer" onClick={() => removeSubject(sub)} />
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                  <div className="space-y-3">
-                    <Label>Study Mode</Label>
-                    <div className="grid grid-cols-2 gap-4">
-                      <button 
-                        type="button"
-                        onClick={() => updateFormData({ mode: "Offline" })}
-                        className={cn(
-                          "flex flex-col items-center justify-center p-4 border-2 rounded-xl transition-all",
-                          formData.mode === "Offline" ? "border-[#0D7C8F] bg-[#0D7C8F]/5 ring-2 ring-[#0D7C8F]/20" : "border-slate-100 opacity-60"
-                        )}
-                      >
-                        <Building2 className={cn("h-6 w-6 mb-2", formData.mode === "Offline" ? "text-[#0D7C8F]" : "text-slate-400")} />
-                        <span className="text-sm font-bold">Offline</span>
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={() => updateFormData({ mode: "Online" })}
-                        className={cn(
-                          "flex flex-col items-center justify-center p-4 border-2 rounded-xl transition-all",
-                          formData.mode === "Online" ? "border-[#0D7C8F] bg-[#0D7C8F]/5 ring-2 ring-[#0D7C8F]/20" : "border-slate-100 opacity-60"
-                        )}
-                      >
-                        <Monitor className={cn("h-6 w-6 mb-2", formData.mode === "Online" ? "text-[#0D7C8F]" : "text-slate-400")} />
-                        <span className="text-sm font-bold">Online</span>
-                      </button>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="batch">Batch Preference</Label>
-                    <Input 
-                      id="batch" 
-                      value={formData.batchPreference} 
-                      onChange={(e) => updateFormData({ batchPreference: e.target.value })} 
-                      placeholder="e.g. Evening Batch"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-3 pt-4">
-                  <Label>Documents Collected</Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {Object.entries(formData.docs).map(([key, value]) => (
-                      <div key={key} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-slate-50 cursor-pointer" onClick={() => updateFormData({ docs: { ...formData.docs, [key]: !value } })}>
-                        <Checkbox checked={value as boolean} />
-                        <Label className="text-xs font-medium cursor-pointer capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 5: FEE PLAN */}
-          {currentStep === 5 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-              <div className="border-b pb-4 mb-6">
-                <h3 className="text-lg font-bold text-[#1E2A4A]">Fee Plan</h3>
-                <p className="text-sm text-muted-foreground">Financial arrangements for the enrollment.</p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2 space-y-3">
-                  <Label>Fee Type</Label>
-                  <RadioGroup 
-                    value={formData.feeType} 
-                    onValueChange={(val) => updateFormData({ feeType: val })}
-                    className="flex gap-8"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="Standard" id="std" />
-                      <Label htmlFor="std">Standard Batch</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="OneToOne" id="oto" />
-                      <Label htmlFor="oto">One-to-One Tuition</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="total">Total Fee Amount (₹) *</Label>
-                  <div className="relative">
-                    <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      id="total" 
-                      className="pl-10"
-                      type="number"
-                      value={formData.totalFee} 
-                      onChange={(e) => updateFormData({ totalFee: e.target.value })} 
-                      placeholder="e.g. 15000"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Instalment Plan</Label>
-                  <Select value={formData.instalmentPlan} onValueChange={(val) => updateFormData({ instalmentPlan: val })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Plan" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Full">Full Payment</SelectItem>
-                      <SelectItem value="2 Parts">2 Instalments</SelectItem>
-                      <SelectItem value="3 Parts">3 Instalments</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dueDate">First Instalment Due Date</Label>
-                  <div className="relative">
-                    <CalendarIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      id="dueDate" 
-                      className="pl-10"
-                      type="date"
-                      value={formData.firstDueDate} 
-                      onChange={(e) => updateFormData({ firstDueDate: e.target.value })} 
-                    />
-                  </div>
                 </div>
               </div>
             </div>

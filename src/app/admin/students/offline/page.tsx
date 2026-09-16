@@ -1,5 +1,7 @@
 "use client";
 
+import { CLASSES } from "@/config/academics";
+import { BOARDS } from "@/config/boards";
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ChevronRight, Search, RotateCcw, GraduationCap, Users } from "lucide-react";
@@ -32,8 +34,6 @@ interface Student {
 }
 
 const MODES   = ["Offline", "Online"];
-const CLASSES = ["8", "9", "10", "11", "12"];
-const BOARDS  = ["CBSE", "ICSE", "State", "Samacheer", "IB"];
 
 /** The three filters the search requires before it will run. */
 interface Criteria {

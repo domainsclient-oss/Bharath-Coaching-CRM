@@ -1,5 +1,6 @@
 "use client";
 
+import { CLASSES } from "@/config/academics";
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
@@ -155,7 +156,7 @@ export default function DiscontinuedStudentsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="All">All Classes</SelectItem>
-                  {["8", "9", "10", "11", "12"].map((c) => (
+                  {CLASSES.map((c) => (
                     <SelectItem key={c} value={c}>Class {c}</SelectItem>
                   ))}
                 </SelectContent>

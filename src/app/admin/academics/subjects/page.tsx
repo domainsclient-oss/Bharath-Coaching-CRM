@@ -1,5 +1,6 @@
 "use client";
 
+import { BOARDS } from "@/config/boards";
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
@@ -30,7 +31,6 @@ import { useFirestoreCollection } from "@/hooks/useFirestoreCollection";
 import { addDocument, updateDocument, deleteDocument } from "@/services/firestoreService";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const BOARDS = ["CBSE", "ICSE", "State", "Samacheer", "IB"];
 const TYPE_COLORS: Record<string, string> = {
   Theory:    "bg-blue-100 text-blue-700 hover:bg-blue-200 hover:text-blue-800",
   Practical: "bg-purple-100 text-purple-700 hover:bg-purple-200 hover:text-purple-800",

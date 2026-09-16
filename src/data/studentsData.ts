@@ -33,6 +33,8 @@ export interface Student {
   fatherOccupation?: string;
   motherName?: string;
   motherOccupation?: string;
+  fatherMobile?: string;
+  motherMobile?: string;
   joinDate?: string;
   previousSchool?: string;
   previousSchoolMarks?: number;

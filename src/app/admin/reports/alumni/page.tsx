@@ -1,5 +1,6 @@
 "use client";
 
+import { BOARD_FILTER_OPTIONS } from "@/config/boards";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronRight, GraduationCap, Download, Users, Search } from "lucide-react";
@@ -39,6 +40,9 @@ const BOARD_COLOR: Record<string, string> = {
   ICSE:  "bg-indigo-100 text-indigo-700 hover:bg-indigo-200 hover:text-indigo-800",
   State: "bg-amber-100 text-amber-700 hover:bg-amber-200 hover:text-amber-800",
   IB:    "bg-teal-100 text-teal-700 hover:bg-teal-200 hover:text-teal-800",
+  SAMACHEER:    "bg-amber-100 text-amber-700 hover:bg-amber-200 hover:text-amber-800",
+  IGCSE:        "bg-sky-100 text-sky-700 hover:bg-sky-200 hover:text-sky-800",
+  "ONE TO ONE": "bg-rose-100 text-rose-700 hover:bg-rose-200 hover:text-rose-800",
 };
 
 function initials(name: string) {
@@ -166,7 +170,7 @@ export default function AlumniReportPage() {
               </Select>
               <Select value={boardF} onValueChange={setBoardF}>
                 <SelectTrigger className="w-28 h-8 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>{["All","CBSE","ICSE","State","Samacheer","IB"].map(b => <SelectItem key={b} value={b}>{b === "All" ? "All Boards" : b}</SelectItem>)}</SelectContent>
+                <SelectContent>{BOARD_FILTER_OPTIONS.map(b => <SelectItem key={b} value={b}>{b === "All" ? "All Boards" : b}</SelectItem>)}</SelectContent>
               </Select>
               <Select value={batchF} onValueChange={setBatchF}>
                 <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>

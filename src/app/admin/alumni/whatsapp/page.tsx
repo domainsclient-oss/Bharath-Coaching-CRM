@@ -1,5 +1,6 @@
 "use client";
 
+import { BOARD_FILTER_OPTIONS } from "@/config/boards";
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
@@ -71,7 +72,6 @@ interface AlumniDoc {
   branchId: string;
 }
 
-const BOARDS = ["All", "CBSE", "ICSE", "State", "Samacheer", "IB"];
 
 function initials(name: string) {
   return name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
@@ -247,7 +247,7 @@ export default function WhatsAppAlumniPage() {
                   <Select value={boardF} onValueChange={setBoardF}>
                     <SelectTrigger><SelectValue placeholder="Board" /></SelectTrigger>
                     <SelectContent>
-                      {BOARDS.map(b => <SelectItem key={b} value={b}>{b === "All" ? "All Boards" : b}</SelectItem>)}
+                      {BOARD_FILTER_OPTIONS.map(b => <SelectItem key={b} value={b}>{b === "All" ? "All Boards" : b}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <Select value={batchF} onValueChange={setBatchF}>

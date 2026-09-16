@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { ChevronRight, Search, IndianRupee, CreditCard, Check, PlusCircle } from "lucide-react";
+import { ChevronRight, Search, IndianRupee, CreditCard, Check, PlusCircle, Loader2 } from "lucide-react";
 import { SharedHeader } from "@/components/layout/shared-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,9 +54,7 @@ export default function CollectFeesPage() {
   const [name, setName] = useState("");
   const [classFilter, setClassFilter] = useState("");
   const [boardFilter, setBoardFilter] = useState("");
-  const [searched, setSearched] = useState(false);
-
-  const { data: allRecords } = useFirestoreCollection<FeeDoc>("fees", currentBranch);
+  const { data: allRecords, loading } = useFirestoreCollection<FeeDoc>("fees", currentBranch);
 
   // Collect payment dialog
   const [collectRecord, setCollectRecord] = useState<FeeDoc | null>(null);
@@ -65,14 +63,14 @@ export default function CollectFeesPage() {
   const [payDate, setPayDate] = useState(localToday());
   const [saving, setSaving] = useState(false);
 
+  // Every record is listed on arrival; the filters narrow it live as you type.
   const records = useMemo(() => {
-    if (!searched) return [];
     return allRecords.filter(r =>
       (!name || (r.studentName ?? r.name ?? "").toLowerCase().includes(name.toLowerCase())) &&
       (!classFilter || (r.class ?? "").includes(classFilter)) &&
       (!boardFilter || (r.board ?? "").toLowerCase().includes(boardFilter.toLowerCase()))
     );
-  }, [searched, allRecords, name, classFilter, boardFilter]);
+  }, [allRecords, name, classFilter, boardFilter]);
 
   const fmt = (n: number) => `₹${(n ?? 0).toLocaleString("en-IN")}`;
 
@@ -125,9 +123,10 @@ export default function CollectFeesPage() {
     }
   };
 
-  const handleSearch = () => setSearched(true);
+  const hasFilters = !!(name || classFilter || boardFilter);
+  // Filtering is already live; Search (or Enter) just moves focus off the input.
+  const handleSearch = () => (document.activeElement as HTMLElement | null)?.blur();
   const handleClear = () => {
-    setSearched(false);
     setName(""); setClassFilter(""); setBoardFilter("");
   };
 
@@ -184,7 +183,7 @@ export default function CollectFeesPage() {
               <Button className="bg-[#1E2A4A] hover:bg-[#0D7C8F] gap-2" onClick={handleSearch}>
                 <Search className="h-4 w-4" /> Search
               </Button>
-              {searched && (
+              {hasFilters && (
                 <Button variant="outline" onClick={handleClear}>Clear</Button>
               )}
             </div>
@@ -192,85 +191,89 @@ export default function CollectFeesPage() {
         </Card>
 
         {/* Results */}
-        {searched && (
-          <Card className="border-none shadow-sm overflow-hidden">
-            <CardHeader className="bg-slate-50 border-b py-3 px-6">
-              <CardTitle className="text-base flex items-center gap-2">
-                <IndianRupee className="h-4 w-4 text-[#0D7C8F]" />
-                {records.length} Record{records.length !== 1 ? "s" : ""}
-              </CardTitle>
-            </CardHeader>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-slate-50">
+        <Card className="border-none shadow-sm overflow-hidden">
+          <CardHeader className="bg-slate-50 border-b py-3 px-6">
+            <CardTitle className="text-base flex items-center gap-2">
+              <IndianRupee className="h-4 w-4 text-[#0D7C8F]" />
+              {records.length} Record{records.length !== 1 ? "s" : ""}
+            </CardTitle>
+          </CardHeader>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-slate-50">
+                <TableRow>
+                  <TableHead>Student</TableHead>
+                  <TableHead>Class</TableHead>
+                  <TableHead>Bill No</TableHead>
+                  <TableHead className="text-right">Total Fee</TableHead>
+                  <TableHead className="text-right">Paid</TableHead>
+                  <TableHead className="text-right">Balance</TableHead>
+                  <TableHead>Due Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
                   <TableRow>
-                    <TableHead>Student</TableHead>
-                    <TableHead>Class</TableHead>
-                    <TableHead>Bill No</TableHead>
-                    <TableHead className="text-right">Total Fee</TableHead>
-                    <TableHead className="text-right">Paid</TableHead>
-                    <TableHead className="text-right">Balance</TableHead>
-                    <TableHead>Due Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableCell colSpan={9} className="h-32 text-center">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {records.length > 0 ? records.map(r => (
-                    <TableRow key={r.id} className="hover:bg-slate-50/50">
-                      <TableCell className="font-semibold text-sm text-[#1E2A4A]">
-                        {r.studentName ?? r.name ?? "—"}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {r.class ? `Class ${r.class}` : "—"}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">
-                        {r.billNo ?? "—"}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">{fmt(r.totalFee)}</TableCell>
-                      <TableCell className="text-right font-semibold text-green-600">
-                        {fmt(r.amountPaid)}
-                      </TableCell>
-                      <TableCell className={`text-right font-bold ${(r.balance ?? 0) > 0 ? "text-red-600" : "text-green-600"}`}>
-                        {fmt(r.balance)}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{r.dueDate ?? "—"}</TableCell>
-                      <TableCell>
-                        <Badge className={`text-xs ${STATUS_COLORS[r.status] ?? "bg-slate-100 text-slate-700"}`}>
-                          {r.status}
+                ) : records.length > 0 ? records.map(r => (
+                  <TableRow key={r.id} className="hover:bg-slate-50/50">
+                    <TableCell className="font-semibold text-sm text-[#1E2A4A]">
+                      {r.studentName ?? r.name ?? "—"}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {r.class ? `Class ${r.class}` : "—"}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {r.billNo ?? "—"}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">{fmt(r.totalFee)}</TableCell>
+                    <TableCell className="text-right font-semibold text-green-600">
+                      {fmt(r.amountPaid)}
+                    </TableCell>
+                    <TableCell className={`text-right font-bold ${(r.balance ?? 0) > 0 ? "text-red-600" : "text-green-600"}`}>
+                      {fmt(r.balance)}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{r.dueDate ?? "—"}</TableCell>
+                    <TableCell>
+                      <Badge className={`text-xs ${STATUS_COLORS[r.status] ?? "bg-slate-100 text-slate-700"}`}>
+                        {r.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {(r.balance ?? 0) > 0 ? (
+                        <Button
+                          size="sm"
+                          className="h-8 text-xs bg-[#0D7C8F] hover:bg-[#0a6275] gap-1"
+                          onClick={() => openCollect(r)}
+                        >
+                          <CreditCard className="h-3 w-3" /> Collect
+                        </Button>
+                      ) : (
+                        <Badge className="bg-green-100 text-green-700 text-xs gap-1">
+                          <Check className="h-3 w-3" /> Paid
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {(r.balance ?? 0) > 0 ? (
-                          <Button
-                            size="sm"
-                            className="h-8 text-xs bg-[#0D7C8F] hover:bg-[#0a6275] gap-1"
-                            onClick={() => openCollect(r)}
-                          >
-                            <CreditCard className="h-3 w-3" /> Collect
-                          </Button>
-                        ) : (
-                          <Badge className="bg-green-100 text-green-700 text-xs gap-1">
-                            <Check className="h-3 w-3" /> Paid
-                          </Badge>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  )) : (
-                    <TableRow>
-                      <TableCell colSpan={9} className="h-32 text-center text-muted-foreground">
-                        <div className="flex flex-col items-center gap-2">
-                          <IndianRupee className="h-8 w-8 opacity-20" />
-                          <p>No fee records found.</p>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </Card>
-        )}
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )) : (
+                  <TableRow>
+                    <TableCell colSpan={9} className="h-32 text-center text-muted-foreground">
+                      <div className="flex flex-col items-center gap-2">
+                        <IndianRupee className="h-8 w-8 opacity-20" />
+                        <p>{hasFilters ? "No fee records match these filters." : "No fee records found."}</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
 
         {/* Collect Payment Dialog */}
         <Dialog open={!!collectRecord} onOpenChange={open => { if (!open) setCollectRecord(null); }}>

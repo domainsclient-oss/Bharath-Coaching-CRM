@@ -1,5 +1,6 @@
 "use client";
 
+import { BOARDS } from "@/config/boards";
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
@@ -136,11 +137,7 @@ export default function AcademicsExamSchedulePage() {
                   <Select value={form.board} onValueChange={v => setForm(f => ({ ...f, board: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="CBSE">CBSE</SelectItem>
-                      <SelectItem value="ICSE">ICSE</SelectItem>
-                      <SelectItem value="State">State Board</SelectItem>
-                      <SelectItem value="Samacheer">Samacheer</SelectItem>
-                      <SelectItem value="IB">IB</SelectItem>
+                      {BOARDS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>

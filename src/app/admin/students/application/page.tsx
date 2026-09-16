@@ -1,5 +1,6 @@
 "use client";
 
+import { CLASS_FILTER_OPTIONS } from "@/config/academics";
 import { useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import { ChevronRight, Search, Printer, FileText, User, BookOpen, Phone } from "lucide-react";
@@ -153,7 +154,7 @@ export default function StudentApplicationFormPage() {
                   <Select value={classFilter} onValueChange={setClassFilter}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {["All", "8", "9", "10", "11", "12"].map(c => (
+                      {CLASS_FILTER_OPTIONS.map(c => (
                         <SelectItem key={c} value={c}>{c === "All" ? "All Classes" : `Class ${c}`}</SelectItem>
                       ))}
                     </SelectContent>

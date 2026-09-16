@@ -1,5 +1,6 @@
 "use client";
 
+import { BOARDS } from "@/config/boards";
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -214,7 +215,7 @@ export default function AddFeeRecordPage() {
                   <Select value={studentBoard} onValueChange={setStudentBoard}>
                     <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                     <SelectContent>
-                      {["CBSE", "ICSE", "State", "Samacheer", "IB"].map(b => (
+                      {BOARDS.map(b => (
                         <SelectItem key={b} value={b}>{b}</SelectItem>
                       ))}
                     </SelectContent>

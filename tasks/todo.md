@@ -142,3 +142,76 @@ Due counted rows.
 
 **Still open:** `/admin/fees/due-tracking` is not in the nav and still runs on
 `mockFeeRecords`. It is the only page with instalment-level aging buckets.
+
+---
+
+## Collect Fees: show the list on arrival
+
+The table was gated behind a `searched` flag, so `/admin/fees/collect` opened
+empty until someone pressed Search. Once pressed, filtering was already live.
+
+- Removed the gate: every fee record for the branch is listed on arrival, and
+  Name / Class / Board narrow it as you type
+- Search button and Enter still work; since filtering is live they just leave
+  the input
+- Clear appears whenever a filter has a value, rather than only after a search
+- Added a loading spinner, so the table no longer flashes "No fee records found"
+  while Firestore answers; the empty message now says whether filters caused it
+
+**Verification:** `tsc --noEmit` clean for the file; the page returns 200 from the
+running dev server. No production build was run while dev was up (see lessons.md).
+
+---
+
+## One board list: CBSE, SAMACHEER, ICSE, IGCSE, IB, ONE TO ONE
+
+Board dropdowns were hard-coded separately on 17 pages, with spellings that
+disagreed ("State", "State Board", "Samacheer"), and three more were built from
+whatever values happened to be in Firestore.
+
+- `src/config/boards.ts` holds `BOARDS` and `BOARD_FILTER_OPTIONS` ("All" first).
+  Every board dropdown imports from it — 20 files
+- Form dropdowns use `BOARDS`; filter dropdowns use `BOARD_FILTER_OPTIONS`
+- fees/balance, reports/students and alumni no longer derive boards from data,
+  so stray values stop appearing in their dropdowns
+- academics/classes KPI card counted `"State"`; now counts `"SAMACHEER"`
+- Badge colour maps in reports/students and reports/alumni gained SAMACHEER,
+  IGCSE and ONE TO ONE; the old keys stay so existing records still colour
+
+**Verification:** `tsc --noEmit` clean for all changed files (the one error in
+academics/subjects line 105 is pre-existing — identical at HEAD, about `type`).
+No hard-coded board list remains. 12 affected pages return 200 from dev.
+
+**Still open — existing data:** records already saved with "Samacheer" or "State"
+keep those values. Filters compare exactly, so choosing SAMACHEER
+will not match a record stored as "Samacheer", and "State" records match no
+option. Needs a one-off Firestore migration across students, fees, leads,
+classes, subjects, alumni and exams.
+
+---
+
+## Batches: Class + Board + Mode
+
+**Model**
+- Class = grade 1–12, fixed list (`src/config/academics.ts`)
+- Board = CBSE, SAMACHEER, ICSE, IGCSE, IB (`src/config/boards.ts`; ONE TO ONE removed)
+- Mode = Offline, Online, One to One (`src/config/academics.ts`)
+- Batch = one `classes` document per unique Class + Board + Mode
+
+**Compatibility rule — why the site keeps working**
+14 pages read the `classes` collection and use `name`, `board`, `mode`.
+Attendance reads the grade by stripping "Class " from `name`; leads/add dedupes
+on it. So a batch keeps `name: "Class 10"` exactly, and gains `classNumber: "10"`.
+The full "Class 10 - CBSE - Offline" label is built for display, never stored.
+No document shape changes, no field is removed.
+
+**Plan**
+- [ ] `academics.ts`: CLASSES, MODES, filter options, `batchLabel`, `batchKey`
+- [ ] Remove ONE TO ONE from BOARDS
+- [ ] Academics → Classes becomes Batches: Class / Board / Mode dropdowns, no
+      free-text name, duplicate combinations refused, student count computed
+      from real students, legacy records flagged "Needs update" (not deleted)
+- [ ] Students list: Class 1–12 once each; Mode filter gains One to One
+- [ ] Students online / offline / discontinued / application: Class 1–12
+- [ ] Student form: Class 1–12; third mode card, One to One
+- [ ] Verify: tsc on changed files, pages 200 on running dev server, no build

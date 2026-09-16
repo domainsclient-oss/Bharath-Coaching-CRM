@@ -1,5 +1,6 @@
 "use client";
 
+import { BOARD_FILTER_OPTIONS } from "@/config/boards";
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
@@ -200,7 +201,7 @@ export default function WebsiteEnquiryPage() {
               <Select value={boardFilter} onValueChange={setBoardFilter}>
                 <SelectTrigger className="w-36"><SelectValue placeholder="All Boards" /></SelectTrigger>
                 <SelectContent>
-                  {["All", "CBSE", "ICSE", "State", "Samacheer", "IB"].map(b => (
+                  {BOARD_FILTER_OPTIONS.map(b => (
                     <SelectItem key={b} value={b}>{b === "All" ? "All Boards" : b}</SelectItem>
                   ))}
                 </SelectContent>

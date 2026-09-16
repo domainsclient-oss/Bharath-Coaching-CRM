@@ -1,5 +1,6 @@
 "use client";
 
+import { BOARDS } from "@/config/boards";
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
@@ -59,7 +60,6 @@ function getBatch(date?: string) {
   return date ? new Date(date).getFullYear() : null;
 }
 
-const BOARDS   = ["CBSE", "ICSE", "State", "Samacheer", "IB"];
 const CLASSES  = ["6","7","8","9","10","11","12"];
 const SUBJECTS = ["Mathematics","Physics","Chemistry","Biology","English","Computer Science","Economics","Commerce","History","Geography","Tamil"];
 

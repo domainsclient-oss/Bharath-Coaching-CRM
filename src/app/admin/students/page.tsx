@@ -1,6 +1,8 @@
 
 "use client";
 
+import { CLASSES, MODES } from "@/config/academics";
+import { BOARD_FILTER_OPTIONS } from "@/config/boards";
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { 
@@ -201,7 +203,7 @@ export default function StudentListPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="All">All Classes</SelectItem>
-                  {["8", "9", "10", "11", "12"].map(cls => (
+                  {CLASSES.map(cls => (
                     <SelectItem key={cls} value={cls}>Class {cls}</SelectItem>
                   ))}
                 </SelectContent>
@@ -212,11 +214,9 @@ export default function StudentListPage() {
                   <SelectValue placeholder="Board" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="All">All Boards</SelectItem>
-                  <SelectItem value="CBSE">CBSE</SelectItem>
-                  <SelectItem value="ICSE">ICSE</SelectItem>
-                  <SelectItem value="State">State</SelectItem>
-                  <SelectItem value="IB">IB</SelectItem>
+                  {BOARD_FILTER_OPTIONS.map(b => (
+                    <SelectItem key={b} value={b}>{b === "All" ? "All Boards" : b}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
@@ -226,8 +226,7 @@ export default function StudentListPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="All">All Modes</SelectItem>
-                  <SelectItem value="Online">Online</SelectItem>
-                  <SelectItem value="Offline">Offline</SelectItem>
+                  {MODES.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                 </SelectContent>
               </Select>
 
@@ -327,7 +326,7 @@ export default function StudentListPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className={`text-[10px] font-bold ${student.mode === 'Online' ? 'bg-[#0D7C8F]' : 'bg-[#1E2A4A]'}`}>
+                      <Badge className={`text-[10px] font-bold ${student.mode === 'Online' ? 'bg-[#0D7C8F]' : student.mode === 'One to One' ? 'bg-rose-600' : 'bg-[#1E2A4A]'}`}>
                         {student.mode}
                       </Badge>
                     </TableCell>

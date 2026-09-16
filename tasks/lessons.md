@@ -151,3 +151,25 @@ from a broken page.
   takes two minutes and would have caught it.
 - "Verification Before Done" covers redirects too. A route returning 200 proves
   nothing about where the browser ends up.
+
+---
+
+## Never run `next build` while the dev server is running
+
+**What happened:** to verify the Balance/Due merge I ran `npm run build` twice.
+The user's `next dev` was live on port 9002. Both write to `.next/`, so the
+production build overwrote the dev server's working files and every route —
+`/login` included — returned a bare "Internal Server Error".
+
+**Why it matters:** the failure looks like an application bug, and it surfaces
+on pages the change never touched, so it sends everyone hunting in the wrong
+place.
+
+**How to apply:**
+- Before any build, check `ps aux | grep "next dev"` or whether port 9002 answers.
+  If it does, verify against the running dev server instead: `curl` the routes
+  and read the dev log. That is the more faithful check anyway.
+- Only build with nothing else using `.next/`. If a build is truly needed while
+  dev runs, stop dev first and restart it afterwards.
+- Every route returning 500 at once means a stale `.next/`, not the code.
+  Stop dev, `rm -rf .next`, start dev.

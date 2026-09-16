@@ -109,7 +109,8 @@ export function GlobalSearch() {
   // ⌘K / Ctrl+K anywhere in the admin area.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
+      // Autofill and IME-dispatched keydowns can arrive with no `key` at all.
+      if (e.key?.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen((prev) => !prev);
       }

@@ -1,5 +1,6 @@
 "use client";
 
+import { BOARD_FILTER_OPTIONS } from "@/config/boards";
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
@@ -91,10 +92,7 @@ export default function BalanceDuesPage() {
     ["All", ...Array.from(new Set(records.map(r => r.class).filter(Boolean))).sort()],
     [records]
   );
-  const boardOptions = useMemo(() =>
-    ["All", ...Array.from(new Set(records.map(r => r.board).filter(Boolean))).sort()],
-    [records]
-  );
+  const boardOptions = BOARD_FILTER_OPTIONS;
 
   const filtered = useMemo(() =>
     records.filter(r => {

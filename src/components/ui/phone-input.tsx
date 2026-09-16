@@ -22,6 +22,10 @@ const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      // Autofill and IME-dispatched keydowns can arrive with no `key`. Let them
+      // through — handleChange strips non-digits from whatever lands anyway.
+      if (!e.key) return;
+
       // Allow: Backspace, Delete, Tab, Escape, Enter, Arrow keys, Home, End
       const controlKeys = [
         "Backspace", "Delete", "Tab", "Escape", "Enter",

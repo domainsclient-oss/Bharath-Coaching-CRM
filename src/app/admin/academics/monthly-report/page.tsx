@@ -1,5 +1,6 @@
 "use client";
 
+import { BOARD_FILTER_OPTIONS } from "@/config/boards";
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
@@ -77,7 +78,6 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 const YEARS = ["2026", "2025", "2024"];
-const BOARDS = ["All", "CBSE", "State", "ICSE", "Samacheer", "IB"];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -311,7 +311,7 @@ export default function MonthlyReportPage() {
                 <Label className="text-xs text-muted-foreground">Board</Label>
                 <Select value={filters.board} onValueChange={v => setFilters(f => ({ ...f, board: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{BOARDS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
+                  <SelectContent>{BOARD_FILTER_OPTIONS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { BOARD_FILTER_OPTIONS } from "@/config/boards";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Users, UserCheck, UserX, Download, Search } from "lucide-react";
@@ -38,6 +39,9 @@ const BOARD_COLOR: Record<string, string> = {
   ICSE:  "bg-indigo-100 text-indigo-700",
   State: "bg-amber-100 text-amber-700",
   IB:    "bg-teal-100 text-teal-700",
+  SAMACHEER:    "bg-amber-100 text-amber-700",
+  IGCSE:        "bg-sky-100 text-sky-700",
+  "ONE TO ONE": "bg-rose-100 text-rose-700",
 };
 
 export default function StudentsReportPage() {
@@ -50,7 +54,7 @@ export default function StudentsReportPage() {
   const [classF,  setClassF]  = useState("All");
 
   const classes = useMemo(() => ["All", ...Array.from(new Set(all.map(s => s.class).filter(Boolean))).sort()], [all]);
-  const boards  = useMemo(() => ["All", ...Array.from(new Set(all.map(s => s.board).filter(Boolean))).sort()], [all]);
+  const boards  = BOARD_FILTER_OPTIONS;
 
   const filtered = useMemo(() =>
     all.filter(s =>
