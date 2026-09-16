@@ -157,9 +157,24 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
     );
   };
 
+  /** Required fields that were empty on the last validation — shown in red. */
+  const [invalidFields, setInvalidFields] = useState<Set<string>>(new Set());
+
   const updateFormData = (fields: any) => {
     setFormData((prev: any) => ({ ...prev, ...fields }));
+    // Editing a highlighted field clears its highlight
+    if (Object.keys(fields).some((key) => invalidFields.has(key))) {
+      setInvalidFields((prev) => {
+        const next = new Set(prev);
+        Object.keys(fields).forEach((key) => next.delete(key));
+        return next;
+      });
+    }
   };
+
+  /** Red border for a required field left empty. */
+  const invalidClass = (key: string) =>
+    invalidFields.has(key) && "border-destructive focus-visible:ring-destructive focus:ring-destructive";
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
@@ -171,22 +186,54 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
+  const REQUIRED_PARENT_FIELDS = [
+    ["fatherName",       "Father's Name"],
+    ["fatherOccupation", "Father's Occupation"],
+    ["motherName",       "Mother's Name"],
+    ["motherOccupation", "Mother's Occupation"],
+  ] as const;
+
+  /** Required fields per step, highlighted in red when left empty. */
+  const REQUIRED_BY_STEP: Record<number, readonly string[]> = {
+    1: ["name", "dob", ...REQUIRED_PARENT_FIELDS.map(([key]) => key)],
+    2: ["fatherMobile", "motherMobile"],
+    3: ["class", "board"],
+  };
+
+  const isBlank = (key: string) => !String(formData[key] ?? "").trim();
+
+  /** Toasts the parent fields still empty, by name. True when all are filled. */
+  const validateParentFields = () => {
+    const missing = REQUIRED_PARENT_FIELDS
+      .filter(([key]) => isBlank(key))
+      .map(([, label]) => label);
+    if (missing.length === 0) return true;
+    toast({
+      variant: "destructive",
+      title: missing.length === 1 ? "Required field is empty" : "Required fields are empty",
+      description: `Please fill in ${missing.join(", ")} before submitting.`,
+    });
+    return false;
+  };
+
   const validateStep = (step: number) => {
+    setInvalidFields(new Set((REQUIRED_BY_STEP[step] ?? []).filter(isBlank)));
     switch (step) {
       case 1:
-        if (!formData.name || !formData.dob) {
+        if (isBlank("name") || isBlank("dob")) {
           toast({ variant: "destructive", title: "Missing Fields", description: "Please fill in all required personal details." });
           return false;
         }
+        if (!validateParentFields()) return false;
         break;
       case 2:
-        if (!formData.fatherMobile || !formData.motherMobile) {
+        if (isBlank("fatherMobile") || isBlank("motherMobile")) {
           toast({ variant: "destructive", title: "Missing Fields", description: "Please fill in both the father's and mother's mobile numbers." });
           return false;
         }
         break;
       case 3:
-        if (!formData.class || !formData.board) {
+        if (isBlank("class") || isBlank("board")) {
           toast({ variant: "destructive", title: "Missing Fields", description: "Please select a class and board." });
           return false;
         }
@@ -219,6 +266,12 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async () => {
+    // Older records can reach submit with personal fields empty — send the
+    // user back to that step so the highlighted fields are in view.
+    if (!validateStep(1)) {
+      setCurrentStep(1);
+      return;
+    }
     if (!validateStep(5)) return;
     setSaving(true);
 
@@ -374,42 +427,47 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                   <Label htmlFor="name">Full Name *</Label>
                   <Input 
                     id="name" 
+                    className={cn(invalidClass("name"))}
                     value={formData.name} 
                     onChange={(e) => updateFormData({ name: e.target.value })} 
                     placeholder="Enter student name"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fatherName">Father&apos;s Name</Label>
+                  <Label htmlFor="fatherName">Father&apos;s Name *</Label>
                   <Input 
                     id="fatherName" 
+                    className={cn(invalidClass("fatherName"))}
                     value={formData.fatherName} 
                     onChange={(e) => updateFormData({ fatherName: e.target.value })} 
                     placeholder="Enter father&apos;s name"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fatherOccupation">Father&apos;s Occupation</Label>
+                  <Label htmlFor="fatherOccupation">Father&apos;s Occupation *</Label>
                   <Input 
                     id="fatherOccupation" 
+                    className={cn(invalidClass("fatherOccupation"))}
                     value={formData.fatherOccupation} 
                     onChange={(e) => updateFormData({ fatherOccupation: e.target.value })} 
                     placeholder="Enter father&apos;s occupation"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="motherName">Mother&apos;s Name</Label>
+                  <Label htmlFor="motherName">Mother&apos;s Name *</Label>
                   <Input 
                     id="motherName" 
+                    className={cn(invalidClass("motherName"))}
                     value={formData.motherName} 
                     onChange={(e) => updateFormData({ motherName: e.target.value })} 
                     placeholder="Enter mother&apos;s name"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="motherOccupation">Mother&apos;s Occupation</Label>
+                  <Label htmlFor="motherOccupation">Mother&apos;s Occupation *</Label>
                   <Input 
                     id="motherOccupation" 
+                    className={cn(invalidClass("motherOccupation"))}
                     value={formData.motherOccupation} 
                     onChange={(e) => updateFormData({ motherOccupation: e.target.value })} 
                     placeholder="Enter mother&apos;s occupation"
@@ -419,6 +477,7 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                   <Label htmlFor="dob">Date of Birth *</Label>
                   <Input 
                     id="dob" 
+                    className={cn(invalidClass("dob"))}
                     type="date" 
                     value={formData.dob} 
                     onChange={(e) => updateFormData({ dob: e.target.value })} 
@@ -463,7 +522,7 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                     <Smartphone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <PhoneInput
                       id="fatherMobile"
-                      className="pl-10"
+                      className={cn("pl-10", invalidClass("fatherMobile"))}
                       value={formData.fatherMobile}
                       onChange={(v) => updateFormData({ fatherMobile: v })}
                       placeholder="9876543210"
@@ -476,7 +535,7 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                     <Smartphone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <PhoneInput
                       id="motherMobile"
-                      className="pl-10"
+                      className={cn("pl-10", invalidClass("motherMobile"))}
                       value={formData.motherMobile}
                       onChange={(v) => updateFormData({ motherMobile: v })}
                       placeholder="9876543210"
@@ -573,7 +632,7 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                       subjects: formData.subjects.filter((s: string) => subjectsForClass(val).includes(s)),
                     })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={cn(invalidClass("class"))}>
                       <SelectValue placeholder="Select Class" />
                     </SelectTrigger>
                     <SelectContent>
@@ -586,7 +645,7 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                 <div className="space-y-2">
                   <Label>Board *</Label>
                   <Select value={formData.board} onValueChange={(val) => updateFormData({ board: val })}>
-                    <SelectTrigger>
+                    <SelectTrigger className={cn(invalidClass("board"))}>
                       <SelectValue placeholder="Select Board" />
                     </SelectTrigger>
                     <SelectContent>
