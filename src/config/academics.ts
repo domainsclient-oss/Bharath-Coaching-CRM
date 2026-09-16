@@ -81,3 +81,31 @@ export function subjectsForClass(classNumber?: string): readonly string[] {
   if (grade <= 10) return SUBJECTS_BY_CLASS_BAND.secondary;
   return SUBJECTS_BY_CLASS_BAND.higherSecondary;
 }
+
+/**
+ * Per-subject batch timings, keyed by `${classNumber}|${board}`. Only the
+ * combinations listed here offer a timing choice — every other class keeps
+ * the plain subject selection.
+ */
+export const BATCH_TIMINGS: Record<string, Record<string, readonly string[]>> = {
+  "10|CBSE": {
+    Maths: [
+      "Batch I — 5:30 PM to 6:45 PM",
+      "Batch II — 6:45 PM to 8:00 PM",
+    ],
+    Science: [
+      "Batch I — 8:00 PM to 9:15 PM",
+      "Batch II — 7:00 PM to 8:30 PM",
+    ],
+  },
+};
+
+/**
+ * Subject → batch timings on offer for this class and board. Empty when the
+ * combination has no batch timings, which is how callers know to hide the
+ * timing selection entirely.
+ */
+export function batchTimingsFor(classNumber?: string, board?: string): Record<string, readonly string[]> {
+  const key = `${classNumberOf(classNumber)}|${(board ?? "").toUpperCase()}`;
+  return BATCH_TIMINGS[key] ?? {};
+}

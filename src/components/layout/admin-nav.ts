@@ -157,6 +157,7 @@ export const navSections: NavSection[] = [
     items: [
       { href: '/admin/examination', label: 'Exam Schedule' },
       { href: '/admin/examination/marks', label: 'Mark Entry' },
+      { href: '/admin/examination/student-marks', label: 'Student Mark List' },
       { href: '/admin/examination/marksheet', label: 'Print Marksheet' },
       { href: '/admin/examination/report', label: 'Report' },
     ],

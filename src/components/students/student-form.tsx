@@ -1,7 +1,7 @@
 
 "use client";
 
-import { CLASSES, subjectsForClass } from "@/config/academics";
+import { CLASSES, subjectsForClass, batchTimingsFor } from "@/config/academics";
 import { BOARDS } from "@/config/boards";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -13,6 +13,7 @@ import {
   CreditCard,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   Save,
   Upload,
   Check,
@@ -37,6 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
@@ -73,6 +75,7 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
     email: "", address: "", city: "", pincode: "",
     school: "", class: "", board: "CBSE", medium: "English",
     subjects: [] as string[], mode: "Offline", batchPreference: "",
+    batchTimings: {} as Record<string, string>,
     feeType: "Standard", totalFee: "", instalmentPlan: "Full", firstDueDate: ""
   };
 
@@ -84,6 +87,7 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
     motherMobile: initialData?.motherMobile ?? "",
     // Ensure subjects is always an array
     subjects: Array.isArray(initialData?.subjects) ? initialData.subjects : [],
+    batchTimings: { ...(initialData?.batchTimings ?? {}) },
   }));
 
 
@@ -191,14 +195,21 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
     return true;
   };
 
-  /** Subjects the chosen class offers, minus the ones already picked. */
-  const availableSubjects = subjectsForClass(formData.class)
-    .filter((sub) => !formData.subjects.includes(sub));
+  /** Subjects the chosen class offers. */
+  const classSubjects = subjectsForClass(formData.class);
 
-  const addSubject = (subject: string) => {
-    if (subject && !formData.subjects.includes(subject)) {
-      updateFormData({ subjects: [...formData.subjects, subject] });
-    }
+  /**
+   * Subjects that offer a batch timing for the chosen class + board. Empty for
+   * every other class, which keeps the timing selection hidden.
+   */
+  const timingChoices = Object.entries(batchTimingsFor(formData.class, formData.board));
+
+  const toggleSubject = (subject: string, checked: boolean) => {
+    updateFormData({
+      subjects: checked
+        ? [...formData.subjects, subject]
+        : formData.subjects.filter((s: string) => s !== subject),
+    });
   };
 
   const removeSubject = (sub: string) => {
@@ -215,12 +226,20 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
       const today = new Date().toISOString().split("T")[0];
       const year  = new Date().getFullYear();
 
+      // Only the timings still on offer for this class + board get saved
+      const batchTimings: Record<string, string> = {};
+      timingChoices.forEach(([subject]) => {
+        const timing = formData.batchTimings[subject];
+        if (timing) batchTimings[subject] = timing;
+      });
+
       if (isEdit && initialData?.id) {
         // ── UPDATE existing student ────────────────────────────────────────
         await updateDocument("students", initialData.id, {
           ...formData,
           branchId: currentBranch,
           whatsapp: formData.isWhatsappSame ? formData.fatherMobile : formData.whatsapp,
+          batchTimings,
           // Primary contact fields the rest of the CRM reads
           phone:      formData.fatherMobile || formData.motherMobile,
           parentName: formData.fatherName   || formData.motherName,
@@ -264,6 +283,7 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
           subjects:        formData.subjects,
           mode:            formData.mode,
           batchPreference: formData.batchPreference,
+          batchTimings,
           feeType:         formData.feeType,
           totalFee:        Number(formData.totalFee) || 0,
           instalmentPlan:  formData.instalmentPlan,
@@ -577,6 +597,36 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                   </Select>
                 </div>
               </div>
+
+              {timingChoices.length > 0 && (
+                <div className="space-y-3">
+                  <Label>Batch Timing</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {timingChoices.map(([subject, options]) => (
+                      <div key={subject} className="space-y-2">
+                        <Label htmlFor={`timing-${subject}`} className="text-xs font-medium text-muted-foreground">
+                          {subject} Class Timing
+                        </Label>
+                        <Select
+                          value={formData.batchTimings[subject] ?? ""}
+                          onValueChange={(val) => updateFormData({
+                            batchTimings: { ...formData.batchTimings, [subject]: val },
+                          })}
+                        >
+                          <SelectTrigger id={`timing-${subject}`}>
+                            <SelectValue placeholder="Select batch timing" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {options.map((opt) => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -590,20 +640,31 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Subjects</Label>
-                  <Select value="all" onValueChange={addSubject} disabled={availableSubjects.length === 0}>
-                    <SelectTrigger className="mb-2">
-                      <SelectValue placeholder={
-                        !formData.class            ? "Select a class first"
-                        : availableSubjects.length === 0 ? "All subjects added"
-                        : "Select a subject to add"
-                      } />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableSubjects.map((sub) => (
-                        <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                  <Popover>
+                    <PopoverTrigger asChild disabled={classSubjects.length === 0}>
+                      <button
+                        type="button"
+                        className="mb-2 flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <span>Select Subject</span>
+                        <ChevronDown className="h-4 w-4 opacity-50" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] max-h-72 overflow-y-auto p-1">
+                      {classSubjects.map((sub) => (
+                        <label
+                          key={sub}
+                          className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                        >
+                          <Checkbox
+                            checked={formData.subjects.includes(sub)}
+                            onCheckedChange={(checked) => toggleSubject(sub, checked === true)}
+                          />
+                          {sub}
+                        </label>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </PopoverContent>
+                  </Popover>
                   <div className="flex flex-wrap gap-2 p-2 border rounded-lg min-h-[50px] bg-slate-50">
                     {formData.subjects.length === 0 && <span className="text-xs text-muted-foreground p-2">No subjects added yet...</span>}
                     {formData.subjects.map((sub: string) => (

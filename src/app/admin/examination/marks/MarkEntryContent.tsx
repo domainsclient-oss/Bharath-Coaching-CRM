@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ChevronRight, Save, AlertCircle, Users,
 } from "lucide-react";
@@ -13,6 +14,9 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Exam } from "@/data/examinationData";
@@ -21,6 +25,7 @@ import { useFirestoreCollection } from "@/hooks/useFirestoreCollection";
 import { db } from "@/config/firebase";
 import { doc, getDoc, writeBatch } from "firebase/firestore";
 import { toast } from "@/hooks/use-toast";
+import ManualMarkEntry from "./ManualMarkEntry";
 
 interface MarkRow {
   studentId: string;
@@ -64,6 +69,36 @@ export default function MarkEntryContent({ examId }: { examId: string | null }) 
   const [rows, setRows] = useState<MarkRow[]>([]);
 
   const { data: allStudents, loading: studentsLoading } = useFirestoreCollection<any>("students", currentBranch);
+  const { data: branchExams, loading: examListLoading } = useFirestoreCollection<Exam>(
+    "exams", currentBranch, { orderByField: "date", orderByDir: "desc" },
+  );
+  const router = useRouter();
+
+  const examPicker = (
+    <Card className="border-none shadow-sm">
+      <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+        <p className="text-sm font-medium text-[#1E2A4A] whitespace-nowrap">Select Exam</p>
+        <Select
+          value={examId ?? ""}
+          onValueChange={id => router.replace(`/admin/examination/marks?examId=${encodeURIComponent(id)}`)}
+          disabled={examListLoading}
+        >
+          <SelectTrigger className="h-9 text-sm sm:max-w-md">
+            <SelectValue placeholder={examListLoading ? "Loading exams..." : "Choose the exam to enter marks for"} />
+          </SelectTrigger>
+          <SelectContent>
+            {branchExams.length === 0 ? (
+              <div className="px-2 py-1.5 text-sm text-muted-foreground">No exams scheduled</div>
+            ) : branchExams.map(e => (
+              <SelectItem key={e.id} value={e.id}>
+                {e.name} — Class {e.class} {e.subject} ({e.date})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </CardContent>
+    </Card>
+  );
 
   // Direct document fetch by ID — no query, no index needed
   useEffect(() => {
@@ -187,6 +222,10 @@ export default function MarkEntryContent({ examId }: { examId: string | null }) 
     return (
       <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
         <SharedHeader title="Mark Entry" />
+        <div className="px-4 pt-4 md:px-6 md:pt-6 lg:px-8 lg:pt-8 space-y-6">
+          {examPicker}
+          <ManualMarkEntry students={allStudents} studentsLoading={studentsLoading} branchId={currentBranch} />
+        </div>
         <main className="p-8 text-center space-y-4">
           <AlertCircle className="h-12 w-12 mx-auto text-amber-400 opacity-60" />
           <p className="text-muted-foreground">
@@ -219,6 +258,8 @@ export default function MarkEntryContent({ examId }: { examId: string | null }) 
           <ChevronRight className="h-3 w-3" />
           <span className="font-medium text-foreground">Mark Entry</span>
         </div>
+
+        {examPicker}
 
         {/* Exam info banner */}
         <Card className="border-none shadow-sm bg-[#1E2A4A] text-white">
@@ -352,6 +393,8 @@ export default function MarkEntryContent({ examId }: { examId: string | null }) 
             </Button>
           </div>
         </Card>
+
+        <ManualMarkEntry key={exam.id} exam={exam} students={allStudents} studentsLoading={studentsLoading} branchId={currentBranch} />
 
       </main>
     </div>

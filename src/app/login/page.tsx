@@ -11,7 +11,7 @@ import { Label } from '../../components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
 import { useSettings } from '../../context/SettingsContext';
-import { Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -116,19 +116,6 @@ export default function LoginPage() {
           <CardDescription>Enter your credentials to access your portal</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6 text-sm text-blue-800">
-            <div className="flex items-center gap-2 font-bold mb-1">
-              <AlertCircle className="h-4 w-4" />
-              Initial Setup Required
-            </div>
-            <p>If you haven't created an admin account yet, please visit <Link href="/setup" className="underline font-bold">/setup</Link> first.</p>
-            <div className="mt-2 pt-2 border-t border-blue-200">
-              <p className="font-semibold">Developer Credentials:</p>
-              <p>Email: <code className="bg-blue-100 px-1 rounded">admin@bharathacademy.com</code></p>
-              <p>Pass: <code className="bg-blue-100 px-1 rounded">password123</code></p>
-            </div>
-          </div>
-
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>

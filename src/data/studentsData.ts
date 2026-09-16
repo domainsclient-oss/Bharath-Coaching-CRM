@@ -35,6 +35,8 @@ export interface Student {
   motherOccupation?: string;
   fatherMobile?: string;
   motherMobile?: string;
+  /** Subject → chosen batch timing, e.g. { Maths: "Batch I — 5:30 PM to 6:45 PM" } */
+  batchTimings?: Record<string, string>;
   joinDate?: string;
   previousSchool?: string;
   previousSchoolMarks?: number;
