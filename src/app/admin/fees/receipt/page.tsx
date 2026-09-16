@@ -1,6 +1,7 @@
 "use client";
 
 import { BOARD_FILTER_OPTIONS } from "@/config/boards";
+import { CLASS_FILTER_OPTIONS } from "@/config/academics";
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
@@ -76,7 +77,7 @@ export default function FeesReceiptPage() {
                   <Select value={classFilter} onValueChange={v => { setClassFilter(v); setSelectedId(null); }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {["All", "8", "9", "10", "11", "12"].map(c => (
+                      {CLASS_FILTER_OPTIONS.map(c => (
                         <SelectItem key={c} value={c}>
                           {c === "All" ? "All Classes" : `Class ${c}`}
                         </SelectItem>
