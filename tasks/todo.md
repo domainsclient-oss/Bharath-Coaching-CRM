@@ -215,3 +215,23 @@ No document shape changes, no field is removed.
 - [ ] Students online / offline / discontinued / application: Class 1–12
 - [ ] Student form: Class 1–12; third mode card, One to One
 - [ ] Verify: tsc on changed files, pages 200 on running dev server, no build
+
+---
+
+# Student Mark List as a table with View / Edit / Delete
+
+- [x] `student-marks/markList.tsx` — shared types, grading and badges
+- [x] `student-marks/page.tsx` — one row per student + exam: Exam Name, Student
+      Name, Class, Roll No, Grade, Total Marks, then View / Edit / Delete
+- [x] `student-marks/MarkListDialog.tsx` — View: the detailed mark list for that
+      student and exam, printable on its own
+- [x] `student-marks/EditMarksDialog.tsx` — Edit: per-subject marks and
+      present/absent, grade recalculated with Mark Entry's bands
+- [x] Delete: confirmation, then removes that row's subject mark documents
+
+## Review
+
+- `tsc` clean for the touched files; route returns 200 on the running dev server
+- Helpers exercised in node (esbuild): totals, Incomplete/Fail results, grade
+  bands, and a Timestamp-valued `date` no longer reaches `localeCompare`
+- Not verified in a signed-in browser (no credentials in this session)

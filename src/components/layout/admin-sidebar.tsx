@@ -8,7 +8,7 @@ import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
   SidebarGroupContent, SidebarGroupLabel, SidebarHeader,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem,
-  SidebarMenuSubButton, SidebarRail,
+  SidebarMenuSubButton, SidebarRail, useSidebar,
 } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -36,6 +36,7 @@ export default function AdminSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { settings } = useSettings();
+  const { isMobile, setOpenMobile } = useSidebar();
   const userRole = user?.role ?? 'admin';
 
   // Track which sections are open — default open if any child is active
@@ -49,6 +50,11 @@ export default function AdminSidebar() {
   });
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(defaultOpen);
   const [showLogout, setShowLogout] = useState(false);
+
+  // On mobile, close the sidebar sheet after a menu item is selected
+  const closeMobileSidebar = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   const toggleSection = (label: string) => {
     setOpenSections(prev => ({ ...prev, [label]: !prev[label] }));
@@ -106,7 +112,7 @@ export default function AdminSidebar() {
                                 : 'text-[#1E2A4A] hover:bg-transparent hover:text-[#0D7C8F]'
                             }
                           >
-                            <Link href={item.href}>
+                            <Link href={item.href} onClick={closeMobileSidebar}>
                               {Icon && <Icon className="h-4 w-4 flex-shrink-0" />}
                               <span>{item.label}</span>
                             </Link>
@@ -177,7 +183,7 @@ export default function AdminSidebar() {
                                   : 'text-slate-500 hover:bg-transparent hover:text-[#0D7C8F] pl-7'
                               }
                             >
-                              <Link href={item.href}>
+                              <Link href={item.href} onClick={closeMobileSidebar}>
                                 <span>{item.label}</span>
                               </Link>
                             </SidebarMenuSubButton>
