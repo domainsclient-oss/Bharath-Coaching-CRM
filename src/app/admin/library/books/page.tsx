@@ -187,7 +187,7 @@ export default function BookListPage() {
             <div className="flex flex-wrap gap-3">
               <div className="relative flex-1 min-w-48">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search by title, author or ISBN..." className="pl-9"
+                <Input autoCapitalize="off" placeholder="Search by title, author or ISBN..." className="pl-9"
                   value={search} onChange={e => setSearch(e.target.value)} />
               </div>
               <Select value={catFilter} onValueChange={setCatFilter}>

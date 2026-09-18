@@ -77,6 +77,7 @@ export default function OneToOneFeesPage() {
               <div className="space-y-1">
                 <p className="text-xs font-bold uppercase text-muted-foreground">Name</p>
                 <Input
+                  autoCapitalize="off"
                   className="w-44"
                   placeholder="Student name..."
                   value={name}
@@ -172,9 +173,9 @@ export default function OneToOneFeesPage() {
                     <TableHead>Subject</TableHead>
                     <TableHead>Bill No</TableHead>
                     <TableHead className="text-right">Total Fees</TableHead>
-                    <TableHead>Instalment I</TableHead>
-                    <TableHead>Instalment II</TableHead>
-                    <TableHead>Instalment III</TableHead>
+                    <TableHead>Installment I</TableHead>
+                    <TableHead>Installment II</TableHead>
+                    <TableHead>Installment III</TableHead>
                     <TableHead className="text-right">Balance</TableHead>
                     <TableHead>Next Payment Date</TableHead>
                   </TableRow>

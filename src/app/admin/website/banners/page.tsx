@@ -390,7 +390,7 @@ export default function BannerImagesPage() {
               </div>
               <div className="space-y-1.5">
                 <Label>Link URL (optional)</Label>
-                <Input placeholder="/admissions" value={form.linkUrl}
+                <Input autoCapitalize="off" placeholder="/admissions" value={form.linkUrl}
                   onChange={e => setForm(p => ({ ...p, linkUrl: e.target.value }))} />
               </div>
               <div className="grid grid-cols-2 gap-4">

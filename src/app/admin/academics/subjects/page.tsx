@@ -183,7 +183,7 @@ export default function SubjectManagementPage() {
             <div className="flex flex-wrap gap-3">
               <div className="relative flex-1 min-w-48">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search subjects..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
+                <Input autoCapitalize="off" placeholder="Search subjects..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger className="w-40"><SelectValue placeholder="All Types" /></SelectTrigger>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -125,7 +126,7 @@ export default function StudentFeesPage() {
    * The office collects against the bill itself rather than filing a separate
    * receipt, so a bill carrying money is the record that a payment happened.
    * That gives one line per bill showing the total taken against it and the
-   * date of the most recent instalment, which is all the bill records.
+   * date of the most recent installment, which is all the bill records.
    */
   const history = useMemo<PaymentRow[]>(() => {
     if (payments.length > 0) return payments;

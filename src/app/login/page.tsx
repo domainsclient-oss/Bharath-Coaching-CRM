@@ -11,7 +11,7 @@ import { Label } from '../../components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
 import { useSettings } from '../../context/SettingsContext';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -115,7 +115,22 @@ export default function LoginPage() {
           <CardTitle className="text-2xl font-bold">Welcome to {settings.appName}</CardTitle>
           <CardDescription>Enter your credentials to access your portal</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
+          {/* Developer Credentials Helper */}
+          <div className="rounded-lg border border-[#0D7C8F]/20 bg-[#0D7C8F]/5 p-4 text-sm">
+            <div className="flex items-center gap-2 text-[#0D7C8F] font-bold mb-2">
+              <AlertCircle className="h-4 w-4" />
+              <span>Developer Instructions</span>
+            </div>
+            <p className="text-muted-foreground mb-3">
+              If this is your first time, please run the <Link href="/setup" className="font-bold underline text-[#1E2A4A] hover:text-[#0D7C8F]">Setup Wizard</Link> to initialize the database.
+            </p>
+            <div className="space-y-1">
+              <p><span className="font-semibold text-[#1E2A4A]">Email:</span> admin@bharathacademy.com</p>
+              <p><span className="font-semibold text-[#1E2A4A]">Password:</span> password123</p>
+            </div>
+          </div>
+
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>

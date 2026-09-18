@@ -58,7 +58,7 @@ const ResourceLibraryPage = () => {
         <Card>
             <CardContent className="pt-6">
                 <div className="flex flex-col md:flex-row gap-4 justify-between">
-                    <Input 
+                    <Input autoCapitalize="off" 
                         placeholder="Search by title or subject..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}

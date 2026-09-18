@@ -49,7 +49,7 @@ export default function DueTrackingPage() {
     }> = [];
 
     allRecords.forEach(r => {
-      const instMap = { i1: "Instalment I", i2: "Instalment II", i3: "Instalment III", i4: "Instalment IV" };
+      const instMap = { i1: "Installment I", i2: "Installment II", i3: "Installment III", i4: "Installment IV" };
       Object.entries(r.instalments).forEach(([key, inst]) => {
         if (inst && !inst.collected && inst.date < TODAY) {
           const daysOverdue = Math.floor((new Date(TODAY).getTime() - new Date(inst.date).getTime()) / 86400000);
@@ -123,7 +123,7 @@ export default function DueTrackingPage() {
                 <Clock className="h-5 w-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Overdue Instalments</p>
+                <p className="text-xs text-muted-foreground">Overdue Installments</p>
                 <p className="text-xl font-bold text-amber-600">{overdueItems.length}</p>
               </div>
             </CardContent>
@@ -165,7 +165,7 @@ export default function DueTrackingPage() {
                 <div key={bucket} className="rounded-xl border p-4 space-y-2">
                   <Badge className={`${BUCKET_COLORS[bucket]} text-xs hover:${BUCKET_COLORS[bucket]}`}>{bucket}</Badge>
                   <p className="text-xl font-bold text-[#1E2A4A]">{fmt(data.amount)}</p>
-                  <p className="text-xs text-muted-foreground">{data.count} instalment{data.count !== 1 ? "s" : ""}</p>
+                  <p className="text-xs text-muted-foreground">{data.count} installment{data.count !== 1 ? "s" : ""}</p>
                   {/* Mini bar */}
                   <div className="h-1.5 rounded-full bg-slate-100">
                     <div
@@ -182,7 +182,7 @@ export default function DueTrackingPage() {
         {/* Overdue Table */}
         <Card className="border-none shadow-sm overflow-hidden">
           <CardHeader className="bg-slate-50 border-b py-3 px-6">
-            <CardTitle className="text-base">Overdue Instalments</CardTitle>
+            <CardTitle className="text-base">Overdue Installments</CardTitle>
           </CardHeader>
           <Table>
             <TableHeader className="bg-slate-50">
@@ -190,7 +190,7 @@ export default function DueTrackingPage() {
                 <TableHead>Bill No</TableHead>
                 <TableHead>Student</TableHead>
                 <TableHead>Class</TableHead>
-                <TableHead>Instalment</TableHead>
+                <TableHead>Installment</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead>Due Date</TableHead>
                 <TableHead>Days Overdue</TableHead>

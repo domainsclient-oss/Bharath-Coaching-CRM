@@ -144,6 +144,7 @@ export default function DiscontinuedStudentsPage() {
               <div className="relative md:col-span-2">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
+                  autoCapitalize="off"
                   placeholder="Search by name or app no..."
                   className="pl-10 h-10"
                   value={searchTerm}

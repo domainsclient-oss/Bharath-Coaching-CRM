@@ -6,6 +6,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, writeBatch, collection, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/config/firebase";
 import { CheckCircle2, Circle, Loader2, AlertCircle, Database, User, Shield, Rocket } from "lucide-react";
+import { capitalizeInput } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -383,7 +384,7 @@ export default function SetupPage() {
                 <input
                   type="text"
                   value={adminName}
-                  onChange={e => setAdminName(e.target.value)}
+                  onChange={e => setAdminName(capitalizeInput(e))}
                   placeholder="e.g. Rajesh Kumar"
                   className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0D7C8F]"
                 />

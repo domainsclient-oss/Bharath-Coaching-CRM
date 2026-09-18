@@ -164,19 +164,19 @@ export default function CollectFeesPage() {
             <div className="flex flex-wrap gap-3 items-end">
               <div className="space-y-1">
                 <p className="text-xs font-bold uppercase text-muted-foreground">Student Name</p>
-                <Input className="w-48" placeholder="Search name..." value={name}
+                <Input autoCapitalize="off" className="w-48" placeholder="Search name..." value={name}
                   onChange={e => setName(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && handleSearch()} />
               </div>
               <div className="space-y-1">
                 <p className="text-xs font-bold uppercase text-muted-foreground">Class</p>
-                <Input className="w-24" placeholder="e.g. 10" value={classFilter}
+                <Input autoCapitalize="off" className="w-24" placeholder="e.g. 10" value={classFilter}
                   onChange={e => setClassFilter(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && handleSearch()} />
               </div>
               <div className="space-y-1">
                 <p className="text-xs font-bold uppercase text-muted-foreground">Board</p>
-                <Input className="w-28" placeholder="e.g. CBSE" value={boardFilter}
+                <Input autoCapitalize="off" className="w-28" placeholder="e.g. CBSE" value={boardFilter}
                   onChange={e => setBoardFilter(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && handleSearch()} />
               </div>

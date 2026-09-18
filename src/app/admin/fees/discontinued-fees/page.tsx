@@ -96,9 +96,9 @@ export default function DiscontinuedFeesPage() {
                 <TableHead className="text-right">Total Fee</TableHead>
                 <TableHead className="text-right">Collected</TableHead>
                 <TableHead className="text-right">Balance</TableHead>
-                <TableHead>Instalment I</TableHead>
-                <TableHead>Instalment II</TableHead>
-                <TableHead>Instalment III</TableHead>
+                <TableHead>Installment I</TableHead>
+                <TableHead>Installment II</TableHead>
+                <TableHead>Installment III</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>

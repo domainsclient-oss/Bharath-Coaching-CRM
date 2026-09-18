@@ -236,7 +236,7 @@ export default function StudyMaterialsPage() {
           <CardContent className="p-4 flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input className="pl-9" placeholder="Search by title or subject..." value={search} onChange={e => setSearch(e.target.value)} />
+              <Input autoCapitalize="off" className="pl-9" placeholder="Search by title or subject..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
             <Select value={filterClass} onValueChange={setFilterClass}>
               <SelectTrigger className="w-[150px]"><SelectValue placeholder="All Classes" /></SelectTrigger>
@@ -354,7 +354,7 @@ export default function StudyMaterialsPage() {
               {form.type === 'Link' ? (
                 <div className="col-span-2 space-y-1.5">
                   <Label>URL *</Label>
-                  <Input value={form.url} onChange={e => set('url', e.target.value)} placeholder="https://..." />
+                  <Input autoCapitalize="off" value={form.url} onChange={e => set('url', e.target.value)} placeholder="https://..." />
                 </div>
               ) : (
                 <div className="col-span-2 space-y-1.5">

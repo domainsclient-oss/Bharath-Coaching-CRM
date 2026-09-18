@@ -166,6 +166,7 @@ export default function AlumniPage() {
               <div className="relative md:col-span-1">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
+                  autoCapitalize="off"
                   className="pl-10"
                   placeholder="Name, App No, Roll No..."
                   value={search}

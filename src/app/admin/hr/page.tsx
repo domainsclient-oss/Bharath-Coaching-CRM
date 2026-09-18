@@ -91,6 +91,7 @@ const StaffDirectoryPage = () => {
         <Card>
           <CardContent className="pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
             <Input
+              autoCapitalize="off"
               placeholder="Search by name or staff ID..."
               value={filters.search}
               onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}

@@ -222,6 +222,7 @@ export default function QuestionBankPage() {
               <div className="relative flex-1 min-w-48">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
+                  autoCapitalize="off"
                   placeholder="Search questions..."
                   className="pl-9"
                   value={filters.search}

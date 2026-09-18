@@ -152,6 +152,7 @@ export default function CollectedFeesPage() {
               <div className="relative flex-1 min-w-[200px] max-w-sm">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
+                  autoCapitalize="off"
                   className="pl-10"
                   placeholder="Search by name or bill no..."
                   value={search}

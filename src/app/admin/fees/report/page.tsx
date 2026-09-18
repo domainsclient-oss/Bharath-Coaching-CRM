@@ -1,3 +1,4 @@
+
 "use client";
 
 import { BOARD_FILTER_OPTIONS } from "@/config/boards";
@@ -51,7 +52,7 @@ export default function FeesReportPage() {
       map[r.class].balance += r.balance;
       map[r.class].count += 1;
     });
-    return Object.entries(map).sort((a, b) => b[1].total - a[1].total);
+    return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
   }, [records]);
 
   const fmt = (n: number) => `₹${n.toLocaleString("en-IN")}`;
@@ -70,9 +71,9 @@ export default function FeesReportPage() {
       `Class ${r.class}`,
       r.board,
       r.totalFee,
-      r.instalments.i1?.amount ?? "",
-      r.instalments.i2?.amount ?? "",
-      r.instalments.i3?.amount ?? "",
+      r.installments.i1?.amount ?? "",
+      r.installments.i2?.amount ?? "",
+      r.installments.i3?.amount ?? "",
       r.balance,
       r.nextPaymentDate ?? "",
     ]);
@@ -243,7 +244,7 @@ export default function FeesReportPage() {
             </TableHeader>
             <TableBody>
               {records.map(r => {
-                const inst = (k: "i1" | "i2" | "i3") => r.instalments[k];
+                const inst = (k: "i1" | "i2" | "i3") => r.installments[k];
                 return (
                   <TableRow key={r.id} className="hover:bg-slate-50/50 text-sm">
                     <TableCell className="font-mono text-xs text-muted-foreground">{r.billNo}</TableCell>

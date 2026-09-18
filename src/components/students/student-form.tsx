@@ -74,9 +74,9 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
     fatherMobile: "", motherMobile: "", whatsapp: "", isWhatsappSame: true,
     email: "", address: "", city: "", pincode: "",
     school: "", class: "", board: "CBSE", medium: "English",
-    subjects: [] as string[], mode: "Offline", batchPreference: "",
+    subjects: [] as string[], mode: "Offline",
     batchTimings: {} as Record<string, string>,
-    feeType: "Standard", totalFee: "", instalmentPlan: "Full", firstDueDate: ""
+    feeType: "Standard", totalFee: "", installmentPlan: "Full", firstDueDate: ""
   };
 
   const [formData, setFormData] = useState(() => ({
@@ -88,6 +88,7 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
     // Ensure subjects is always an array
     subjects: Array.isArray(initialData?.subjects) ? initialData.subjects : [],
     batchTimings: { ...(initialData?.batchTimings ?? {}) },
+    installmentPlan: initialData?.installmentPlan ?? initialData?.instalmentPlan ?? "Full",
   }));
 
 
@@ -198,6 +199,7 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
     1: ["name", "dob", ...REQUIRED_PARENT_FIELDS.map(([key]) => key)],
     2: ["fatherMobile", "motherMobile"],
     3: ["class", "board"],
+    4: ["subjects"],
   };
 
   const isBlank = (key: string) => !String(formData[key] ?? "").trim();
@@ -238,6 +240,12 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
           return false;
         }
         break;
+      case 4:
+        if (formData.subjects.length === 0) {
+          toast({ variant: "destructive", title: "Missing Fields", description: "Please select at least one subject." });
+          return false;
+        }
+        break;
     }
     return true;
   };
@@ -263,13 +271,18 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
     updateFormData({ subjects: formData.subjects.filter((s: string) => s !== sub) });
   };
 
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = false;
 
   const handleSubmit = async () => {
     // Older records can reach submit with personal fields empty — send the
     // user back to that step so the highlighted fields are in view.
     if (!validateStep(1)) {
       setCurrentStep(1);
+      return;
+    }
+    // Older records can also lack subjects — send the user back to that step
+    if (!validateStep(4)) {
+      setCurrentStep(4);
       return;
     }
     if (!validateStep(5)) return;
@@ -335,11 +348,10 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
           medium:          formData.medium,
           subjects:        formData.subjects,
           mode:            formData.mode,
-          batchPreference: formData.batchPreference,
           batchTimings,
           feeType:         formData.feeType,
           totalFee:        Number(formData.totalFee) || 0,
-          instalmentPlan:  formData.instalmentPlan,
+          installmentPlan:  formData.installmentPlan,
           firstDueDate:    formData.firstDueDate,
           branchId:        currentBranch,
           status:          "Active",
@@ -497,10 +509,6 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="Female" id="female" />
                       <Label htmlFor="female">Female</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="Other" id="other" />
-                      <Label htmlFor="other">Other</Label>
                     </div>
                   </RadioGroup>
                 </div>
@@ -698,12 +706,15 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
               </div>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Subjects</Label>
+                  <Label>Subjects *</Label>
                   <Popover>
                     <PopoverTrigger asChild disabled={classSubjects.length === 0}>
                       <button
                         type="button"
-                        className="mb-2 flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        className={cn(
+                          "mb-2 flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                          invalidClass("subjects"),
+                        )}
                       >
                         <span>Select Subject</span>
                         <ChevronDown className="h-4 w-4 opacity-50" />
@@ -774,15 +785,6 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                       </button>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="batch">Batch Preference</Label>
-                    <Input 
-                      id="batch" 
-                      value={formData.batchPreference} 
-                      onChange={(e) => updateFormData({ batchPreference: e.target.value })} 
-                      placeholder="e.g. Evening Batch"
-                    />
-                  </div>
                 </div>
               </div>
             </div>
@@ -828,24 +830,24 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Instalment Plan</Label>
-                  <Select value={formData.instalmentPlan} onValueChange={(val) => updateFormData({ instalmentPlan: val })}>
+                  <Label>Installment Plan</Label>
+                  <Select value={formData.installmentPlan} onValueChange={(val) => updateFormData({ installmentPlan: val })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select Plan" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Full">Full Payment</SelectItem>
-                      <SelectItem value="1 Part">1 Instalment</SelectItem>
-                      <SelectItem value="2 Parts">2 Instalments</SelectItem>
-                      <SelectItem value="3 Parts">3 Instalments</SelectItem>
-                      <SelectItem value="4 Parts">4 Instalments</SelectItem>
-                      <SelectItem value="5 Parts">5 Instalments</SelectItem>
-                      <SelectItem value="6 Parts">6 Instalments</SelectItem>
+                      <SelectItem value="1 Part">1 Installment</SelectItem>
+                      <SelectItem value="2 Parts">2 Installments</SelectItem>
+                      <SelectItem value="3 Parts">3 Installments</SelectItem>
+                      <SelectItem value="4 Parts">4 Installments</SelectItem>
+                      <SelectItem value="5 Parts">5 Installments</SelectItem>
+                      <SelectItem value="6 Parts">6 Installments</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="dueDate">First Instalment Due Date</Label>
+                  <Label htmlFor="dueDate">First Installment Due Date</Label>
                   <div className="relative">
                     <CalendarIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input 

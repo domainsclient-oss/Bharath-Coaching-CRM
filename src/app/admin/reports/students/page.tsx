@@ -167,7 +167,7 @@ export default function StudentsReportPage() {
             <div className="flex flex-wrap gap-3">
               <div className="relative flex-1 min-w-48">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search students..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+                <Input autoCapitalize="off" placeholder="Search students..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
               </div>
               <Select value={statusF} onValueChange={setStatusF}>
                 <SelectTrigger className="w-36"><SelectValue placeholder="Status" /></SelectTrigger>

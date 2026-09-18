@@ -145,7 +145,7 @@ export default function StudentApplicationFormPage() {
                   <Label className="text-xs font-bold uppercase text-muted-foreground">Search Student</Label>
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input className="pl-10" placeholder="Name or App No..."
+                    <Input autoCapitalize="off" className="pl-10" placeholder="Name or App No..."
                       value={search} onChange={e => setSearch(e.target.value)} />
                   </div>
                 </div>

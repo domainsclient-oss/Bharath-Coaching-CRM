@@ -189,7 +189,7 @@ export default function StudentListPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="relative lg:col-span-1">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input 
+                <Input autoCapitalize="off" 
                   placeholder="Search name, app no..." 
                   className="pl-10 h-10" 
                   value={searchTerm}
@@ -303,7 +303,6 @@ export default function StudentListPage() {
                         </Avatar>
                         <div className="flex flex-col">
                           <span className="text-sm font-bold text-[#1E2A4A]">{student.name}</span>
-                          <span className="text-[10px] text-muted-foreground">{student.parentName}</span>
                         </div>
                       </div>
                     </TableCell>
@@ -316,7 +315,7 @@ export default function StudentListPage() {
                     <TableCell className="hidden lg:table-cell">
                       <div className="flex flex-wrap gap-1">
                         {(student.subjects ?? []).slice(0, 2).map((sub, i) => (
-                          <Badge key={i} variant="secondary" className="text-[9px] py-0 px-1.5 font-normal">
+                          <Badge key={i} variant="secondary" className="text-[10px] py-0 px-1.5 font-bold">
                             {sub}
                           </Badge>
                         ))}

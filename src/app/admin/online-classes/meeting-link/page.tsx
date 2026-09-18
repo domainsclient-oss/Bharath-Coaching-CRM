@@ -274,6 +274,7 @@ export default function MeetingLinkPage() {
                     </Label>
                     <div className="flex gap-2">
                       <Input
+                        autoCapitalize="off"
                         placeholder="https://meet.google.com/..."
                         value={form.meetLink}
                         onChange={e => set("meetLink", e.target.value)}

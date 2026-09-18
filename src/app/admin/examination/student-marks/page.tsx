@@ -130,6 +130,7 @@ export default function StudentMarkListPage() {
             <div className="relative max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
+                autoCapitalize="off"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Type a student or exam name..."

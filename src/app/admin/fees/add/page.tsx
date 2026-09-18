@@ -1,3 +1,4 @@
+
 "use client";
 
 import { BOARDS } from "@/config/boards";
@@ -31,12 +32,12 @@ interface StudentDoc {
   branchId: string;
 }
 
-interface InstForm {
+interface InstallmentForm {
   amount: string;
   date: string;
 }
 
-const EMPTY_INST: InstForm = { amount: "", date: "" };
+const EMPTY_INSTALLMENT: InstallmentForm = { amount: "", date: "" };
 
 function localToday() {
   const d = new Date();
@@ -56,7 +57,7 @@ export default function AddFeeRecordPage() {
   const [subjectInput, setSubjectInput] = useState("");
   const [feeType, setFeeType] = useState("Standard");
   const [totalFee, setTotalFee] = useState("");
-  const [instalments, setInstalments] = useState<InstForm[]>([{ ...EMPTY_INST }]);
+  const [installments, setInstallments] = useState<InstallmentForm[]>([{ ...EMPTY_INSTALLMENT }]);
   const [saving, setSaving] = useState(false);
 
   const sortedStudents = useMemo(() =>
@@ -85,19 +86,19 @@ export default function AddFeeRecordPage() {
     setSubjectInput("");
   };
 
-  const addInstalment = () => {
-    if (instalments.length < 4) setInstalments(prev => [...prev, { ...EMPTY_INST }]);
+  const addInstallment = () => {
+    if (installments.length < 6) setInstallments(prev => [...prev, { ...EMPTY_INSTALLMENT }]);
   };
 
-  const removeInstalment = (i: number) =>
-    setInstalments(prev => prev.filter((_, idx) => idx !== i));
+  const removeInstallment = (i: number) =>
+    setInstallments(prev => prev.filter((_, idx) => idx !== i));
 
-  const updateInstalment = (i: number, field: keyof InstForm, value: string) =>
-    setInstalments(prev => prev.map((inst, idx) => idx === i ? { ...inst, [field]: value } : inst));
+  const updateInstallment = (i: number, field: keyof InstallmentForm, value: string) =>
+    setInstallments(prev => prev.map((inst, idx) => idx === i ? { ...inst, [field]: value } : inst));
 
-  const instTotal = instalments.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
+  const installmentTotal = installments.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
   const total = parseFloat(totalFee) || 0;
-  const balance = total - instTotal;
+  const balance = total - installmentTotal;
 
   const handleSave = async () => {
     if (!studentName.trim()) {
@@ -108,8 +109,8 @@ export default function AddFeeRecordPage() {
       toast({ title: "Missing Total Fee", description: "Enter a valid total fee amount.", variant: "destructive" });
       return;
     }
-    if (instalments.some(i => !i.amount || !i.date)) {
-      toast({ title: "Incomplete Instalments", description: "Each instalment needs an amount and due date.", variant: "destructive" });
+    if (installments.some(i => !i.amount || !i.date)) {
+      toast({ title: "Incomplete Installments", description: "Each installment needs an amount and due date.", variant: "destructive" });
       return;
     }
 
@@ -118,7 +119,7 @@ export default function AddFeeRecordPage() {
       const year = new Date().getFullYear();
       const billNo = `BA-${year}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-      const firstInstDate = instalments[0]?.date ?? "";
+      const firstInstallmentDate = installments[0]?.date ?? "";
 
       await addDocument("fees", {
         billNo,
@@ -132,7 +133,7 @@ export default function AddFeeRecordPage() {
         amountPaid: 0,
         balance: total,
         status: "Unpaid",
-        dueDate: firstInstDate,
+        dueDate: firstInstallmentDate,
         paymentDate: null,
         mode: null,
         branchId: currentBranch,
@@ -208,7 +209,7 @@ export default function AddFeeRecordPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Class</Label>
-                  <Input placeholder="e.g. 10" value={studentClass} onChange={e => setStudentClass(e.target.value)} />
+                  <Input autoCapitalize="off" placeholder="e.g. 10" value={studentClass} onChange={e => setStudentClass(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label>Board</Label>
@@ -262,7 +263,7 @@ export default function AddFeeRecordPage() {
             </CardContent>
           </Card>
 
-          {/* Fee & Instalments */}
+          {/* Fee & Installments */}
           <Card className="border-none shadow-sm h-fit">
             <CardContent className="p-6 space-y-5">
               <div className="border-b pb-2">
@@ -287,18 +288,18 @@ export default function AddFeeRecordPage() {
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label>Instalments *</Label>
-                  {instalments.length < 4 && (
-                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={addInstalment}>
+                  <Label>Installments *</Label>
+                  {installments.length < 6 && (
+                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={addInstallment}>
                       <Plus className="h-3 w-3" /> Add
                     </Button>
                   )}
                 </div>
 
-                {instalments.map((inst, i) => (
+                {installments.map((inst, i) => (
                   <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Instalment {i + 1} Amount</p>
+                      <p className="text-xs text-muted-foreground">Installment {i + 1} Amount</p>
                       <div className="relative">
                         <span className="absolute left-3 top-2.5 text-muted-foreground text-xs">₹</span>
                         <Input
@@ -306,7 +307,7 @@ export default function AddFeeRecordPage() {
                           type="number"
                           placeholder="0"
                           value={inst.amount}
-                          onChange={e => updateInstalment(i, "amount", e.target.value)}
+                          onChange={e => updateInstallment(i, "amount", e.target.value)}
                         />
                       </div>
                     </div>
@@ -316,14 +317,14 @@ export default function AddFeeRecordPage() {
                         className="h-9 text-sm"
                         type="date"
                         value={inst.date}
-                        onChange={e => updateInstalment(i, "date", e.target.value)}
+                        onChange={e => updateInstallment(i, "date", e.target.value)}
                       />
                     </div>
-                    {instalments.length > 1 && (
+                    {installments.length > 1 && (
                       <Button
                         type="button" variant="ghost" size="icon"
                         className="h-9 w-9 text-red-500 hover:bg-red-50 hover:text-red-600"
-                        onClick={() => removeInstalment(i)}
+                        onClick={() => removeInstallment(i)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -339,9 +340,9 @@ export default function AddFeeRecordPage() {
                   <span className="font-semibold">₹{total.toLocaleString("en-IN")}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Instalment Total</span>
-                  <span className={instTotal > total ? "text-red-600 font-semibold" : "font-semibold"}>
-                    ₹{instTotal.toLocaleString("en-IN")}
+                  <span className="text-muted-foreground">Installment Total</span>
+                  <span className={installmentTotal > total ? "text-red-600 font-semibold" : "font-semibold"}>
+                    ₹{installmentTotal.toLocaleString("en-IN")}
                   </span>
                 </div>
                 <div className="flex justify-between border-t pt-2">
@@ -350,8 +351,8 @@ export default function AddFeeRecordPage() {
                     ₹{balance.toLocaleString("en-IN")}
                   </span>
                 </div>
-                {instTotal > total && (
-                  <p className="text-xs text-red-600">⚠ Instalment total exceeds the total fee.</p>
+                {installmentTotal > total && (
+                  <p className="text-xs text-red-600">⚠ Installment total exceeds the total fee.</p>
                 )}
               </div>
             </CardContent>

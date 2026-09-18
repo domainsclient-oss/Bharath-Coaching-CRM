@@ -1,9 +1,11 @@
 import * as React from 'react';
 
-import {cn} from '@/lib/utils';
+import {capitalizeInput, capitalizeSentences, cn} from '@/lib/utils';
 
+// Capitalises the start of each sentence as you type; pass autoCapitalize="off" to opt out
 const Textarea = React.forwardRef<HTMLTextAreaElement, React.ComponentProps<'textarea'>>(
-  ({className, ...props}, ref) => {
+  ({className, autoCapitalize, onChange, ...props}, ref) => {
+    const capitalize = autoCapitalize !== 'off' && autoCapitalize !== 'none';
     return (
       <textarea
         className={cn(
@@ -11,6 +13,8 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, React.ComponentProps<'tex
           className
         )}
         ref={ref}
+        autoCapitalize={capitalize ? 'sentences' : autoCapitalize}
+        onChange={capitalize ? (e) => { capitalizeInput(e, capitalizeSentences); onChange?.(e); } : onChange}
         {...props}
       />
     );

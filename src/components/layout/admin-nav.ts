@@ -83,7 +83,6 @@ export const navSections: NavSection[] = [
     items: [
       { href: '/admin/attendance/students', label: 'Student Attendance' },
       { href: '/admin/attendance/staff', label: 'Staff Attendance', roles: ['super_admin', 'admin'] },
-      { href: '/admin/attendance/reports', label: 'Reports' },
     ],
   },
   {

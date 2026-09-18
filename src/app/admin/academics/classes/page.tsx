@@ -279,7 +279,7 @@ export default function BatchManagementPage() {
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search batches..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
+                <Input autoCapitalize="off" placeholder="Search batches..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
               <Button className="bg-[#1E2A4A] hover:bg-[#0D7C8F] gap-2" onClick={openAdd}>
                 <Plus className="h-4 w-4" /> Add Batch

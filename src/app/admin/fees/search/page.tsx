@@ -103,6 +103,7 @@ export default function SearchFeesPage() {
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
+                  autoCapitalize="off"
                   className="pl-10"
                   placeholder="Search by student name or bill no..."
                   value={query}
@@ -123,6 +124,7 @@ export default function SearchFeesPage() {
             {/* Secondary filters */}
             <div className="flex flex-wrap gap-3">
               <Input
+                autoCapitalize="off"
                 className="w-32"
                 placeholder="Class"
                 value={classFilter}
@@ -130,6 +132,7 @@ export default function SearchFeesPage() {
                 onKeyDown={e => e.key === "Enter" && handleSearch()}
               />
               <Input
+                autoCapitalize="off"
                 className="w-36"
                 placeholder="Board (CBSE...)"
                 value={boardFilter}

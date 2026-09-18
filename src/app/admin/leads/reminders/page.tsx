@@ -199,6 +199,7 @@ export default function FollowUpRemindersPage() {
           <div className="relative w-full md:w-72">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
+              autoCapitalize="off"
               placeholder="Search reminders..."
               className="pl-9 h-10 bg-white"
               value={searchTerm}

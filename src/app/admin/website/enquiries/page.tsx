@@ -188,6 +188,7 @@ export default function EnquiryReportPage() {
         <Card className="border-none shadow-sm">
           <CardContent className="p-4 flex flex-wrap gap-3">
             <Input
+              autoCapitalize="off"
               className="flex-1 min-w-52"
               placeholder="Search name or phone..."
               value={search}

@@ -133,6 +133,7 @@ export default function SearchExpensesPage() {
               <div className="relative flex-1 min-w-48">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
+                  autoCapitalize="off"
                   className="pl-10"
                   placeholder="Description, vendor, bill no..."
                   value={search}

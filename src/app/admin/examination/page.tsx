@@ -188,7 +188,7 @@ export default function ExamSchedulePage() {
             <div className="flex flex-wrap gap-3 items-center">
               <div className="relative flex-1 min-w-48">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input className="pl-10" placeholder="Exam name or subject..."
+                <Input autoCapitalize="off" className="pl-10" placeholder="Exam name or subject..."
                   value={search} onChange={e => setSearch(e.target.value)} />
               </div>
               <Select value={classFilter} onValueChange={setClassFilter}>

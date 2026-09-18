@@ -407,7 +407,7 @@ export default function OnlineClassesPage() {
                 </Select>
                 <div className="relative w-full md:w-72">
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search by topic, subject or faculty..." className="pl-9 h-9" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                  <Input autoCapitalize="off" placeholder="Search by topic, subject or faculty..." className="pl-9 h-9" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
                 </div>
               </div>
             </div>
@@ -554,7 +554,7 @@ export default function OnlineClassesPage() {
               <div className="grid gap-2">
                 <Label>Google Meet Link</Label>
                 <div className="flex gap-2">
-                  <Input placeholder="https://meet.google.com/..." value={meetLink} onChange={e => setMeetLink(e.target.value)} />
+                  <Input autoCapitalize="off" placeholder="https://meet.google.com/..." value={meetLink} onChange={e => setMeetLink(e.target.value)} />
                   <Button type="button" variant="outline" className="gap-2 shrink-0" onClick={handleGenerateLink}>
                     <LinkIcon className="h-3 w-3" /> Generate
                   </Button>

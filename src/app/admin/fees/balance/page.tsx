@@ -225,6 +225,7 @@ export default function BalanceDuesPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
+                    autoCapitalize="off"
                     className="pl-10"
                     placeholder="Search student..."
                     value={nameFilter}

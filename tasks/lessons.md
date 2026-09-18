@@ -173,3 +173,7 @@ place.
   dev runs, stop dev first and restart it afterwards.
 - Every route returning 500 at once means a stale `.next/`, not the code.
   Stop dev, `rm -rf .next`, start dev.
+
+## Branch IDs come from Firestore, not branch names
+- Mistake: told the user demo fee records (branchId "Trichy") would show on Fees Receipt; the live branch ID is a Firestore doc ID, so the list was empty.
+- Rule: before claiming data will appear for a branch, check where `currentBranch` comes from (`BranchContext` loads IDs from the `branches` collection). Pages filtering mock data by `branchId` will show nothing in a real deployment.

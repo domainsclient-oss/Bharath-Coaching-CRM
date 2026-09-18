@@ -36,11 +36,18 @@ import {
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as DatePicker } from "@/components/ui/calendar";
+import { addDays, format, isValid, parse, startOfDay, startOfWeek } from "date-fns";
+import { cn } from "@/lib/utils";
+import { BOARDS } from "@/config/boards";
+import { CLASSES, MODE_FILTER_OPTIONS, batchClassNumber, classLabel } from "@/config/academics";
 import { TIME_SLOTS, DAYS, TimetableEntry } from "@/data/academicsData";
 import { formatSlot, joinTime, parseSlot, slotStartMinutes, splitTime } from "@/lib/timeSlot";
 // Spelled out in the picker; the grid keeps the short form it is sized for.
 // Shared with the student portal so both read one day key.
-import { DAY_LABELS } from "@/lib/timetableDay";
+import { DAY_LABELS, dayKey } from "@/lib/timetableDay";
 import { useAuth } from "@/lib/auth-context";
 import { useBranch } from "@/context/BranchContext";
 import { useFirestoreCollection } from "@/hooks/useFirestoreCollection";
@@ -113,6 +120,82 @@ const TimeField = ({
   );
 };
 
+const DATE_FORMAT = "dd/MM/yyyy";
+
+/** "5/9/2026", "05-09-2026" and "05.09.2026" all read as 5 September 2026. */
+const parseTypedDate = (text: string): Date | null => {
+  const normalised = text.trim().replace(/[.-]/g, "/");
+  // Require a four-digit year so "05/09/202" is not taken as the year 202 mid-typing.
+  if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(normalised)) return null;
+  const date = parse(normalised, "d/M/yyyy", new Date());
+  return isValid(date) ? date : null;
+};
+
+/**
+ * A date that can be typed as DD/MM/YYYY or picked from the calendar button
+ * at the end of the field. A typed date is applied as soon as it is complete
+ * and valid; anything else is put back to the current date on blur.
+ */
+const DateField = ({
+  id, value, onChange,
+}: { id: string; value: Date; onChange: (next: Date) => void }) => {
+  const formatted = format(value, DATE_FORMAT);
+  const [text, setText] = useState(formatted);
+  const [open, setOpen] = useState(false);
+
+  // Follow the date when it changes from the picker.
+  useEffect(() => { setText(formatted); }, [formatted]);
+
+  const invalid = text !== formatted && parseTypedDate(text) === null;
+
+  const handleType = (next: string) => {
+    setText(next);
+    const date = parseTypedDate(next);
+    if (date) onChange(date);
+  };
+
+  return (
+    <div className="relative">
+      <Input
+        id={id}
+        value={text}
+        placeholder="DD/MM/YYYY"
+        inputMode="numeric"
+        maxLength={10}
+        aria-invalid={invalid}
+        className={cn("h-10 pr-11", invalid && "border-destructive focus-visible:ring-destructive")}
+        onChange={(e) => handleType(e.target.value)}
+        onBlur={() => setText(formatted)}
+        onKeyDown={(e) => { if (e.key === "Enter") setText(formatted); }}
+      />
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground hover:text-[#0D7C8F]"
+            aria-label="Open date picker"
+          >
+            <Calendar className="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="end">
+          <DatePicker
+            mode="single"
+            selected={value}
+            defaultMonth={value}
+            onSelect={(date) => {
+              if (date) onChange(date);
+              setOpen(false);
+            }}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+};
+
 export default function ClassTimetablePage() {
   useAuth();
   const { currentBranch } = useBranch();
@@ -122,7 +205,12 @@ export default function ClassTimetablePage() {
   const { data: allStaff } = useFirestoreCollection<any>("staff", currentBranch);
   const { data: allEntries, loading: ttLoading } = useFirestoreCollection<TimetableEntry>("timetable", currentBranch);
 
-  const [selectedClassId, setSelectedClassId] = useState<string>("");
+  // A class is picked by name ("10") and its board separately; together they
+  // name the batches whose timetable is shown.
+  const [selectedClassNo, setSelectedClassNo] = useState("");
+  const [selectedBoard, setSelectedBoard] = useState("");
+  const [modeFilter, setModeFilter] = useState("All");
+  const [selectedDate, setSelectedDate] = useState(() => startOfDay(new Date()));
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [deleteEntryId, setDeleteEntryId] = useState<string | null>(null);
 
@@ -136,21 +224,76 @@ export default function ClassTimetablePage() {
   const [slotMode, setSlotMode] = useState<"Offline" | "Online">("Offline");
   const [saving, setSaving] = useState(false);
 
-  // Auto-select first class when classes load
-  useEffect(() => {
-    if (!selectedClassId && allClasses.length > 0) {
-      setSelectedClassId(allClasses[0].id);
-    }
-  }, [allClasses, selectedClassId]);
+  // Board is compared case-insensitively: older class records were not
+  // always saved in the canonical upper-case spelling.
+  const sameBoard = (c: any, board: string) =>
+    String(c.board ?? "").toUpperCase() === board.toUpperCase();
+  const sameMode = (c: any, mode: string) =>
+    String(c.mode ?? "").toLowerCase() === mode.toLowerCase();
 
-  const selectedClass = useMemo(
-    () => allClasses.find((c) => c.id === selectedClassId),
-    [allClasses, selectedClassId]
+  // Only boards that have at least one class, so every choice leads somewhere.
+  const boardOptions = useMemo(
+    () => BOARDS.filter((b) => allClasses.some((c: any) => sameBoard(c, b))),
+    [allClasses]
   );
 
+  // Keep a valid board selected: the first one on load.
+  useEffect(() => {
+    if (!boardOptions.includes(selectedBoard)) setSelectedBoard(boardOptions[0] ?? "");
+  }, [boardOptions, selectedBoard]);
+
+  // The class list is always Class 1–12. On load, start on the first class
+  // that has a batch for the board so the grid opens on a real timetable.
+  useEffect(() => {
+    if (selectedClassNo || !selectedBoard) return;
+    const first = CLASSES.find((n) =>
+      allClasses.some((c: any) => batchClassNumber(c) === n && sameBoard(c, selectedBoard))
+    );
+    setSelectedClassNo(first ?? CLASSES[0]);
+  }, [allClasses, selectedBoard, selectedClassNo]);
+
+  // Batches for the chosen class and board, one per mode (Offline, Online,
+  // One to One).
+  const classBatches = useMemo(
+    () => allClasses.filter((c: any) =>
+      !!selectedClassNo && batchClassNumber(c) === selectedClassNo && sameBoard(c, selectedBoard)
+    ),
+    [allClasses, selectedClassNo, selectedBoard]
+  );
+
+  // "All" plus the modes this class and board are actually taught in.
+  const modeOptions = useMemo(
+    () => MODE_FILTER_OPTIONS.filter((m) => m === "All" || classBatches.some((c: any) => sameMode(c, m))),
+    [classBatches]
+  );
+  useEffect(() => {
+    if (!modeOptions.includes(modeFilter)) setModeFilter("All");
+  }, [modeOptions, modeFilter]);
+
+  /**
+   * Batches whose slots the grid shows. With "All Modes" they are shown
+   * together; each slot keeps its own mode badge.
+   */
+  const selectedBatches = useMemo(
+    () => modeFilter === "All" ? classBatches : classBatches.filter((c: any) => sameMode(c, modeFilter)),
+    [classBatches, modeFilter]
+  );
+  const selectedBatchIds = useMemo(
+    () => new Set<string>(selectedBatches.map((c: any) => c.id)),
+    [selectedBatches]
+  );
+
+  // The timetable repeats weekly, so a date picks the Monday-start week it
+  // falls in: each day column shows its date and the chosen day is marked.
+  const weekDates = useMemo(() => {
+    const monday = startOfWeek(selectedDate, { weekStartsOn: 1 });
+    return Object.fromEntries(DAYS.map((d, i) => [d, addDays(monday, i)])) as Record<TimetableEntry["day"], Date>;
+  }, [selectedDate]);
+  const selectedDay = dayKey(format(selectedDate, "EEE"));
+
   const timetableData = useMemo(
-    () => allEntries.filter((t) => t.classId === selectedClassId),
-    [allEntries, selectedClassId]
+    () => allEntries.filter((t) => selectedBatchIds.has(t.classId)),
+    [allEntries, selectedBatchIds]
   );
 
   /**
@@ -162,10 +305,10 @@ export default function ClassTimetablePage() {
   const subjectOptions = useMemo(() => {
     const byName = (a: any, b: any) => String(a.name ?? "").localeCompare(String(b.name ?? ""));
     const linked = allSubjects.filter((s: any) =>
-      Array.isArray(s.classIds) && s.classIds.includes(selectedClassId)
+      Array.isArray(s.classIds) && s.classIds.some((id: string) => selectedBatchIds.has(id))
     );
     return (linked.length > 0 ? linked : allSubjects).slice().sort(byName);
-  }, [allSubjects, selectedClassId]);
+  }, [allSubjects, selectedBatchIds]);
 
   const handleAddSlot = (day: TimetableEntry["day"], slot: string) => {
     const times = parseSlot(slot) ?? DEFAULT_TIMES;
@@ -179,8 +322,8 @@ export default function ClassTimetablePage() {
   };
 
   const handleSaveSlot = async () => {
-    if (!selectedClassId) {
-      toast({ variant: "destructive", title: "Required", description: "Choose a class first." });
+    if (selectedBatches.length === 0) {
+      toast({ variant: "destructive", title: "Required", description: "Choose a class and board first." });
       return;
     }
     if (!slotSubjectId || !slotTeacherId) {
@@ -205,8 +348,11 @@ export default function ClassTimetablePage() {
     try {
       const subject = allSubjects.find((s: any) => s.id === slotSubjectId);
       const teacher = allStaff.find((s: any) => s.id === slotTeacherId);
+      // A filtered mode names the batch. Otherwise save against the batch
+      // taught in the chosen delivery mode, when there is one.
+      const batch = selectedBatches.find((c: any) => sameMode(c, slotMode)) ?? selectedBatches[0];
       await addDocument("timetable", {
-        classId: selectedClassId,
+        classId: batch.id,
         day: slotDay,
         timeSlot,
         subjectId: slotSubjectId,
@@ -267,7 +413,7 @@ export default function ClassTimetablePage() {
             <div className="flex items-center gap-2">
               <Button
                 className="gap-2 bg-[#0D7C8F] hover:bg-[#0D7C8F]/90"
-                disabled={!selectedClassId}
+                disabled={selectedBatches.length === 0}
                 onClick={() => handleAddSlot(DAYS[0], TIME_SLOTS[0])}
               >
                 <Plus className="h-4 w-4" /> Add Slot
@@ -282,25 +428,61 @@ export default function ClassTimetablePage() {
         {/* Filter Bar */}
         <Card className="border-none shadow-sm print:hidden">
           <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4 items-end">
-              <div className="grid gap-2 flex-1">
-                <Label className="text-xs font-bold uppercase text-muted-foreground">Select Class</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+              <div className="grid gap-2">
+                <Label htmlFor="tt-class" className="text-xs font-bold uppercase text-muted-foreground">Select Class</Label>
                 {classesLoading ? (
                   <Skeleton className="h-10 w-full" />
                 ) : (
-                  <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                    <SelectTrigger className="h-10">
+                  <Select value={selectedClassNo} onValueChange={setSelectedClassNo}>
+                    <SelectTrigger id="tt-class" className="h-10">
                       <SelectValue placeholder="Choose Class" />
                     </SelectTrigger>
                     <SelectContent>
-                      {allClasses.map((c: any) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name} {c.board ? `(${c.board})` : ""}
-                        </SelectItem>
+                      {CLASSES.map((n) => (
+                        <SelectItem key={n} value={n}>{classLabel(n)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 )}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="tt-board" className="text-xs font-bold uppercase text-muted-foreground">Select Board</Label>
+                {classesLoading ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : (
+                  <Select
+                    value={selectedBoard}
+                    onValueChange={setSelectedBoard}
+                    disabled={boardOptions.length === 0}
+                  >
+                    <SelectTrigger id="tt-board" className="h-10">
+                      <SelectValue placeholder="Choose Board" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {boardOptions.map((b) => (
+                        <SelectItem key={b} value={b}>{b}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="tt-mode" className="text-xs font-bold uppercase text-muted-foreground">Select Mode</Label>
+                <Select value={modeFilter} onValueChange={setModeFilter} disabled={classBatches.length === 0}>
+                  <SelectTrigger id="tt-mode" className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {modeOptions.map((m) => (
+                      <SelectItem key={m} value={m}>{m === "All" ? "All Modes" : m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="tt-date" className="text-xs font-bold uppercase text-muted-foreground">Select Date</Label>
+                <DateField id="tt-date" value={selectedDate} onChange={setSelectedDate} />
               </div>
             </div>
           </CardContent>
@@ -315,16 +497,34 @@ export default function ClassTimetablePage() {
               No classes found. Add classes in <Link href="/admin/academics/classes" className="text-[#0D7C8F] underline">Academics → Classes</Link> first.
             </CardContent>
           </Card>
+        ) : classBatches.length === 0 ? (
+          <Card className="border-none shadow-sm">
+            <CardContent className="py-16 text-center text-muted-foreground">
+              {classLabel(selectedClassNo)} has not been set up{selectedBoard ? ` for ${selectedBoard}` : ""} yet.
+              Choose another class or board, or add it in{" "}
+              <Link href="/admin/academics/classes" className="text-[#0D7C8F] underline">Academics → Classes</Link>.
+            </CardContent>
+          </Card>
         ) : (
           <Card className="border-none shadow-sm overflow-hidden print:shadow-none print:border">
-            <div className="bg-[#1E2A4A] text-white p-4 flex justify-between items-center">
+            <div className="bg-[#1E2A4A] text-white p-4 flex justify-between items-center gap-3">
               <div className="flex items-center gap-3">
                 <Calendar className="h-5 w-5 text-[#0D7C8F]" />
-                <h3 className="font-bold">{selectedClass?.name ?? "—"} — Weekly Schedule</h3>
+                <div>
+                  <h3 className="font-bold">{classLabel(selectedClassNo)} — Weekly Schedule</h3>
+                  <p className="text-xs text-white/70">
+                    Week of {format(weekDates[DAYS[0]], "d MMM")} – {format(weekDates[DAYS[DAYS.length - 1]], "d MMM yyyy")}
+                  </p>
+                </div>
               </div>
-              {selectedClass?.board && (
-                <Badge className="bg-white/20 text-white border-white/30">{selectedClass.board}</Badge>
-              )}
+              <div className="flex items-center gap-2">
+                {selectedBoard && (
+                  <Badge className="bg-white/20 text-white border-white/30">{selectedBoard}</Badge>
+                )}
+                {modeFilter !== "All" && (
+                  <Badge className="bg-white/20 text-white border-white/30">{modeFilter}</Badge>
+                )}
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -333,8 +533,17 @@ export default function ClassTimetablePage() {
                   <tr className="bg-slate-50">
                     <th className="border p-3 text-xs font-bold text-muted-foreground uppercase w-32">Time Slot</th>
                     {DAYS.map((day) => (
-                      <th key={day} className="border p-3 text-xs font-bold text-[#1E2A4A] uppercase w-40">
+                      <th
+                        key={day}
+                        className={cn(
+                          "border p-3 text-xs font-bold text-[#1E2A4A] uppercase w-40",
+                          day === selectedDay && "bg-[#0D7C8F]/10 text-[#0D7C8F]"
+                        )}
+                      >
                         {day}
+                        <span className="block text-[10px] font-medium normal-case text-muted-foreground">
+                          {format(weekDates[day], "dd MMM")}
+                        </span>
                       </th>
                     ))}
                   </tr>
@@ -351,7 +560,10 @@ export default function ClassTimetablePage() {
                       {DAYS.map((day) => {
                         const entry = timetableData.find((e) => e.day === day && e.timeSlot === slot);
                         return (
-                          <td key={`${day}-${slot}`} className="border p-2 group/cell h-24">
+                          <td
+                            key={`${day}-${slot}`}
+                            className={cn("border p-2 group/cell h-24", day === selectedDay && "bg-[#0D7C8F]/5")}
+                          >
                             {entry ? (
                               <div className="relative h-full flex flex-col justify-between p-2 rounded-lg bg-white shadow-sm border border-slate-100 group-hover/cell:border-[#0D7C8F]/30 transition-all">
                                 <div className="flex justify-between items-start">

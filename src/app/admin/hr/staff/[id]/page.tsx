@@ -25,7 +25,7 @@ const staffSchema = z.object({
   name:          z.string().min(2, "Name is required"),
   role:          z.enum(["Teacher", "Admin", "Support", "Principal"]),
   dob:           z.string().min(1, "Date of birth is required"),
-  gender:        z.enum(["Male", "Female", "Other"]),
+  gender:        z.enum(["Male", "Female"], { message: "Select a gender" }),
   phone:         z.string().min(10, "Enter a valid phone number"),
   email:         z.string().email("Enter a valid email"),
   address:       z.string().min(5, "Address is required"),
@@ -265,7 +265,6 @@ export default function StaffProfilePage() {
                           <SelectContent>
                             <SelectItem value="Male">Male</SelectItem>
                             <SelectItem value="Female">Female</SelectItem>
-                            <SelectItem value="Other">Other</SelectItem>
                           </SelectContent>
                         </Select>
                       )} />
@@ -282,7 +281,7 @@ export default function StaffProfilePage() {
                     </div>
                     <div className="space-y-2">
                       <Label>Email Address *</Label>
-                      <Input {...register("email")} placeholder="staff@example.com" />
+                      <Input type="email" {...register("email")} placeholder="staff@example.com" />
                       {errors.email && <p className="text-red-500 text-xs">{errors.email.message}</p>}
                     </div>
                     <div className="space-y-2 md:col-span-2">

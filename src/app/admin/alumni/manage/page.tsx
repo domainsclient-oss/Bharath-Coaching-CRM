@@ -248,7 +248,7 @@ export default function ManageAlumniPage() {
             <div className="flex flex-wrap gap-3">
               <div className="relative flex-1 min-w-48">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search name, app no, phone..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+                <Input autoCapitalize="off" placeholder="Search name, app no, phone..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
               </div>
               <Select value={classFilter} onValueChange={setClassFilter}>
                 <SelectTrigger className="w-32"><SelectValue placeholder="All Classes" /></SelectTrigger>
@@ -464,7 +464,6 @@ export default function ManageAlumniPage() {
                 <SelectContent>
                   <SelectItem value="Male">Male</SelectItem>
                   <SelectItem value="Female">Female</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>

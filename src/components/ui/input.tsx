@@ -1,9 +1,12 @@
 import * as React from "react"
 
-import { cn } from "@/lib/utils"
+import { capitalizeInput, cn } from "@/lib/utils"
 
+// Plain text fields capitalise each word as you type; pass autoCapitalize="off"
+// (search boxes, links, codes) to keep the value exactly as typed
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
+  ({ className, type, autoCapitalize, onChange, ...props }, ref) => {
+    const capitalize = (!type || type === "text") && autoCapitalize !== "off" && autoCapitalize !== "none"
     return (
       <input
         type={type}
@@ -12,6 +15,8 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className
         )}
         ref={ref}
+        autoCapitalize={capitalize ? "words" : autoCapitalize}
+        onChange={capitalize ? (e) => { capitalizeInput(e); onChange?.(e) } : onChange}
         {...props}
       />
     )

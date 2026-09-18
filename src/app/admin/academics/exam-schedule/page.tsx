@@ -130,7 +130,7 @@ export default function AcademicsExamSchedulePage() {
                 </div>
                 <div className="space-y-1">
                   <Label>Class *</Label>
-                  <Input placeholder="e.g. 10" value={form.class} onChange={e => setForm(f => ({ ...f, class: e.target.value }))} />
+                  <Input autoCapitalize="off" placeholder="e.g. 10" value={form.class} onChange={e => setForm(f => ({ ...f, class: e.target.value }))} />
                 </div>
                 <div className="space-y-1">
                   <Label>Board *</Label>
@@ -198,6 +198,7 @@ export default function AcademicsExamSchedulePage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
+                  autoCapitalize="off"
                   placeholder="Search by exam name, subject or class..."
                   className="pl-10"
                   value={filters.search}

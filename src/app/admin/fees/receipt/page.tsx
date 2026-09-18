@@ -5,7 +5,7 @@ import { CLASS_FILTER_OPTIONS } from "@/config/academics";
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
-  ChevronRight, Printer, Download, FileText, IndianRupee,
+  ChevronRight, Printer, Download, FileText, IndianRupee, Loader2,
 } from "lucide-react";
 import { SharedHeader } from "@/components/layout/shared-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,9 +17,29 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { mockFeeRecords } from "@/data/feesData";
+import { useFirestoreCollection } from "@/hooks/useFirestoreCollection";
 import { useBranch } from "@/context/BranchContext";
 import { useSettings } from "@/context/SettingsContext";
+
+// Shape written by Add Fee Record and updated by Collect Fees
+interface FeeDoc {
+  id: string;
+  studentName?: string;
+  name?: string;
+  class?: string;
+  board?: string;
+  subjects?: string[];
+  billNo?: string;
+  totalFee?: number;
+  amountPaid?: number;
+  balance?: number;
+  paymentDate?: string | null;
+  mode?: string | null;
+  notes?: string;
+}
+
+// Class is typed free-form on Add Fee Record ("10", "Class 10", "10th"), so compare the number only
+const classNumber = (c?: string) => (c ?? "").match(/\d+/)?.[0] ?? "";
 
 export default function FeesReceiptPage() {
   const { currentBranch } = useBranch();
@@ -27,14 +47,26 @@ export default function FeesReceiptPage() {
   const [classFilter, setClassFilter] = useState("All");
   const [boardFilter, setBoardFilter] = useState("All");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { data: allRecords, loading } = useFirestoreCollection<FeeDoc>("fees", currentBranch);
 
   const records = useMemo(() =>
-    mockFeeRecords.filter(r =>
-      r.branchId === currentBranch &&
-      (classFilter === "All" || r.class === classFilter) &&
-      (boardFilter === "All" || r.board === boardFilter)
-    ),
-    [currentBranch, classFilter, boardFilter]
+    allRecords
+      .map(r => {
+        const totalFee = Number(r.totalFee) || 0;
+        const collected = Number(r.amountPaid) || 0;
+        return {
+          ...r,
+          studentName: r.studentName ?? r.name ?? "—",
+          totalFee,
+          collected,
+          balance: r.balance != null ? Number(r.balance) || 0 : totalFee - collected,
+        };
+      })
+      .filter(r =>
+        (classFilter === "All" || classNumber(r.class) === classFilter) &&
+        (boardFilter === "All" || (r.board ?? "").trim().toLowerCase() === boardFilter.toLowerCase())
+      ),
+    [allRecords, classFilter, boardFilter]
   );
 
   const selected = useMemo(() =>
@@ -44,13 +76,14 @@ export default function FeesReceiptPage() {
 
   const fmt = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
-  const instalmentRows = selected
-    ? Object.entries(selected.instalments)
-        .filter(([, v]) => v && v.collected)
-        .map(([key, v]) => ({
-          label: key === "i1" ? "Instalment I" : key === "i2" ? "Instalment II" : "Instalment III",
-          ...v!,
-        }))
+  // Records keep a running total plus the latest payment's date and mode
+  const paymentRows = selected && selected.collected > 0
+    ? [{
+        label: selected.balance <= 0 ? "Full Payment" : "Amount Paid",
+        date: selected.paymentDate ?? "—",
+        mode: selected.mode ?? "—",
+        amount: selected.collected,
+      }]
     : [];
 
   return (
@@ -104,24 +137,28 @@ export default function FeesReceiptPage() {
             {/* Record list */}
             <Card className="border-none shadow-sm overflow-hidden">
               <CardHeader className="bg-slate-50 border-b py-2 px-4">
-                <CardTitle className="text-sm">{records.length} Record{records.length !== 1 ? "s" : ""}</CardTitle>
+                <CardTitle className="text-sm">{loading ? "Loading…" : `${records.length} Record${records.length !== 1 ? "s" : ""}`}</CardTitle>
               </CardHeader>
               <div className="divide-y max-h-[420px] overflow-y-auto">
-                {records.length > 0 ? records.map(r => (
+                {loading ? (
+                  <div className="p-8 flex justify-center text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  </div>
+                ) : records.length > 0 ? records.map(r => (
                   <button
                     key={r.id}
                     onClick={() => setSelectedId(r.id)}
                     className={`w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors ${selectedId === r.id ? "bg-[#0D7C8F]/5 border-l-2 border-[#0D7C8F]" : ""}`}
                   >
                     <p className="text-sm font-semibold text-[#1E2A4A] truncate">{r.studentName}</p>
-                    <p className="text-xs text-muted-foreground font-mono">{r.billNo}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{r.billNo ?? "—"}</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-muted-foreground">Class {r.class} · {r.board}</span>
+                      <span className="text-xs text-muted-foreground">Class {classNumber(r.class) || r.class || "—"} · {r.board || "—"}</span>
                       <Badge
                         variant="outline"
-                        className={`text-xs py-0 ${r.balance === 0 ? "text-green-600 border-green-200" : "text-red-500 border-red-200"}`}
+                        className={`text-xs py-0 ${r.balance <= 0 ? "text-green-600 border-green-200" : "text-red-500 border-red-200"}`}
                       >
-                        {r.balance === 0 ? "Paid" : `Due ${fmt(r.balance)}`}
+                        {r.balance <= 0 ? "Paid" : `Due ${fmt(r.balance)}`}
                       </Badge>
                     </div>
                   </button>
@@ -168,12 +205,12 @@ export default function FeesReceiptPage() {
                       <div className="flex justify-between items-start">
                         <div>
                           <p className="text-xs text-muted-foreground">Bill Number</p>
-                          <p className="font-bold text-lg font-mono text-[#0D7C8F]">{selected.billNo}</p>
+                          <p className="font-bold text-lg font-mono text-[#0D7C8F]">{selected.billNo ?? "—"}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-xs text-muted-foreground">Receipt Date</p>
                           <p className="font-semibold text-sm">
-                            {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+                            {(selected.paymentDate ? new Date(selected.paymentDate) : new Date()).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
                           </p>
                         </div>
                       </div>
@@ -188,7 +225,7 @@ export default function FeesReceiptPage() {
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Class / Board</p>
-                          <p className="font-semibold">Class {selected.class} — {selected.board}</p>
+                          <p className="font-semibold">Class {classNumber(selected.class) || selected.class || "—"} — {selected.board || "—"}</p>
                         </div>
                         {selected.subjects && (
                           <div className="col-span-2">
@@ -208,7 +245,7 @@ export default function FeesReceiptPage() {
                       <div>
                         <p className="text-xs font-bold uppercase text-muted-foreground mb-3">Payment Details</p>
                         <div className="space-y-2">
-                          {instalmentRows.length > 0 ? instalmentRows.map(inst => (
+                          {paymentRows.length > 0 ? paymentRows.map(inst => (
                             <div
                               key={inst.label}
                               className="flex justify-between items-center p-2.5 bg-green-50 rounded-lg border border-green-100"
