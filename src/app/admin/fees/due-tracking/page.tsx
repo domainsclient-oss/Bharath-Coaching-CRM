@@ -50,7 +50,7 @@ export default function DueTrackingPage() {
 
     allRecords.forEach(r => {
       const instMap = { i1: "Installment I", i2: "Installment II", i3: "Installment III", i4: "Installment IV" };
-      Object.entries(r.instalments).forEach(([key, inst]) => {
+      Object.entries(r.installments).forEach(([key, inst]) => {
         if (inst && !inst.collected && inst.date < TODAY) {
           const daysOverdue = Math.floor((new Date(TODAY).getTime() - new Date(inst.date).getTime()) / 86400000);
           items.push({
@@ -225,7 +225,7 @@ export default function DueTrackingPage() {
               )) : (
                 <TableRow>
                   <TableCell colSpan={9} className="h-32 text-center text-muted-foreground">
-                    No overdue instalments. All fees are on track!
+                    No overdue installments. All fees are on track!
                   </TableCell>
                 </TableRow>
               )}

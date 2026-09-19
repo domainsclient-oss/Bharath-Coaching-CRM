@@ -194,9 +194,9 @@ export default function OneToOneFeesPage() {
                       </TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground">{r.billNo}</TableCell>
                       <TableCell className="text-right font-medium">{fmt(r.totalFee)}</TableCell>
-                      <TableCell>{instCell(r.instalments.i1)}</TableCell>
-                      <TableCell>{instCell(r.instalments.i2)}</TableCell>
-                      <TableCell>{instCell(r.instalments.i3)}</TableCell>
+                      <TableCell>{instCell(r.installments.i1)}</TableCell>
+                      <TableCell>{instCell(r.installments.i2)}</TableCell>
+                      <TableCell>{instCell(r.installments.i3)}</TableCell>
                       <TableCell className={`text-right font-bold ${r.balance > 0 ? "text-red-600" : "text-green-600"}`}>
                         {fmt(r.balance)}
                       </TableCell>

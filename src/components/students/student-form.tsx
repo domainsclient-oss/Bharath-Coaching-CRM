@@ -271,7 +271,7 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
     updateFormData({ subjects: formData.subjects.filter((s: string) => s !== sub) });
   };
 
-  const [saving, setSaving] = false;
+  const [saving, setSaving] = useState(false);
 
   const handleSubmit = async () => {
     // Older records can reach submit with personal fields empty — send the
@@ -837,12 +837,12 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Full">Full Payment</SelectItem>
-                      <SelectItem value="1 Part">1 Installment</SelectItem>
-                      <SelectItem value="2 Parts">2 Installments</SelectItem>
-                      <SelectItem value="3 Parts">3 Installments</SelectItem>
-                      <SelectItem value="4 Parts">4 Installments</SelectItem>
-                      <SelectItem value="5 Parts">5 Installments</SelectItem>
-                      <SelectItem value="6 Parts">6 Installments</SelectItem>
+                      <SelectItem value="1 Installment">1 Installment</SelectItem>
+                      <SelectItem value="2 Installments">2 Installments</SelectItem>
+                      <SelectItem value="3 Installments">3 Installments</SelectItem>
+                      <SelectItem value="4 Installments">4 Installments</SelectItem>
+                      <SelectItem value="5 Installments">5 Installments</SelectItem>
+                      <SelectItem value="6 Installments">6 Installments</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

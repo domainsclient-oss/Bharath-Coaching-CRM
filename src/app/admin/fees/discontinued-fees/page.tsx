@@ -104,7 +104,7 @@ export default function DiscontinuedFeesPage() {
             </TableHeader>
             <TableBody>
               {records.length > 0 ? records.map(r => {
-                const { i1, i2, i3 } = r.instalments;
+                const { i1, i2, i3 } = r.installments;
                 const instCell = (inst: typeof i1) =>
                   inst
                     ? <div className="text-xs"><p className="font-semibold">{fmt(inst.amount)}</p><p className={`${inst.collected ? "text-green-600" : "text-red-500"}`}>{inst.collected ? "Paid" : "Pending"}</p></div>

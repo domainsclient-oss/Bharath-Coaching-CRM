@@ -40,12 +40,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/lib/auth-context";
 import { useBranch } from "@/context/BranchContext";
 import { useFirestoreCollection } from "@/hooks/useFirestoreCollection";
@@ -82,10 +76,10 @@ export default function StudentListPage() {
 
   // ── Filters ───────────────────────────────────────────────────────────────
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedClass, setSelectedClass] = useState("All");
-  const [selectedBoard, setSelectedBoard] = useState("All");
-  const [selectedMode, setSelectedMode] = useState("All");
-  const [selectedStatus, setSelectedStatus] = useState("All");
+  const [selectedClass, setSelectedClass] = useState("all");
+  const [selectedBoard, setSelectedBoard] = useState("all");
+  const [selectedMode, setSelectedMode] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -97,10 +91,10 @@ export default function StudentListPage() {
         student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (student.appNo ?? "").toLowerCase().includes(searchTerm.toLowerCase());
       if (!searchMatch) return false;
-      if (selectedClass  !== "All" && student.class  !== selectedClass)  return false;
-      if (selectedBoard  !== "All" && student.board  !== selectedBoard)  return false;
-      if (selectedMode   !== "All" && student.mode   !== selectedMode)   return false;
-      if (selectedStatus !== "All" && student.status !== selectedStatus) return false;
+      if (selectedClass  !== "all" && student.class  !== selectedClass)  return false;
+      if (selectedBoard  !== "all" && student.board  !== selectedBoard)  return false;
+      if (selectedMode   !== "all" && student.mode   !== selectedMode)   return false;
+      if (selectedStatus !== "all" && student.status !== selectedStatus) return false;
       return true;
     });
   }, [students, searchTerm, selectedClass, selectedBoard, selectedMode, selectedStatus]);
@@ -117,11 +111,15 @@ export default function StudentListPage() {
 
   const handleReset = () => {
     setSearchTerm("");
-    setSelectedClass("All");
-    setSelectedBoard("All");
-    setSelectedMode("All");
-    setSelectedStatus("All");
+    setSelectedClass("all");
+    setSelectedBoard("all");
+    setSelectedMode("all");
+    setSelectedStatus("all");
     setCurrentPage(1);
+    toast({
+      title: "Filters Reset",
+      description: "Showing all students for the current branch.",
+    });
   };
 
   const handleExportCSV = () => {
@@ -202,7 +200,7 @@ export default function StudentListPage() {
                   <SelectValue placeholder="Class" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="All">All Classes</SelectItem>
+                  <SelectItem value="all">All Classes</SelectItem>
                   {CLASSES.map(cls => (
                     <SelectItem key={cls} value={cls}>Class {cls}</SelectItem>
                   ))}
@@ -214,8 +212,9 @@ export default function StudentListPage() {
                   <SelectValue placeholder="Board" />
                 </SelectTrigger>
                 <SelectContent>
-                  {BOARD_FILTER_OPTIONS.map(b => (
-                    <SelectItem key={b} value={b}>{b === "All" ? "All Boards" : b}</SelectItem>
+                  <SelectItem value="all">All Boards</SelectItem>
+                  {BOARD_FILTER_OPTIONS.filter(b => b !== 'All').map(b => (
+                    <SelectItem key={b} value={b}>{b}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -225,7 +224,7 @@ export default function StudentListPage() {
                   <SelectValue placeholder="Mode" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="All">All Modes</SelectItem>
+                  <SelectItem value="all">All Modes</SelectItem>
                   {MODES.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -236,7 +235,7 @@ export default function StudentListPage() {
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="All">All Status</SelectItem>
+                    <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="Active">Active</SelectItem>
                     <SelectItem value="Discontinued">Discontinued</SelectItem>
                     <SelectItem value="Alumni">Alumni</SelectItem>

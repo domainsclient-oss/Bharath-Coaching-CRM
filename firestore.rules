@@ -70,6 +70,7 @@ service cloud.firestore {
     // ─── Public ──────────────────────────────────────────────────────────────
 
     // Connection probe used by the app's health check.
+    // This MUST be public so the Login page can verify connectivity before sign-in.
     match /_connection_test/{document} {
       allow read: if true;
     }
