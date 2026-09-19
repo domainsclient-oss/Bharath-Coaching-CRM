@@ -245,7 +245,7 @@ export default function StudentApplicationFormPage() {
                       <div className="flex items-start justify-between">
                         <div>
                           <h1 className="text-xl font-bold leading-tight">{settings.appName}</h1>
-                          <p className="text-xs text-white/70 mt-0.5">{branches.find(b => b.id === currentBranch)?.name ?? currentBranch} Branch</p>
+                          <p className="text-sm text-white/70 mt-0.5">{branches.find(b => b.id === currentBranch)?.name ?? currentBranch} Branch</p>
                         </div>
                         <div className="text-right">
                           <p className="text-[9px] text-white/60 uppercase font-bold tracking-wide">Application No</p>
@@ -338,7 +338,6 @@ export default function StudentApplicationFormPage() {
                             <span className="flex items-center gap-1"><Phone className="h-2.5 w-2.5" /> {settings.contactPhone}</span>
                             <span className="flex items-center gap-1"><Mail className="h-2.5 w-2.5" /> {settings.contactEmail}</span>
                           </p>
-                          <p className="mt-2 opacity-60 italic">Generated on {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
                         </div>
                       </div>
                     </div>

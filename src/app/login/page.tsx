@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -24,9 +23,6 @@ export default function LoginPage() {
   const { toast } = useToast();
   const { settings } = useSettings();
 
-  // Any body lock still set once this page mounts was leaked by a modal layer
-  // on the page we came from (e.g. the logout confirm dialog) and would leave
-  // these inputs unfocusable. Clear it so the form is usable without a refresh.
   useEffect(() => {
     releaseUiLock();
   }, []);
