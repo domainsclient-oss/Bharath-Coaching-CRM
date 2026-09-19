@@ -26,6 +26,7 @@ import { toast } from "@/hooks/use-toast";
 import { useFirestoreCollection } from "@/hooks/useFirestoreCollection";
 import { addDocument, updateDocument, deleteDocument } from "@/services/firestoreService";
 import { Skeleton } from "@/components/ui/skeleton";
+import { classNumberOf } from "@/config/academics";
 
 interface ClassDoc {
   id: string;
@@ -80,11 +81,18 @@ export default function AssignClassTeachersPage() {
     teachers:     branchTeachers.filter((t) => t.role === "Teacher").length,
   }), [branchClasses, assignments, branchTeachers]);
 
+  // Sort rows numerically by class level (1-12)
   const rows = useMemo(() =>
-    branchClasses.map((cls) => ({
-      cls,
-      ct: assignments.find((ct) => ct.classId === cls.id) ?? null,
-    })), [branchClasses, assignments]);
+    [...branchClasses]
+      .sort((a, b) => {
+        const numA = parseInt(classNumberOf(a.name) || "0", 10);
+        const numB = parseInt(classNumberOf(b.name) || "0", 10);
+        return numA - numB;
+      })
+      .map((cls) => ({
+        cls,
+        ct: assignments.find((ct) => ct.classId === cls.id) ?? null,
+      })), [branchClasses, assignments]);
 
   const openAssign = (ct: ClassTeacher | null, classId?: string) => {
     setEditingCT(ct);
@@ -313,7 +321,7 @@ export default function AssignClassTeachersPage() {
             Are you sure you want to remove the class teacher assignment for <span className="font-semibold text-foreground">{removeTarget?.className}</span>? This cannot be undone.
           </p>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setRemoveTarget(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
             <Button variant="destructive" onClick={handleRemove}>Remove</Button>
           </DialogFooter>
         </DialogContent>
@@ -333,9 +341,15 @@ export default function AssignClassTeachersPage() {
               <Select value={selClass} onValueChange={setSelClass} disabled={!!editingCT}>
                 <SelectTrigger><SelectValue placeholder="Select a class" /></SelectTrigger>
                 <SelectContent>
-                  {branchClasses.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name} ({c.board})</SelectItem>
-                  ))}
+                  {[...branchClasses]
+                    .sort((a, b) => {
+                      const numA = parseInt(classNumberOf(a.name) || "0", 10);
+                      const numB = parseInt(classNumberOf(b.name) || "0", 10);
+                      return numA - numB;
+                    })
+                    .map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name} ({c.board})</SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
