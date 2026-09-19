@@ -26,8 +26,7 @@ import {
 import { parseCSV, normalizeHeader } from "@/lib/parseCSV";
 import { exportToCSV } from "@/lib/exportToCSV";
 import { normalizeClassName } from "@/hooks/useStudentRecord";
-import { batchWrite, type BatchOperation } from "@/services/firestoreService";
-import { serverTimestamp } from "firebase/firestore";
+import { addStudentsWithAppNos } from "@/lib/appNumber";
 import { toast } from "@/hooks/use-toast";
 
 /** A student already on file, enough of one to spot a duplicate. */
@@ -81,9 +80,6 @@ const COLUMNS: { field: string; label: string; aliases: string[] }[] = [
 /** Columns without which a record is not worth creating. */
 const REQUIRED = ["name", "class"] as const;
 
-/** Firestore takes at most 500 writes in one batch. */
-const BATCH_LIMIT = 400;
-
 type Row = Record<string, string>;
 
 interface ReadyRow {
@@ -115,8 +111,6 @@ const splitSubjects = (value: string): string[] =>
 /** Today, as the "YYYY-MM-DD" the rest of the CRM writes. */
 const today = () => new Date().toISOString().split("T")[0];
 
-/** Matches the generator in the Add Student form, so both look alike on the list. */
-const makeAppNo = () => `APP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 const makeRollNo = (seed: number) =>
   `ROLL-${(Date.now() + seed).toString(36).toUpperCase()}`;
 
@@ -250,7 +244,7 @@ export function ImportStudentsDialog({
       // Only what the file actually says, plus the fields the CRM needs to file
       // the record. Nothing is invented to fill a blank column.
       const data: Record<string, unknown> = {
-        appNo: appNo || makeAppNo(),
+        appNo,
         rollNo: value("rollNo") || makeRollNo(i),
         name,
         class: className,
@@ -275,10 +269,6 @@ export function ImportStudentsDialog({
         admissionDate: value("admissionDate") || today(),
         photo: "",
         branchId,
-        // The students list orders by this, and Firestore leaves out documents
-        // that lack the field it is ordering on. Without it an imported student
-        // would never show up on the page that imported them.
-        createdAt: serverTimestamp(),
       };
 
       if (appNo) seenAppNos.add(appKey);
@@ -293,15 +283,8 @@ export function ImportStudentsDialog({
     if (!parsed || parsed.ready.length === 0) return;
     setImporting(true);
     try {
-      const operations: BatchOperation[] = parsed.ready.map(r => ({
-        type: "set",
-        collection: "students",
-        data: r.data,
-      }));
-
-      for (let i = 0; i < operations.length; i += BATCH_LIMIT) {
-        await batchWrite(operations.slice(i, i + BATCH_LIMIT));
-      }
+      // Rows without an App No get the next numbers in sequence, in file order
+      await addStudentsWithAppNos(parsed.ready.map(r => r.data));
 
       toast({
         title: "Import complete",

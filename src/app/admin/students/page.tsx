@@ -17,7 +17,8 @@ import {
   MoreVertical,
   ChevronLeft,
   ChevronRight,
-  GraduationCap
+  GraduationCap,
+  Trash2
 } from "lucide-react";
 import { SharedHeader } from "@/components/layout/shared-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,7 +44,9 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { useBranch } from "@/context/BranchContext";
 import { useFirestoreCollection } from "@/hooks/useFirestoreCollection";
-import { deleteDocument } from "@/services/firestoreService";
+import { batchWrite, deleteDocument } from "@/services/firestoreService";
+import { logAuditAuto } from "@/lib/auditLogger";
+import { compareAppNo } from "@/lib/appNumber";
 import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -65,8 +68,9 @@ interface Student {
 }
 
 export default function StudentListPage() {
-  useAuth();
+  const { user } = useAuth();
   const { currentBranch } = useBranch();
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
 
   // ── Real-time Firestore subscription ─────────────────────────────────────
   const { data: students, loading, error } = useFirestoreCollection<Student>(
@@ -83,6 +87,9 @@ export default function StudentListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const [deleteAllConfirm, setDeleteAllConfirm] = useState("");
+  const [deletingAll, setDeletingAll] = useState(false);
   const itemsPerPage = 10;
 
   const filteredStudents = useMemo(() => {
@@ -96,7 +103,7 @@ export default function StudentListPage() {
       if (selectedMode   !== "all" && student.mode   !== selectedMode)   return false;
       if (selectedStatus !== "all" && student.status !== selectedStatus) return false;
       return true;
-    });
+    }).sort((a, b) => compareAppNo(a.appNo, b.appNo));
   }, [students, searchTerm, selectedClass, selectedBoard, selectedMode, selectedStatus]);
 
   const paginatedStudents = useMemo(() => {
@@ -151,6 +158,45 @@ export default function StudentListPage() {
     }
   };
 
+  const closeDeleteAll = () => {
+    if (deletingAll) return;
+    setDeleteAllOpen(false);
+    setDeleteAllConfirm("");
+  };
+
+  // Deletes every student in the branch, whatever the filters show.
+  // Firestore caps a batch at 500 writes, so larger rolls go in chunks.
+  const handleDeleteAll = async () => {
+    if (!isAdmin || deleteAllConfirm !== "DELETE") return;
+    const ids = students.map(s => s.id);
+    setDeletingAll(true);
+    let deleted = 0;
+    try {
+      for (let i = 0; i < ids.length; i += 500) {
+        const chunk = ids.slice(i, i + 500);
+        await batchWrite(chunk.map(id => ({ type: "delete" as const, collection: "students", id })));
+        deleted += chunk.length;
+      }
+      logAuditAuto("Delete", "students", `Deleted all ${deleted} student records`, {
+        severity: "Critical",
+        branchId: currentBranch ?? "",
+      });
+      toast({ title: "All Students Deleted", description: `${deleted} student records were deleted.` });
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: deleted
+          ? `Deleted ${deleted} of ${ids.length} students, then failed. Try again to delete the rest.`
+          : "Could not delete students.",
+      });
+    } finally {
+      setDeletingAll(false);
+      setDeleteAllOpen(false);
+      setDeleteAllConfirm("");
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
       <SharedHeader title="Students" />
@@ -167,6 +213,17 @@ export default function StudentListPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                onClick={() => setDeleteAllOpen(true)}
+                disabled={loading || students.length === 0}
+              >
+                <Trash2 className="h-4 w-4" /> Delete All Students
+              </Button>
+            )}
             <Button variant="outline" size="sm" className="hidden md:flex gap-2" onClick={() => setImportOpen(true)}>
               <Upload className="h-4 w-4" /> Import CSV
             </Button>
@@ -427,6 +484,37 @@ export default function StudentListPage() {
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
             <Button variant="destructive" onClick={handleDelete}>Remove</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteAllOpen} onOpenChange={v => { if (!v) closeDeleteAll(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Delete All Students</DialogTitle></DialogHeader>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              This permanently deletes all <span className="font-semibold text-foreground">{students.length}</span> student
+              records, including any hidden by the current filters. It cannot be undone.
+            </p>
+            <p>Type <span className="font-mono font-bold text-foreground">DELETE</span> to confirm.</p>
+            <Input
+              autoCapitalize="off"
+              autoComplete="off"
+              value={deleteAllConfirm}
+              onChange={e => setDeleteAllConfirm(e.target.value)}
+              placeholder="DELETE"
+              disabled={deletingAll}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={closeDeleteAll} disabled={deletingAll}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAll}
+              disabled={deleteAllConfirm !== "DELETE" || deletingAll}
+            >
+              {deletingAll ? "Deleting..." : "Delete All"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

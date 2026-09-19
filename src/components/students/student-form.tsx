@@ -1,7 +1,7 @@
 
 "use client";
 
-import { CLASSES, subjectsForClass, batchTimingsFor } from "@/config/academics";
+import { CLASSES, classLabel, classNumberOf, subjectsForClass, batchTimingsFor } from "@/config/academics";
 import { BOARDS } from "@/config/boards";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -42,10 +42,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
+import { useClassFees } from "@/hooks/useClassFees";
 import { useAuth } from "@/lib/auth-context";
 import { useBranch } from "@/context/BranchContext";
 import { cn } from "@/lib/utils";
-import { addDocument, updateDocument } from "@/services/firestoreService";
+import { updateDocument } from "@/services/firestoreService";
+import { addStudentWithAppNo } from "@/lib/appNumber";
 import { storage } from "@/config/firebase";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { useRef } from "react";
@@ -76,7 +78,8 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
     school: "", class: "", board: "CBSE", medium: "English",
     subjects: [] as string[], mode: "Offline",
     batchTimings: {} as Record<string, string>,
-    feeType: "Standard", totalFee: "", installmentPlan: "Full", firstDueDate: ""
+    feeType: "Standard", totalFee: "", installmentPlan: "Full", firstDueDate: "",
+    installmentDates: [] as string[]
   };
 
   const [formData, setFormData] = useState(() => ({
@@ -89,7 +92,38 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
     subjects: Array.isArray(initialData?.subjects) ? initialData.subjects : [],
     batchTimings: { ...(initialData?.batchTimings ?? {}) },
     installmentPlan: initialData?.installmentPlan ?? initialData?.instalmentPlan ?? "Full",
+    // Older records only kept the first due date
+    installmentDates: Array.isArray(initialData?.installmentDates)
+      ? initialData.installmentDates
+      : [initialData?.firstDueDate ?? ""],
   }));
+
+  // Standard Batch pays the class's fixed fee (Settings → Class Fees); One-to-One is typed in
+  const { classFees } = useClassFees();
+  const isStandardFee = formData.feeType === "Standard";
+  // An enrolled Standard student keeps the fee they were enrolled at until their
+  // class changes, so a later Settings change doesn't reprice them on every edit
+  const keepsSavedFee = isEdit
+    && initialData?.feeType === "Standard"
+    && Number(initialData?.totalFee) > 0
+    && classNumberOf(initialData?.class) === classNumberOf(formData.class);
+  const classFee: number | undefined = keepsSavedFee
+    ? Number(initialData.totalFee)
+    : classFees[classNumberOf(formData.class)];
+  const totalFee = isStandardFee ? (classFee ?? 0) : Number(formData.totalFee) || 0;
+
+  // "Full" is a single payment; "3 Installments" → 3 due dates
+  const installmentCount = formData.installmentPlan === "Full"
+    ? 1
+    : parseInt(formData.installmentPlan, 10) || 1;
+  // Dates beyond the plan stay in state (switching back keeps them) but aren't shown or saved
+  const installmentDates = Array.from({ length: installmentCount }, (_, i) => formData.installmentDates[i] ?? "");
+
+  const updateInstallmentDate = (index: number, value: string) => {
+    const dates = [...formData.installmentDates];
+    dates[index] = value;
+    updateFormData({ installmentDates: dates });
+  };
 
 
   // ── Photo upload state ──────────────────────────────────────────────────
@@ -246,6 +280,16 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
           return false;
         }
         break;
+      case 5:
+        if (isStandardFee && classFee == null) {
+          toast({ variant: "destructive", title: "No Class Fee Set", description: `Set the Standard Batch fee for ${classLabel(classNumberOf(formData.class))} in Settings → Class Fees.` });
+          return false;
+        }
+        if (!isStandardFee && !(Number(formData.totalFee) > 0)) {
+          toast({ variant: "destructive", title: "Missing Fields", description: "Please enter the One-to-One fee amount." });
+          return false;
+        }
+        break;
     }
     return true;
   };
@@ -290,7 +334,6 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
 
     try {
       const today = new Date().toISOString().split("T")[0];
-      const year  = new Date().getFullYear();
 
       // Only the timings still on offer for this class + board get saved
       const batchTimings: Record<string, string> = {};
@@ -303,6 +346,9 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
         // ── UPDATE existing student ────────────────────────────────────────
         await updateDocument("students", initialData.id, {
           ...formData,
+          totalFee,
+          installmentDates,
+          firstDueDate: installmentDates[0],
           branchId: currentBranch,
           whatsapp: formData.isWhatsappSame ? formData.fatherMobile : formData.whatsapp,
           batchTimings,
@@ -318,12 +364,11 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
 
       } else {
         // ── ADD new student ────────────────────────────────────────────────
-        const appNo  = `APP-${year}-${Math.floor(1000 + Math.random() * 9000)}`;
         const rollNo = `ROLL-${Date.now().toString(36).toUpperCase()}`;
 
-        // 1. Save student to Firestore immediately (no photo yet)
-        const saved = await addDocument("students", {
-          appNo,
+        // 1. Save student to Firestore immediately (no photo yet); the next
+        //    application number in sequence is assigned as it is saved
+        const saved = await addStudentWithAppNo({
           rollNo,
           name:            formData.name,
           dob:             formData.dob,
@@ -350,9 +395,10 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
           mode:            formData.mode,
           batchTimings,
           feeType:         formData.feeType,
-          totalFee:        Number(formData.totalFee) || 0,
+          totalFee,
           installmentPlan:  formData.installmentPlan,
-          firstDueDate:    formData.firstDueDate,
+          installmentDates,
+          firstDueDate:    installmentDates[0],
           branchId:        currentBranch,
           status:          "Active",
           admissionDate:   today,
@@ -364,7 +410,7 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
 
         toast({
           title: "Student Enrolled",
-          description: `${formData.name} saved. App No: ${appNo}`,
+          description: `${formData.name} saved. App No: ${saved.appNo}`,
         });
       }
 
@@ -819,15 +865,34 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                   <Label htmlFor="total">Total Fee Amount (₹) *</Label>
                   <div className="relative">
                     <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      id="total" 
-                      className="pl-10"
-                      type="number"
-                      value={formData.totalFee} 
-                      onChange={(e) => updateFormData({ totalFee: e.target.value })} 
-                      placeholder="e.g. 15000"
-                    />
+                    {isStandardFee ? (
+                      <Input
+                        id="total"
+                        className="pl-10 bg-slate-50"
+                        value={classFee != null ? classFee : ""}
+                        placeholder="Not set"
+                        readOnly
+                      />
+                    ) : (
+                      <Input
+                        id="total"
+                        className="pl-10"
+                        type="number"
+                        value={formData.totalFee}
+                        onChange={(e) => updateFormData({ totalFee: e.target.value })}
+                        placeholder="e.g. 15000"
+                      />
+                    )}
                   </div>
+                  {isStandardFee && (
+                    <p className={cn("text-xs", classFee != null ? "text-muted-foreground" : "text-red-600")}>
+                      {keepsSavedFee
+                        ? "Standard Batch fee this student was enrolled at."
+                        : classFee != null
+                        ? `Fixed Standard Batch fee for ${classLabel(classNumberOf(formData.class))}.`
+                        : `No fixed fee set for ${classLabel(classNumberOf(formData.class))} — a super admin can add it in Settings → Class Fees.`}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Installment Plan</Label>
@@ -846,18 +911,24 @@ export function StudentForm({ initialData, isEdit = false }: StudentFormProps) {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dueDate">First Installment Due Date</Label>
-                  <div className="relative">
-                    <CalendarIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      id="dueDate" 
-                      className="pl-10"
-                      type="date"
-                      value={formData.firstDueDate} 
-                      onChange={(e) => updateFormData({ firstDueDate: e.target.value })} 
-                    />
-                  </div>
+                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {installmentDates.map((date, i) => (
+                    <div key={i} className="space-y-2">
+                      <Label htmlFor={`dueDate-${i}`}>
+                        {installmentCount === 1 ? "Due Date" : `Installment ${i + 1} Due Date`}
+                      </Label>
+                      <div className="relative">
+                        <CalendarIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id={`dueDate-${i}`}
+                          className="pl-10"
+                          type="date"
+                          value={date}
+                          onChange={(e) => updateInstallmentDate(i, e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
                 <div className="md:col-span-2 space-y-2 border-t pt-6">
                   <Label>Photo Upload</Label>

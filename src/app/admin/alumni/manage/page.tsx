@@ -27,7 +27,8 @@ import {
 } from "@/components/ui/dialog";
 import { useBranch } from "@/context/BranchContext";
 import { useFirestoreCollection } from "@/hooks/useFirestoreCollection";
-import { addDocument, updateDocument, deleteDocument } from "@/services/firestoreService";
+import { updateDocument, deleteDocument } from "@/services/firestoreService";
+import { addStudentWithAppNo } from "@/lib/appNumber";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -168,7 +169,7 @@ export default function ManageAlumniPage() {
         await updateDocument("students", editing.id, payload);
         toast({ title: "Alumni Updated", description: `${form.name} updated.` });
       } else {
-        await addDocument("students", payload);
+        await addStudentWithAppNo(payload);
         toast({ title: "Alumni Added", description: `${form.name} added to alumni records.` });
       }
       setIsOpen(false);

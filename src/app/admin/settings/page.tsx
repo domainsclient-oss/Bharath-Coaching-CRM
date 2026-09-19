@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Save, PlusCircle, Edit, Trash2, AlertTriangle, Building2, Users, Settings, Eye, EyeOff } from "lucide-react";
+import { Save, PlusCircle, Edit, Trash2, AlertTriangle, Building2, Users, Settings, Eye, EyeOff, IndianRupee } from "lucide-react";
 import { SharedHeader } from "@/components/layout/shared-header";
 import { db } from "@/config/firebase";
 import { doc, setDoc, collection, addDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch } from "firebase/firestore";
@@ -22,6 +22,8 @@ import { useFirestoreCollection } from "@/hooks/useFirestoreCollection";
 import { useSettings } from "@/context/SettingsContext";
 import { useBranch } from "@/context/BranchContext";
 import { toast } from "@/hooks/use-toast";
+import { CLASSES, classLabel } from "@/config/academics";
+import { useClassFees, CLASS_FEES_DOC, type ClassFees } from "@/hooks/useClassFees";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -116,6 +118,70 @@ const GeneralSettings = () => {
         <Save className="mr-2 h-4 w-4" /> {saving ? "Saving…" : "Save Changes"}
       </Button>
     </form>
+  );
+};
+
+// ─── Class Fees ───────────────────────────────────────────────────────────────
+
+const ClassFeeSettings = () => {
+  const { classFees, loading } = useClassFees();
+  const [form,   setForm]   = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  // When Firestore fees load, pre-fill the form
+  useEffect(() => {
+    if (!loading) setForm(Object.fromEntries(CLASSES.map(c => [c, classFees[c] != null ? String(classFees[c]) : ""])));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+
+  const handleSave = async () => {
+    // Blank classes have no fixed fee yet; they're left out rather than saved as 0
+    const fees: ClassFees = {};
+    for (const [cls, value] of Object.entries(form)) {
+      if (value.trim() !== "") fees[cls] = Number(value);
+    }
+    if (Object.values(fees).some(fee => !Number.isFinite(fee) || fee < 0)) {
+      toast({ title: "Invalid Fee", description: "Fees must be zero or more.", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    try {
+      await setDoc(doc(db, ...CLASS_FEES_DOC), { fees, updatedAt: serverTimestamp() });
+      toast({ title: "Class Fees Saved", description: "Standard Batch fees updated successfully." });
+    } catch {
+      toast({ title: "Error", description: "Failed to save class fees.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="space-y-3">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {CLASSES.map(cls => (
+          <div key={cls} className="space-y-2">
+            <Label htmlFor={`classFee-${cls}`}>{classLabel(cls)}</Label>
+            <div className="relative">
+              <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">₹</span>
+              <Input
+                id={`classFee-${cls}`}
+                className="pl-7"
+                type="number"
+                min={0}
+                placeholder="Not set"
+                value={form[cls] ?? ""}
+                onChange={e => setForm(prev => ({ ...prev, [cls]: e.target.value }))}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+      <Button type="button" onClick={handleSave} className="bg-[#1E2A4A] hover:bg-[#0D7C8F]" disabled={saving}>
+        <Save className="mr-2 h-4 w-4" /> {saving ? "Saving…" : "Save Changes"}
+      </Button>
+    </div>
   );
 };
 
@@ -554,8 +620,9 @@ export default function SettingsPage() {
       <main className="p-4 md:p-6 lg:p-8 space-y-6 animate-in fade-in duration-500">
 
         <Tabs defaultValue="general">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="general" className="gap-1.5"><Settings className="h-4 w-4" /> General</TabsTrigger>
+            <TabsTrigger value="classFees" className="gap-1.5"><IndianRupee className="h-4 w-4" /> Class Fees</TabsTrigger>
             <TabsTrigger value="branches" className="gap-1.5"><Building2 className="h-4 w-4" /> Branches</TabsTrigger>
             <TabsTrigger value="users" className="gap-1.5"><Users className="h-4 w-4" /> Users</TabsTrigger>
           </TabsList>
@@ -567,6 +634,16 @@ export default function SettingsPage() {
                 <CardDescription>Manage global application settings.</CardDescription>
               </CardHeader>
               <CardContent className="p-6"><GeneralSettings /></CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="classFees">
+            <Card className="border-none shadow-sm">
+              <CardHeader className="border-b py-3 px-6">
+                <CardTitle className="text-sm font-bold text-[#1E2A4A]">Class Fees</CardTitle>
+                <CardDescription>Fixed Standard Batch fee for each class. One-to-One fees are entered per student.</CardDescription>
+              </CardHeader>
+              <CardContent className="p-6"><ClassFeeSettings /></CardContent>
             </Card>
           </TabsContent>
 

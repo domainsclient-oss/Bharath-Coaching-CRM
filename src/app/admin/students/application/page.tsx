@@ -8,7 +8,6 @@ import { SharedHeader } from "@/components/layout/shared-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useBranch } from "@/context/BranchContext";
@@ -79,7 +78,7 @@ export default function StudentApplicationFormPage() {
     const content = printRef.current;
     if (!content) return;
 
-    const win = window.open("", "_blank", "width=900,height=700");
+    const win = window.open("", "_blank", "width=900,height=1000");
     if (!win) return;
 
     // Grab all stylesheet links from the current page
@@ -87,6 +86,8 @@ export default function StudentApplicationFormPage() {
       .map(el => el.outerHTML)
       .join("\n");
 
+    // The @page rule here comes after globals.css, whose A4 *landscape* rule
+    // would otherwise apply and push the form onto a second page.
     win.document.write(`
       <!DOCTYPE html>
       <html>
@@ -95,16 +96,27 @@ export default function StudentApplicationFormPage() {
           <title>Application Form — ${selected?.name ?? ""}</title>
           ${styles}
           <style>
+            @page { size: A4 portrait; margin: 0; }
+            html, body { margin: 0; padding: 0; background: #e2e8f0; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .a4-sheet { margin: 16px auto; }
             @media print {
-              body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              html, body { width: 210mm; height: 297mm; overflow: hidden; background: white; }
+              .a4-sheet { margin: 0; box-shadow: none !important; }
             }
-            body { font-family: sans-serif; background: white; }
           </style>
         </head>
         <body>
           ${content.outerHTML}
           <script>
             window.onload = function() {
+              // Safety net: an unusually long address or subject list shrinks
+              // the content to fit rather than spilling onto a second page.
+              var sheet = document.querySelector('.a4-sheet');
+              var body  = sheet && sheet.querySelector('.a4-body');
+              if (body && body.scrollHeight > body.clientHeight) {
+                body.style.zoom = String(body.clientHeight / body.scrollHeight);
+              }
               window.print();
               window.onafterprint = function() { window.close(); };
             };
@@ -115,10 +127,17 @@ export default function StudentApplicationFormPage() {
     win.document.close();
   };
 
-  const field = (label: string, value?: string | null) => (
-    <div className="border-b pb-2">
-      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wide">{label}</p>
-      <p className="text-sm font-medium text-[#1E2A4A] mt-0.5">{value || "—"}</p>
+  const field = (label: string, value?: string | null, className = "") => (
+    <div className={`border-b border-slate-300 pb-1 min-w-0 ${className}`}>
+      <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wide">{label}</p>
+      <p className="text-[12px] font-medium text-[#1E2A4A] mt-0.5 break-words leading-snug">{value || "—"}</p>
+    </div>
+  );
+
+  const section = (Icon: typeof User, title: string) => (
+    <div className="flex items-center gap-2 mb-2.5 pb-1 border-b-2 border-[#0D7C8F]">
+      <Icon className="h-3.5 w-3.5 text-[#0D7C8F]" />
+      <p className="text-[11px] font-bold text-[#1E2A4A] uppercase tracking-wider">{title}</p>
     </div>
   );
 
@@ -213,121 +232,111 @@ export default function StudentApplicationFormPage() {
                   </Button>
                 </div>
 
-                <Card className="border shadow-md" ref={printRef}>
-                  <CardContent className="p-0">
+                {/* A4 sheet: exactly 210 × 297 mm on screen and on paper. Only
+                    fixed (non-responsive) classes inside, so the print window's
+                    width can't reflow it. */}
+                <div className="overflow-x-auto pb-2">
+                  <div
+                    ref={printRef}
+                    className="a4-sheet mx-auto bg-white text-[#1E2A4A] shadow-md w-[210mm] h-[297mm] p-[12mm] box-border flex flex-col overflow-hidden"
+                  >
                     {/* Header */}
-                    <div className="bg-[#1E2A4A] text-white p-6 rounded-t-lg">
+                    <div className="bg-[#1E2A4A] text-white px-6 py-4 rounded-md shrink-0">
                       <div className="flex items-start justify-between">
                         <div>
-                          <h1 className="text-xl font-bold">{settings.appName}</h1>
-                          <p className="text-sm text-white/70 mt-0.5">{currentBranch} Branch</p>
+                          <h1 className="text-xl font-bold leading-tight">{settings.appName}</h1>
+                          <p className="text-xs text-white/70 mt-0.5">{currentBranch} Branch</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs text-white/50 uppercase font-bold">Application No</p>
-                          <p className="text-lg font-mono font-bold text-[#0D7C8F]">{selected.appNo}</p>
+                          <p className="text-[9px] text-white/60 uppercase font-bold tracking-wide">Application No</p>
+                          <p className="text-base font-mono font-bold text-[#5FD3E4]">{selected.appNo || "—"}</p>
                         </div>
                       </div>
-                      <p className="text-center text-sm font-bold uppercase tracking-widest mt-4 border-t border-white/20 pt-3">
+                      <p className="text-center text-xs font-bold uppercase tracking-[0.25em] mt-3 border-t border-white/20 pt-2.5">
                         Student Admission Application Form
                       </p>
                     </div>
 
-                    <div className="p-6 space-y-6">
-                      {/* Photo placeholder + status */}
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="h-20 w-16 border-2 border-dashed border-slate-300 rounded flex items-center justify-center bg-slate-50 flex-shrink-0">
+                    <div className="a4-body flex-1 min-h-0 flex flex-col pt-5">
+                      {/* Photo + name + status */}
+                      <div className="flex items-start justify-between gap-4 mb-5">
+                        <div className="flex items-center gap-4 min-w-0">
+                          <div className="h-[35mm] w-[28mm] border border-slate-400 rounded-sm flex items-center justify-center bg-slate-50 shrink-0 overflow-hidden">
                             {selected.photo
-                              ? <img src={selected.photo} alt="" className="h-full w-full object-cover rounded" />
-                              : <User className="h-8 w-8 text-slate-300" />
+                              ? <img src={selected.photo} alt="" className="h-full w-full object-cover" />
+                              : <span className="text-[9px] text-slate-400 text-center px-1 leading-tight">Affix passport size photo</span>
                             }
                           </div>
-                          <div>
-                            <p className="text-xl font-bold text-[#1E2A4A]">{selected.name}</p>
-                            <p className="text-sm text-muted-foreground">Roll No: <span className="font-semibold text-foreground">{selected.rollNo}</span></p>
+                          <div className="min-w-0">
+                            <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wide">Student Name</p>
+                            <p className="text-xl font-bold leading-tight break-words">{selected.name}</p>
+                            <p className="text-xs text-slate-500 mt-1">Roll No: <span className="font-semibold text-[#1E2A4A]">{selected.rollNo || "—"}</span></p>
                           </div>
                         </div>
-                        <Badge className={`text-xs ${selected.status === "Active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                        <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${selected.status === "Active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                           {selected.status}
-                        </Badge>
+                        </span>
                       </div>
 
                       {/* Section 1 — Academic Details */}
-                      <div>
-                        <div className="flex items-center gap-2 mb-3">
-                          <BookOpen className="h-4 w-4 text-[#0D7C8F]" />
-                          <p className="text-sm font-bold text-[#1E2A4A] uppercase tracking-wide">Academic Details</p>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <div className="mb-5">
+                        {section(BookOpen, "Academic Details")}
+                        <div className="grid grid-cols-3 gap-x-5 gap-y-3">
                           {field("Class", `Class ${selected.class}`)}
                           {field("Board", selected.board)}
                           {field("Mode", selected.mode)}
                           {field("Admission Date", selected.admissionDate)}
                           {field("School", selected.school)}
                           {field("Previous School", selected.previousSchool)}
-                        </div>
-                        <div className="mt-3">
-                          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wide">Subjects Enrolled</p>
-                          <div className="flex flex-wrap gap-1.5 mt-1.5">
-                            {(selected.subjects ?? []).length > 0
-                              ? (selected.subjects ?? []).map(s => (
-                                  <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>
-                                ))
-                              : <span className="text-xs text-muted-foreground">—</span>
-                            }
-                          </div>
+                          {field("Subjects Enrolled", (selected.subjects ?? []).join(", ") || undefined, "col-span-3")}
                         </div>
                       </div>
 
                       {/* Section 2 — Personal Details */}
-                      <div>
-                        <div className="flex items-center gap-2 mb-3">
-                          <User className="h-4 w-4 text-[#0D7C8F]" />
-                          <p className="text-sm font-bold text-[#1E2A4A] uppercase tracking-wide">Personal Details</p>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <div className="mb-5">
+                        {section(User, "Personal Details")}
+                        <div className="grid grid-cols-3 gap-x-5 gap-y-3">
                           {field("Date of Birth", selected.dob)}
                           {field("Gender", selected.gender)}
                           {field("Email", selected.email)}
                           {field("Father's Name", selected.fatherName)}
                           {field("Father's Occupation", selected.fatherOccupation)}
+                          <div />
                           {field("Mother's Name", selected.motherName)}
                           {field("Mother's Occupation", selected.motherOccupation)}
-                          {field("Address", [selected.address, selected.city, selected.pincode].filter(Boolean).join(", ") || undefined)}
+                          <div />
+                          {field("Address", [selected.address, selected.city, selected.pincode].filter(Boolean).join(", ") || undefined, "col-span-3")}
                         </div>
                       </div>
 
                       {/* Section 3 — Contact */}
                       <div>
-                        <div className="flex items-center gap-2 mb-3">
-                          <Phone className="h-4 w-4 text-[#0D7C8F]" />
-                          <p className="text-sm font-bold text-[#1E2A4A] uppercase tracking-wide">Contact Details</p>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {section(Phone, "Contact Details")}
+                        <div className="grid grid-cols-3 gap-x-5 gap-y-3">
                           {field("Parent / Guardian", selected.parentName)}
                           {field("Phone", selected.phone)}
                           {field("WhatsApp", selected.whatsapp)}
                         </div>
                       </div>
 
-                      {/* Signature section */}
-                      <div className="grid grid-cols-3 gap-6 pt-6 border-t">
-                        {["Student Signature", "Parent Signature", "Authorized By"].map(label => (
-                          <div key={label} className="text-center">
-                            <div className="h-12 border-b border-dashed border-slate-300 mb-1" />
-                            <p className="text-xs text-muted-foreground">{label}</p>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Footer */}
-                      <div className="text-center text-xs text-muted-foreground border-t pt-4">
-                        <p>Generated on {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
-                        <p className="font-medium mt-0.5">{settings.appName} · {currentBranch} Branch</p>
+                      {/* Signatures + footer pinned to the bottom of the page */}
+                      <div className="mt-auto pt-6">
+                        <div className="grid grid-cols-3 gap-8">
+                          {["Student Signature", "Parent Signature", "Authorized By"].map(label => (
+                            <div key={label} className="text-center">
+                              <div className="h-12 border-b border-slate-500 mb-1" />
+                              <p className="text-[10px] text-slate-600">{label}</p>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="text-center text-[10px] text-slate-500 border-t border-slate-300 mt-5 pt-2">
+                          <p>Generated on {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
+                          <p className="font-medium mt-0.5">{settings.appName} · {currentBranch} Branch</p>
+                        </div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </>
             )}
           </div>
