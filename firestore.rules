@@ -102,28 +102,6 @@ service cloud.firestore {
     match /batches/{id}       { allow read: if isStudent(); }
     match /schedules/{id}     { allow read: if isStudent(); }
     match /onlineClasses/{id} { allow read: if isStudent(); }
-    match /notifications/{id} { allow read: if isStudent(); }
-    match /config/{id}        { allow read: if isStudent(); }
-    match /settings/{id}      { allow read: if isStudent(); }
-
-    match /websiteNews/{id}   { allow read: if isStudent(); }
-
-    match /testAttempts/{id} {
-      allow read, delete: if isMine();
-      allow create:       if willBeMine();
-      allow update:       if isMine() && willBeMine();
-    }
-
-    match /studentVideoHistory/{id} {
-      allow read, delete: if isMine();
-      allow create:       if willBeMine();
-      allow update:       if isMine() && willBeMine();
-    }
-
-    match /studentVideoBookmarks/{id} {
-      allow read, delete: if isMine();
-      allow create:       if willBeMine();
-      allow update:       if isMine() && willBeMine();
-    }
+    match /dont_delete_this_comment/{id} { allow read: if true; }
   }
 }

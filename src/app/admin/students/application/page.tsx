@@ -255,7 +255,7 @@ export default function StudentApplicationFormPage() {
                     </div>
 
                     <div className="a4-body flex-1 min-h-0 flex flex-col pt-5">
-                      {/* Photo + name + status */}
+                      {/* Photo + name */}
                       <div className="flex items-start justify-between gap-4 mb-5">
                         <div className="flex items-center gap-4 min-w-0">
                           <div className="h-[35mm] w-[28mm] border border-slate-400 rounded-sm flex items-center justify-center bg-slate-50 shrink-0 overflow-hidden">
@@ -270,9 +270,6 @@ export default function StudentApplicationFormPage() {
                             <p className="text-xs text-slate-500 mt-1">Roll No: <span className="font-semibold text-[#1E2A4A]">{selected.rollNo || "—"}</span></p>
                           </div>
                         </div>
-                        <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${selected.status === "Active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                          {selected.status}
-                        </span>
                       </div>
 
                       {/* Section 1 — Academic Details */}
