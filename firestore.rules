@@ -96,7 +96,7 @@ service cloud.firestore {
     match /onlineExams/{id}   { allow read: if isStudent(); }
     match /questions/{id}     { allow read: if isStudent(); }
     match /homework/{id}      { allow read: if isStudent(); }
-    match /timetable/{id}     { allow read: if isStudent(); }
+    match /timetable/{id}     { allow id: if isStudent(); }
     match /classes/{id}       { allow read: if isStudent(); }
     match /subjects/{id}      { allow read: if isStudent(); }
     match /batches/{id}       { allow read: if isStudent(); }

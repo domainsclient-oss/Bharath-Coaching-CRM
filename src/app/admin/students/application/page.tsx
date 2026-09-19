@@ -243,7 +243,6 @@ export default function StudentApplicationFormPage() {
                       <div className="flex items-start justify-between">
                         <div>
                           <h1 className="text-xl font-bold leading-tight">{settings.appName}</h1>
-                          <p className="text-sm text-white/70 mt-0.5">{branches.find(b => b.id === currentBranch)?.name ?? currentBranch} Branch</p>
                         </div>
                         <div className="text-right">
                           <p className="text-[9px] text-white/60 uppercase font-bold tracking-wide">Application No</p>
