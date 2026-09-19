@@ -3,7 +3,7 @@
 import { CLASS_FILTER_OPTIONS } from "@/config/academics";
 import { useState, useMemo, useRef } from "react";
 import Link from "next/link";
-import { ChevronRight, Search, Printer, FileText, User, BookOpen, Phone } from "lucide-react";
+import { ChevronRight, Search, Printer, FileText, User, BookOpen, Phone, MapPin, Mail } from "lucide-react";
 import { SharedHeader } from "@/components/layout/shared-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,10 +46,10 @@ interface Student {
 }
 
 export default function StudentApplicationFormPage() {
-  const { currentBranch } = useBranch();
+  const { currentBranch, branches } = useBranch();
   const { settings } = useSettings();
   const [search, setSearch] = useState("");
-  const [classFilter, setClassFilter] = useState("All");
+  const [classFilter, setClassFilter] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -62,7 +62,7 @@ export default function StudentApplicationFormPage() {
 
   const students = useMemo(() =>
     allStudents.filter(s =>
-      (classFilter === "All" || s.class === classFilter) &&
+      (classFilter === "all" || s.class === classFilter) &&
       (s.name.toLowerCase().includes(search.toLowerCase()) ||
         (s.appNo ?? "").toLowerCase().includes(search.toLowerCase()))
     ),
@@ -144,7 +144,7 @@ export default function StudentApplicationFormPage() {
   return (
     <div className="flex flex-col min-h-screen bg-[#F5F7FA]">
       <div className="print:hidden"><SharedHeader title="Student Application Form" /></div>
-      <main className="p-4 md:p-6 lg:p-8 space-y-6 animate-in fade-in duration-500">
+      <main className="p-4 md:p-6 lg:p-8 space-y-6 animate-in fade-in duration-500 overflow-x-hidden">
         <div className="flex items-center text-xs text-muted-foreground gap-2 print:hidden">
           <Link href="/admin" className="hover:text-[#0D7C8F]">Dashboard</Link>
           <ChevronRight className="h-3 w-3" />
@@ -171,10 +171,10 @@ export default function StudentApplicationFormPage() {
                 <div className="space-y-1">
                   <Label className="text-xs font-bold uppercase text-muted-foreground">Class</Label>
                   <Select value={classFilter} onValueChange={setClassFilter}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="All Classes" /></SelectTrigger>
                     <SelectContent>
                       {CLASS_FILTER_OPTIONS.map(c => (
-                        <SelectItem key={c} value={c}>{c === "All" ? "All Classes" : `Class ${c}`}</SelectItem>
+                        <SelectItem key={c} value={c}>{c === "all" ? "All Classes" : `Class ${c}`}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -245,7 +245,7 @@ export default function StudentApplicationFormPage() {
                       <div className="flex items-start justify-between">
                         <div>
                           <h1 className="text-xl font-bold leading-tight">{settings.appName}</h1>
-                          <p className="text-xs text-white/70 mt-0.5">{currentBranch} Branch</p>
+                          <p className="text-xs text-white/70 mt-0.5">{branches.find(b => b.id === currentBranch)?.name ?? currentBranch} Branch</p>
                         </div>
                         <div className="text-right">
                           <p className="text-[9px] text-white/60 uppercase font-bold tracking-wide">Application No</p>
@@ -330,8 +330,15 @@ export default function StudentApplicationFormPage() {
                           ))}
                         </div>
                         <div className="text-center text-[10px] text-slate-500 border-t border-slate-300 mt-5 pt-2">
-                          <p>Generated on {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
-                          <p className="font-medium mt-0.5">{settings.appName} · {currentBranch} Branch</p>
+                          <p className="font-bold text-[#1E2A4A] uppercase tracking-wide mb-1">{settings.appName} · {branches.find(b => b.id === currentBranch)?.name ?? currentBranch} Branch</p>
+                          <p className="flex items-center justify-center gap-1.5">
+                            <MapPin className="h-2.5 w-2.5" /> {settings.address}
+                          </p>
+                          <p className="flex items-center justify-center gap-3 mt-0.5">
+                            <span className="flex items-center gap-1"><Phone className="h-2.5 w-2.5" /> {settings.contactPhone}</span>
+                            <span className="flex items-center gap-1"><Mail className="h-2.5 w-2.5" /> {settings.contactEmail}</span>
+                          </p>
+                          <p className="mt-2 opacity-60 italic">Generated on {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
                         </div>
                       </div>
                     </div>
