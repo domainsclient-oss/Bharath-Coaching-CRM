@@ -330,7 +330,7 @@ export default function StudentApplicationFormPage() {
                           ))}
                         </div>
                         <div className="text-center text-[10px] text-slate-500 border-t border-slate-300 mt-5 pt-2">
-                          <p className="font-bold text-[#1E2A4A] uppercase tracking-wide mb-1">{settings.appName} · {branches.find(b => b.id === currentBranch)?.name ?? currentBranch} Branch</p>
+                          <p className="font-bold text-[#1E2A4A] uppercase tracking-wide mb-1">{settings.appName}</p>
                           <p className="flex items-center justify-center gap-1.5">
                             <MapPin className="h-2.5 w-2.5" /> {settings.address}
                           </p>
