@@ -74,7 +74,7 @@ interface AlumniDoc {
 
 
 function initials(name: string) {
-  return name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+  return name.split(" ").filter(Boolean).map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
 }
 
 export default function WhatsAppAlumniPage() {
@@ -82,8 +82,17 @@ export default function WhatsAppAlumniPage() {
 
   const { data: allStudents, loading } = useFirestoreCollection<AlumniDoc>("students", currentBranch);
 
+  // Firestore rows are not typed: name or phone can be missing or stored as a
+  // number, so coerce them to strings once here instead of at every use.
   const alumni = useMemo(
-    () => allStudents.filter(s => s.status === "Discontinued" || s.status === "Alumni"),
+    () => allStudents
+      .filter(s => s.status === "Discontinued" || s.status === "Alumni")
+      .map(s => ({
+        ...s,
+        name: String(s.name ?? "").trim() || "Unnamed",
+        phone: s.phone == null ? undefined : String(s.phone),
+        whatsapp: s.whatsapp == null ? undefined : String(s.whatsapp),
+      })),
     [allStudents],
   );
 
@@ -265,10 +274,8 @@ export default function WhatsAppAlumniPage() {
             <div className="flex items-center justify-between bg-white rounded-lg border px-4 py-2.5 shadow-sm">
               <div className="flex items-center gap-2.5">
                 <Checkbox
-                  checked={allChecked}
-                  ref={el => { if (el) (el as HTMLButtonElement).dataset.indeterminate = someChecked ? "true" : "false"; }}
+                  checked={allChecked ? true : someChecked ? "indeterminate" : false}
                   onCheckedChange={toggleAll}
-                  className={someChecked ? "opacity-70" : ""}
                 />
                 <span className="text-sm font-medium text-[#1E2A4A]">
                   {selected.size > 0

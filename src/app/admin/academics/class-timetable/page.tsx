@@ -261,14 +261,9 @@ export default function ClassTimetablePage() {
     [allClasses, selectedClassNo, selectedBoard]
   );
 
-  // "All" plus the modes this class and board are actually taught in.
-  const modeOptions = useMemo(
-    () => MODE_FILTER_OPTIONS.filter((m) => m === "All" || classBatches.some((c: any) => sameMode(c, m))),
-    [classBatches]
-  );
-  useEffect(() => {
-    if (!modeOptions.includes(modeFilter)) setModeFilter("All");
-  }, [modeOptions, modeFilter]);
+  // Every mode is always listed; a mode with no batch for this class and
+  // board shows a "not set up" message instead of the grid.
+  const modeOptions = MODE_FILTER_OPTIONS;
 
   /**
    * Batches whose slots the grid shows. With "All Modes" they are shown
@@ -502,6 +497,14 @@ export default function ClassTimetablePage() {
             <CardContent className="py-16 text-center text-muted-foreground">
               {classLabel(selectedClassNo)} has not been set up{selectedBoard ? ` for ${selectedBoard}` : ""} yet.
               Choose another class or board, or add it in{" "}
+              <Link href="/admin/academics/classes" className="text-[#0D7C8F] underline">Academics → Classes</Link>.
+            </CardContent>
+          </Card>
+        ) : selectedBatches.length === 0 ? (
+          <Card className="border-none shadow-sm">
+            <CardContent className="py-16 text-center text-muted-foreground">
+              {classLabel(selectedClassNo)}{selectedBoard ? ` (${selectedBoard})` : ""} has no {modeFilter} batch yet.
+              Choose another mode, or add one in{" "}
               <Link href="/admin/academics/classes" className="text-[#0D7C8F] underline">Academics → Classes</Link>.
             </CardContent>
           </Card>

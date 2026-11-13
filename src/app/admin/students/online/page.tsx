@@ -111,9 +111,6 @@ export default function OnlineAdmissionsPage() {
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
               <h2 className="text-2xl font-bold text-[#1E2A4A]">Online Students</h2>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Students admitted through online mode in {currentBranch} branch
-              </p>
             </div>
             <Button variant="outline" size="sm" asChild>
               <Link href="/admin/students">
